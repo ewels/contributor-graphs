@@ -370,13 +370,16 @@
         border: 1px solid var(--border);
         border-radius: 12px;
         box-shadow: var(--shadow);
-        padding: 10px 16px 6px;
+        /* Horizontal padding matches .chart-card so the two SVGs share a
+           screen-space origin and their plotting areas line up exactly. */
+        padding: 10px 4px 6px;
         margin-bottom: 14px;
       }
       .context-card .hint {
         font-size: 11px;
         color: var(--faint);
         margin: 0 0 2px;
+        padding: 0 8px;
         display: flex;
         justify-content: space-between;
       }
@@ -1159,7 +1162,42 @@
       const ROW_H = 28,
         BAR_H = 13,
         AVATAR = 20;
+      const NAME_SIZE = 12.5,
+        COUNT_W = 62,
+        MARGIN_R = 14;
       let currentRows = [];
+
+      /* Shared geometry for the chart and the context strip. labelW is measured
+         over the whole candidate set for the current mode (not just the visible
+         rows) so the left margin — and therefore the plotting origin shared with
+         the context strip — stays put as filters change. Both SVGs measure the
+         chart-card so they render at an identical width. */
+      function computeLayout() {
+        const width = document.querySelector(".chart-card").clientWidth - 8;
+        const names = affMode()
+          ? [UNAFFILIATED, ...GROUPS]
+          : ALL.filter((c) => state.bots || !c.bot).map((c) => c.name);
+        let maxNameW = 60;
+        for (const nm of names) {
+          const w = textWidth(nm, NAME_SIZE, 500);
+          if (w > maxNameW) maxNameW = w;
+        }
+        const labelW = Math.min(
+          Math.max(maxNameW + AVATAR + 56, 140),
+          Math.max(170, width * 0.34),
+        );
+        const chartX = labelW;
+        const chartW = width - labelW - COUNT_W - MARGIN_R;
+        return { width, labelW, chartX, chartW };
+      }
+
+      /* The padded time domain the chart maps across [chartX, chartX+chartW].
+         At full zoom this equals the context strip's domain, so a spike in one
+         lines up vertically with the bump in the other. */
+      function paddedDomain(d0, d1) {
+        const pad = Math.max(86400, (d1 - d0) * 0.012);
+        return [d0 - pad, d1 + pad];
+      }
 
       function renderChart() {
         const { rows, eligible, total } = filtered();
@@ -1174,25 +1212,12 @@
           return;
         }
 
-        const width = svg.parentElement.clientWidth - 8;
         const [d0raw, d1raw] = domain();
-        const pad = Math.max(86400, (d1raw - d0raw) * 0.012);
-        const t0 = d0raw - pad,
-          t1 = d1raw + pad;
+        const [t0, t1] = paddedDomain(d0raw, d1raw);
 
-        const nameSize = 12.5;
-        const maxNameW = Math.max(
-          ...rows.map((c) => textWidth(c.name, nameSize, 500)),
-          60,
-        );
-        const labelW = Math.min(
-          Math.max(maxNameW + AVATAR + 56, 140),
-          Math.max(170, width * 0.34),
-        );
-        const countW = 62,
-          marginR = 14;
-        const chartX = labelW,
-          chartW = width - labelW - countW - marginR;
+        const nameSize = NAME_SIZE;
+        const { width, labelW, chartX, chartW } = computeLayout();
+        const marginR = MARGIN_R;
         const topPad = 26,
           axisH = 30;
         const height = topPad + rows.length * ROW_H + axisH;
@@ -1454,26 +1479,28 @@
       function renderContext() {
         const svg = $("#context");
         const th = theme();
-        const width = svg.parentElement.clientWidth - 4;
+        // Share the chart's width and plotting origin so the activity curve
+        // lines up horizontally with the rows below it.
+        const { width, chartX, chartW } = computeLayout();
         svg.setAttribute("width", width);
         svg.setAttribute("viewBox", `0 0 ${width} ${CTX_H}`);
 
-        const t0 = REPO.first,
-          t1 = REPO.last;
-        const padX = 6;
-        const w = width - padX * 2;
-        const sx = (ts) => padX + ((ts - t0) / (t1 - t0)) * w;
-        ctxGeom = { sx, t0, t1, padX, w };
+        // The whole-repo range, padded exactly like the chart at full zoom.
+        const d0 = REPO.first,
+          d1 = REPO.last;
+        const [t0, t1] = paddedDomain(d0, d1);
+        const sx = (ts) => chartX + ((ts - t0) / (t1 - t0)) * chartW;
+        ctxGeom = { sx, t0, t1, chartX, chartW };
 
         const { m0, bins } = SERIES;
         const max = maxOf(bins, 1);
         const baseY = CTX_H - 16;
         const pts = bins.map((v, i) => {
           const ts = (monthStartTs(m0 + i) + monthStartTs(m0 + i + 1)) / 2;
-          return `${sx(Math.min(Math.max(ts, t0), t1)).toFixed(1)},${(baseY - Math.sqrt(v / max) * (baseY - 6)).toFixed(1)}`;
+          return `${sx(Math.min(Math.max(ts, d0), d1)).toFixed(1)},${(baseY - Math.sqrt(v / max) * (baseY - 6)).toFixed(1)}`;
         });
         const parts = [];
-        // Year ticks.
+        // Year ticks (same x mapping as the chart gridlines).
         for (const [ts, lbl] of timeTicks(t0, t1).major) {
           parts.push(
             `<line x1="${sx(ts)}" y1="2" x2="${sx(ts)}" y2="${baseY}" stroke="${th.gridYear}"/>`,
@@ -1483,13 +1510,13 @@
           );
         }
         parts.push(
-          `<polyline points="${sx(t0)},${baseY} ${pts.join(" ")} ${sx(t1)},${baseY}" fill="${th.ctxArea}" stroke="none"/>`,
+          `<polyline points="${sx(d0)},${baseY} ${pts.join(" ")} ${sx(d1)},${baseY}" fill="${th.ctxArea}" stroke="none"/>`,
         );
         parts.push(
           `<polyline points="${pts.join(" ")}" fill="none" stroke="${th.ctxLine}" stroke-width="1.2"/>`,
         );
         parts.push(
-          `<line x1="${padX}" y1="${baseY}" x2="${width - padX}" y2="${baseY}" stroke="${th.gridYear}"/>`,
+          `<line x1="${chartX - 4}" y1="${baseY}" x2="${chartX + chartW + 4}" y2="${baseY}" stroke="${th.gridYear}"/>`,
         );
         // Brush layer (updated separately).
         parts.push(`<g id="brushg"></g>`);
@@ -1509,9 +1536,11 @@
         }
         const x0 = ctxGeom.sx(state.t0),
           x1 = ctxGeom.sx(state.t1);
+        const gx0 = ctxGeom.chartX,
+          gx1 = ctxGeom.chartX + ctxGeom.chartW;
         g.innerHTML =
-          `<rect x="${ctxGeom.padX}" y="2" width="${Math.max(0, x0 - ctxGeom.padX)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
-          `<rect x="${x1}" y="2" width="${Math.max(0, ctxGeom.padX + ctxGeom.w - x1)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
+          `<rect x="${gx0}" y="2" width="${Math.max(0, x0 - gx0)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
+          `<rect x="${x1}" y="2" width="${Math.max(0, gx1 - x1)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
           `<rect class="sel" x="${x0}" y="2" width="${Math.max(2, x1 - x0)}" height="${baseY - 2}" fill="none" stroke="${ACCENT}" stroke-width="1.3" rx="3" style="cursor:grab"/>` +
           `<rect class="hl" x="${x0 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>` +
           `<rect class="hr" x="${x1 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>`;
@@ -1525,12 +1554,12 @@
         const tsAt = (clientX) => {
           const rect = svg.getBoundingClientRect();
           const x = Math.min(
-            Math.max(clientX - rect.left, ctxGeom.padX),
-            ctxGeom.padX + ctxGeom.w,
+            Math.max(clientX - rect.left, ctxGeom.chartX),
+            ctxGeom.chartX + ctxGeom.chartW,
           );
           return (
             ctxGeom.t0 +
-            ((x - ctxGeom.padX) / ctxGeom.w) * (ctxGeom.t1 - ctxGeom.t0)
+            ((x - ctxGeom.chartX) / ctxGeom.chartW) * (ctxGeom.t1 - ctxGeom.t0)
           );
         };
         svg.addEventListener("pointerdown", (e) => {
@@ -1749,6 +1778,7 @@
         state.gsel.clear();
         syncControls();
         renderLegend();
+        renderContext(); // label width (and so the shared margin) can change
         scheduleRender();
         writeHash();
       });
@@ -1792,6 +1822,7 @@
       $("#bots").addEventListener("change", (e) => {
         state.bots = e.target.checked;
         syncControls();
+        renderContext(); // showing bots can widen the label column
         scheduleRender();
         writeHash();
       });

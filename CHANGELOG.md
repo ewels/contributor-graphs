@@ -12,6 +12,13 @@ All notable changes to this project are documented here. The format follows
   timeline, identities are resolved across all sources, and commits shared by
   overlapping histories are de-duplicated by SHA. New `analyze_many` library API.
 
+### Changed
+
+- The interactive page's total-activity strip now shares the chart's left
+  margin and time scale, so its plotting area lines up exactly with the
+  contributor rows: a spike in overall activity sits directly above the rows
+  that drove it.
+
 ## [1.0.0] - 2026-06-11
 
 First public release.
