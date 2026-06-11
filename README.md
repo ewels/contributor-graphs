@@ -146,8 +146,9 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--no-affiliation`                  | Disable auto group detection from profiles                           |
 | `--no-name-merge`                   | Don't merge identities that share an author name                     |
 | `--accent <HEX>`                    | Bar accent colour (default: `#2f6feb`)                               |
-| `--theme <light\|dark>`             | Background theme for the static SVG (default: `light`)               |
-| `--skin <default\|wikipedia>`       | Visual skin for both outputs (default: `default`)                    |
+| `--theme <ID>`                      | Theme id: `auto`, `light`, `dark`, `wikipedia`, or a custom one      |
+| `--themes <FILE.json>`              | Define extra themes / configure the page's theme menu                |
+| `--lock-theme`                      | Hide the page's theme switcher and pin to one theme                  |
 | `--width <PX>`                      | Static SVG width (default: 1100)                                     |
 | `--format <svg\|html\|both>`        | Which outputs to write (default: both)                               |
 | `--open`                            | Open the HTML in your browser when done                              |
@@ -161,9 +162,44 @@ Dark, and **Wikipedia**; it opens on your OS light/dark preference unless you
 pick one, and the choice is remembered per browser. The Wikipedia theme borrows
 the look of Wikipedia's "band members over time" timelines: a Linux Libertine
 heading over a plain sans-serif body, Wikipedia colours, square controls, and a
-distinct solid bar per contributor instead of activity-heat shading. For the
-static SVG, select it with `--skin wikipedia` (combine with `--theme dark` for a
-dark background); `--skin` also sets the page's initial theme.
+distinct solid bar per contributor instead of activity-heat shading.
+
+`--theme <ID>` sets the SVG's look and the page's initial theme; `auto` (the
+default) renders the SVG light and lets the page follow the viewer's OS.
+
+#### Custom themes
+
+Define your own themes in a JSON file and pass it with `--themes`. Each theme
+inherits from `extends` (a built-in or another custom theme; default `light`)
+and overrides only what it needs:
+
+```json
+{
+  "default": "seqera",
+  "available": ["seqera", "dark"],
+  "lock": false,
+  "themes": {
+    "seqera": {
+      "label": "Seqera",
+      "extends": "light",
+      "accent": "#0d6273",
+      "bg": "#f4f8f8"
+    }
+  }
+}
+```
+
+- `default` — the theme the page opens with (also settable with `--theme`).
+- `available` — which themes appear in the menu, in order (default: all).
+- `lock` (or `--lock-theme`) — hide the menu and pin to a single theme, so you
+  can ship one custom look with no switching.
+
+A theme may set any of: `label`, `extends`, `dark` (bool, for `color-scheme`
+and avatar shading), `flat` (bool, solid band bars + sans-serif chart font),
+`radius` (px), `font_sans`, `font_display`, and the colours `bg`, `card`,
+`border`, `border_strong`, `text`, `muted`, `faint`, `accent`, `accent_soft`,
+`grid_year`, `grid_month`, `track`, `ctx_area`, `ctx_line`. Custom themes work
+in both the SVG (`--theme <id>`) and the interactive page.
 
 ### Grouping by affiliation
 

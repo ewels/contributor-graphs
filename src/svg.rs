@@ -1,4 +1,5 @@
 use crate::model::{format_month_year, month_start_ts, thousands, Contributor};
+use crate::theme::Theme;
 use chrono::{Datelike, TimeZone, Utc};
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -12,10 +13,8 @@ pub struct SvgOptions {
     pub accent: String,
     /// Each row is a whole affiliation rather than one person.
     pub by_affiliation: bool,
-    /// Render on a dark background.
-    pub dark: bool,
-    /// Use the Wikipedia "band members" skin (flat band bars, serif title).
-    pub wikipedia: bool,
+    /// The theme to render in.
+    pub theme: Theme,
 }
 
 impl Default for SvgOptions {
@@ -28,8 +27,7 @@ impl Default for SvgOptions {
             footer_right: String::new(),
             accent: "#2f6feb".into(),
             by_affiliation: false,
-            dark: false,
-            wikipedia: false,
+            theme: crate::theme::builtins().swap_remove(0), // light
         }
     }
 }
@@ -43,86 +41,12 @@ const ROW_H: f64 = 26.0;
 const BAR_H: f64 = 13.0;
 const AVATAR: f64 = 18.0;
 
-struct Theme {
-    text: &'static str,
-    muted: &'static str,
-    faint: &'static str,
-    grid_year: &'static str,
-    grid_month: &'static str,
-    bg: &'static str,
-    /// HSL lightness (%) for the initials-fallback avatar discs.
-    avatar_l: u32,
-    /// Font stack for the chart body.
-    font: &'static str,
-    /// Font stack for the title (a serif for the Wikipedia skin).
-    display_font: &'static str,
-    /// Draw solid per-row "band" bars instead of activity-heat shading.
-    flat: bool,
-}
-
-const SANS: &str = "-apple-system, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif";
-// Wikipedia content sets the body font to the generic "sans-serif".
-const WIKI_SANS: &str = "sans-serif";
-const WIKI_SERIF: &str = "'Linux Libertine', Georgia, 'Times New Roman', serif";
-
 /// Flat, saturated, distinct per-row colours for the Wikipedia "band members"
 /// look.
 pub const BAND_PALETTE: &[&str] = &[
     "#2a64c4", "#d23a2e", "#2f9e44", "#e8910c", "#8a39b0", "#0e9aa7", "#d23a8e", "#6aa70e",
     "#3b4cc0", "#c0561e", "#1ba0c4", "#d6498b",
 ];
-
-const LIGHT: Theme = Theme {
-    text: "#1c2530",
-    muted: "#5d6b7c",
-    faint: "#9aa5b1",
-    grid_year: "#e2e6ec",
-    grid_month: "#eef1f5",
-    bg: "#ffffff",
-    avatar_l: 62,
-    font: SANS,
-    display_font: SANS,
-    flat: false,
-};
-
-const DARK: Theme = Theme {
-    text: "#e6ebf2",
-    muted: "#9aa7b6",
-    faint: "#5f6c7b",
-    grid_year: "#232b35",
-    grid_month: "#1a212a",
-    bg: "#0d1117",
-    avatar_l: 48,
-    font: SANS,
-    display_font: SANS,
-    flat: false,
-};
-
-const WIKI_LIGHT: Theme = Theme {
-    text: "#202122",
-    muted: "#54595d",
-    faint: "#72777d",
-    grid_year: "#c8ccd1",
-    grid_month: "#eaecf0",
-    bg: "#ffffff",
-    avatar_l: 62,
-    font: WIKI_SANS,
-    display_font: WIKI_SERIF,
-    flat: true,
-};
-
-const WIKI_DARK: Theme = Theme {
-    text: "#eaecf0",
-    muted: "#a2a9b1",
-    faint: "#72777d",
-    grid_year: "#33373c",
-    grid_month: "#23272c",
-    bg: "#101418",
-    avatar_l: 48,
-    font: WIKI_SANS,
-    display_font: WIKI_SERIF,
-    flat: true,
-};
 
 fn esc(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -311,12 +235,7 @@ pub fn smooth_months(months: &[u32]) -> Vec<f64> {
 }
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
-    let th = match (opts.wikipedia, opts.dark) {
-        (true, false) => &WIKI_LIGHT,
-        (true, true) => &WIKI_DARK,
-        (false, false) => &LIGHT,
-        (false, true) => &DARK,
-    };
+    let th = &opts.theme;
     let width = opts.width.max(360.0);
     // Colours are interpolated raw into SVG attributes; keep the user-supplied
     // accent from breaking out of them.
@@ -386,7 +305,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let sx = |ts: i64| chart_x + (ts - t0) as f64 / (t1 - t0) as f64 * chart_w;
 
     let mut s = String::with_capacity(256 * 1024);
-    let font = th.font;
+    let font = th.font_sans.as_str();
     let _ = write!(
         s,
         r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{w}" height="{h}" viewBox="0 0 {w} {h}" font-family="{font}">"#,
@@ -413,7 +332,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
         r#"<text x="28" y="36" font-size="19" font-weight="{}" fill="{}" font-family="{}" letter-spacing="-0.2">{}</text>"#,
         title_weight,
         th.text,
-        th.display_font,
+        th.font_display,
         esc(&opts.title)
     );
     let _ = write!(
@@ -601,7 +520,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                         r = n(AVATAR / 2.0),
                         ty = n(cy + 2.7),
                         hue = hue,
-                        l = th.avatar_l,
+                        l = th.avatar_l(),
                         init = esc(&initials(&c.name))
                     );
                 }

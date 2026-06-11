@@ -941,7 +941,31 @@
           flat: true,
         },
       };
-      const THEME_ORDER = ["light", "dark", "wikipedia"];
+      // Custom themes defined at generation time: register their chart fields
+      // and inject a CSS variable block for each. Built-ins are already in the
+      // stylesheet above; this only adds extras.
+      (function registerCustomThemes() {
+        const extra = DATA.themes || [];
+        if (!extra.length) return;
+        const css = extra
+          .map((t) => {
+            const body = Object.entries(t.css || {})
+              .map(([k, v]) => `${k}:${v};`)
+              .join("");
+            return `[data-theme="${t.id}"]{${body}}`;
+          })
+          .join("\n");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.appendChild(style);
+        for (const t of extra) THEMES[t.id] = { ...t.chart, label: t.label };
+      })();
+      // Menu order: configured list, else every known theme.
+      const THEME_ORDER = (
+        DATA.themeOrder && DATA.themeOrder.length
+          ? DATA.themeOrder
+          : ["light", "dark", "wikipedia"]
+      ).filter((t) => THEMES[t]);
       function themeName() {
         const t = document.documentElement.dataset.theme;
         return THEMES[t] ? t : "light";
@@ -2239,16 +2263,25 @@
       /* ---------- init ---------- */
       readHash();
       buildThemeMenu();
-      // Prefer a saved choice; else the theme baked in at generation; else the
-      // OS light/dark preference.
-      const savedTheme =
-        localStorage.getItem("cg-theme") ||
-        (THEMES[DATA.theme] && DATA.theme) ||
-        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.dataset.theme = THEMES[savedTheme]
-        ? savedTheme
+      // When the theme is locked, pin to the configured default and hide the
+      // switcher. Otherwise prefer a saved choice, then the generation-time
+      // default, then the OS light/dark preference.
+      const locked = !!DATA.lockTheme;
+      const initialTheme = locked
+        ? DATA.defaultTheme || "light"
+        : localStorage.getItem("cg-theme") ||
+          (THEMES[DATA.defaultTheme] && DATA.defaultTheme) ||
+          (matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+      document.documentElement.dataset.theme = THEMES[initialTheme]
+        ? initialTheme
         : "light";
-      $("#theme").value = themeName();
+      if (locked) {
+        $("#theme").hidden = true;
+      } else {
+        $("#theme").value = themeName();
+      }
       renderHeader();
       syncControls();
       renderAll();

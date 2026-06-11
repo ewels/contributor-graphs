@@ -27,6 +27,7 @@ pub mod identity;
 pub mod model;
 pub mod repo;
 pub mod svg;
+pub mod theme;
 
 use anyhow::{bail, Result};
 

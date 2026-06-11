@@ -30,8 +30,8 @@ gen() {
 gen --basename rnaseq --format html
 gen --basename example-rnaseq --format svg --width "$WIDTH"
 
-# Wikipedia "band members over time" skin showcase.
-gen --basename rnaseq-wikipedia --format html --skin wikipedia
-gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --skin wikipedia
+# Wikipedia "band members over time" theme showcase.
+gen --basename rnaseq-wikipedia --format html --theme wikipedia
+gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --theme wikipedia
 
 echo "==> done; regenerated SVG + HTML in docs/"

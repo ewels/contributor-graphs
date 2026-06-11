@@ -24,6 +24,12 @@ All notable changes to this project are documented here. The format follows
   top-nav dropdown (Light / Dark / Wikipedia) that defaults to the OS
   preference; the SVG takes `--skin wikipedia`.
 - The interactive header shows the GitHub repository description, when it has one.
+- Custom, extensible themes: define extra themes in a JSON file (`--themes`),
+  inheriting from a built-in via `extends` and overriding only the colours/fonts
+  you need. Configure which themes the page offers, the default, and whether the
+  switcher is shown (`lock` / `--lock-theme`) — so you can ship a single custom
+  look with no switching. `--theme <id>` selects the theme for both outputs and
+  replaces the old `--theme light|dark` / `--skin` flags.
 
 ### Changed
 
