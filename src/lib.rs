@@ -266,6 +266,15 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         None
     };
 
+    // Repository description (single GitHub source).
+    let description = if cfg.use_github {
+        single
+            .and_then(|p| p.slug.as_deref())
+            .and_then(|slug| github::fetch_repo_description(&client, slug))
+    } else {
+        None
+    };
+
     let default_name = match single {
         Some(p) => p.display_name.clone(),
         None => combined_name(&prepared),
@@ -288,6 +297,7 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         total_contributors: contributors.iter().filter(|c| !c.bot).count(),
         generated: chrono::Utc::now().format("%Y-%m-%d").to_string(),
         owner_avatar,
+        description,
     };
 
     Ok(Analysis { contributors, meta })

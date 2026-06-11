@@ -29,7 +29,14 @@ pub fn render_html(meta: &RepoMeta, contributors: &[Contributor], opts: &HtmlOpt
         "accent": opts.accent,
         "byAffiliation": opts.by_affiliation,
         "unaffiliated": opts.unaffiliated_label,
-        "skin": opts.skin,
+        // Initial theme the page opens with (a viewer can still switch, and a
+        // saved choice wins). The "wikipedia" skin maps to the Wikipedia theme;
+        // otherwise leave it to the OS light/dark preference.
+        "theme": if opts.skin == "wikipedia" {
+            serde_json::Value::String("wikipedia".into())
+        } else {
+            serde_json::Value::Null
+        },
     });
     // `<\/` keeps any `</script>` inside the JSON from terminating the tag.
     let json = serde_json::to_string(&data)

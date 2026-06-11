@@ -17,11 +17,13 @@ All notable changes to this project are documented here. The format follows
   right. The line plots share a fixed, mode-wide y-axis so expanded rows are
   directly comparable, and the summary bar is hidden while expanded. An
   "Expand all / Collapse all" control toggles every visible row at once.
-- Theming system with a new **Wikipedia** skin, modelled on the EasyTimeline
-  "band members over time" charts: serif headings over an Arial body, Wikipedia
-  colours, and flat solid per-row band bars. Choose it from the Theme selector
-  in the interactive page or with `--skin wikipedia` for the SVG; both skins
-  keep first-class light and dark modes.
+- Theming system with a new **Wikipedia** theme, modelled on the EasyTimeline
+  "band members over time" charts: a Linux Libertine heading over a plain
+  sans-serif body, Wikipedia colours, square controls, and a distinct solid bar
+  per contributor. The interactive page merges theme selection into a single
+  top-nav dropdown (Light / Dark / Wikipedia) that defaults to the OS
+  preference; the SVG takes `--skin wikipedia`.
+- The interactive header shows the GitHub repository description, when it has one.
 
 ### Changed
 

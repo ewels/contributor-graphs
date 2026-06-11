@@ -61,13 +61,15 @@ struct Theme {
 }
 
 const SANS: &str = "-apple-system, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif";
-const WIKI_SANS: &str = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
+// Wikipedia content sets the body font to the generic "sans-serif".
+const WIKI_SANS: &str = "sans-serif";
 const WIKI_SERIF: &str = "'Linux Libertine', Georgia, 'Times New Roman', serif";
 
-/// Flat, distinct per-row colours for the Wikipedia "band members" look.
+/// Flat, saturated, distinct per-row colours for the Wikipedia "band members"
+/// look.
 pub const BAND_PALETTE: &[&str] = &[
-    "#4f6fb0", "#c1543f", "#5a9e54", "#d39c3f", "#8a5fa6", "#3f9aa6", "#b75d8e", "#7d8b3f",
-    "#5b6fae", "#bf6b3f", "#4a9d86", "#a8517a",
+    "#2a64c4", "#d23a2e", "#2f9e44", "#e8910c", "#8a39b0", "#0e9aa7", "#d23a8e", "#6aa70e",
+    "#3b4cc0", "#c0561e", "#1ba0c4", "#d6498b",
 ];
 
 const LIGHT: Theme = Theme {
@@ -404,9 +406,12 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     );
 
     // ---- header ----
+    // Wikipedia article headings are serif and normal-weight, not bold.
+    let title_weight = if th.flat { "400" } else { "700" };
     let _ = write!(
         s,
-        r#"<text x="28" y="36" font-size="19" font-weight="700" fill="{}" font-family="{}" letter-spacing="-0.2">{}</text>"#,
+        r#"<text x="28" y="36" font-size="19" font-weight="{}" fill="{}" font-family="{}" letter-spacing="-0.2">{}</text>"#,
+        title_weight,
         th.text,
         th.display_font,
         esc(&opts.title)

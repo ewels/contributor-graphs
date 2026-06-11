@@ -125,6 +125,9 @@ pub struct RepoMeta {
     /// Owner/org avatar as a data URI, for the interactive page header.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner_avatar: Option<String>,
+    /// The GitHub repository description, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 pub fn month_index(ts: i64) -> i32 {

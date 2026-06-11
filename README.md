@@ -156,12 +156,14 @@ Run `contributor-graphs --help` for the full list.
 
 ### Themes
 
-Both outputs support light and dark modes, and a second skin. The **Wikipedia**
-skin (`--skin wikipedia`) borrows the look of Wikipedia's "band members over
-time" timelines: a serif title, Arial body, Wikipedia colours, and flat solid
-per-row bars instead of activity-heat shading. In the interactive page, pick a
-theme from the Theme selector and toggle light/dark with the header button; the
-choice is remembered per browser.
+The interactive page has a single Theme dropdown (top right) offering Light,
+Dark, and **Wikipedia**; it opens on your OS light/dark preference unless you
+pick one, and the choice is remembered per browser. The Wikipedia theme borrows
+the look of Wikipedia's "band members over time" timelines: a Linux Libertine
+heading over a plain sans-serif body, Wikipedia colours, square controls, and a
+distinct solid bar per contributor instead of activity-heat shading. For the
+static SVG, select it with `--skin wikipedia` (combine with `--theme dark` for a
+dark background); `--skin` also sets the page's initial theme.
 
 ### Grouping by affiliation
 

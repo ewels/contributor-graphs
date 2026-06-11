@@ -52,9 +52,10 @@
 
       /* ---------- Wikipedia skin ---------- */
       /* Evokes the EasyTimeline "band members over time" charts: a flat white
-         paper, Linux Libertine / Georgia headings over an Arial body, Wikipedia
-         link-blue, and (in the chart) solid per-row band colours. */
-      [data-skin="wikipedia"] {
+         paper, a Linux Libertine heading over a plain sans-serif body (exactly
+         what Wikipedia sets), Wikipedia link-blue, square corners, and solid
+         per-row band colours in the chart. */
+      [data-theme="wikipedia"] {
         --bg: #ffffff;
         --card: #ffffff;
         --border: #c8ccd1;
@@ -70,26 +71,26 @@
         --grid-month: #eaecf0;
         --track: #eaecf0;
         --radius: 2px;
-        --font-sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        /* Wikipedia content sets the body font to the generic "sans-serif". */
+        --font-sans: sans-serif;
         --font-display: "Linux Libertine", "Georgia", "Times New Roman", serif;
         color-scheme: light;
       }
-      [data-skin="wikipedia"][data-theme="dark"] {
-        --bg: #101418;
-        --card: #1b1f24;
-        --border: #3a3f44;
-        --border-strong: #54595d;
-        --text: #eaecf0;
-        --muted: #a2a9b1;
-        --faint: #72777d;
-        --accent: #88a3e8;
-        --accent-soft: rgba(136, 163, 232, 0.14);
-        --shadow: none;
-        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.6);
-        --grid-year: #33373c;
-        --grid-month: #23272c;
-        --track: #33373c;
-        color-scheme: dark;
+      /* Article-heading style: serif, large, normal weight (not bold). */
+      [data-theme="wikipedia"] .title-block h1 {
+        font-weight: 400;
+        font-size: 30px;
+        letter-spacing: normal;
+      }
+      /* Wikipedia is flat: square off the controls and chips. (Selectors are
+         specific enough to beat the base control rules' source order.) */
+      [data-theme="wikipedia"] .btn,
+      [data-theme="wikipedia"] input[type="search"],
+      [data-theme="wikipedia"] input[type="number"],
+      [data-theme="wikipedia"] select,
+      [data-theme="wikipedia"] .legend .chip,
+      [data-theme="wikipedia"] .ctx-toggle {
+        border-radius: 2px;
       }
       * {
         box-sizing: border-box;
@@ -162,6 +163,13 @@
         color: var(--text);
         font-weight: 600;
         font-variant-numeric: tabular-nums;
+      }
+      .repo-desc {
+        margin: 8px 0 0;
+        max-width: 70ch;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
       }
       .header-actions {
         display: flex;
@@ -635,6 +643,7 @@
         <div class="title-block">
           <h1 id="repo-title"></h1>
           <div class="stats" id="stats"></div>
+          <p class="repo-desc" id="repo-desc" hidden></p>
         </div>
         <div class="header-actions">
           <button class="btn" id="dl-svg" title="Download current view as SVG">
@@ -663,50 +672,16 @@
             </svg>
             PNG
           </button>
-          <button
-            class="btn icon"
-            id="theme-toggle"
-            title="Toggle dark mode"
-            aria-label="Toggle dark mode"
-          >
-            <svg
-              id="icon-moon"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z" />
-            </svg>
-            <svg
-              id="icon-sun"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="display: none"
-            >
-              <circle cx="8" cy="8" r="3.2" />
-              <path
-                d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"
-              />
-            </svg>
-          </button>
+          <select
+            class="btn"
+            id="theme"
+            title="Theme"
+            aria-label="Theme"
+          ></select>
         </div>
       </header>
 
       <div class="toolbar">
-        <div class="ctl">
-          <label for="skin">Theme</label>
-          <select id="skin">
-            <option value="default">Default</option>
-            <option value="wikipedia">Wikipedia</option>
-          </select>
-        </div>
         <div class="ctl" id="ctl-rows" hidden>
           <label for="rows">Rows</label>
           <select id="rows">
@@ -904,90 +879,75 @@
       /* ---------- theme ---------- */
       const SANS =
         "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif";
-      const WIKI_SANS = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
-      // Flat, distinct per-row colours for the Wikipedia "band members" look.
+      // Flat, saturated, distinct per-row colours for the "band members" look.
       const BAND_PALETTE = [
-        "#4f6fb0",
-        "#c1543f",
-        "#5a9e54",
-        "#d39c3f",
-        "#8a5fa6",
-        "#3f9aa6",
-        "#b75d8e",
-        "#7d8b3f",
-        "#5b6fae",
-        "#bf6b3f",
-        "#4a9d86",
-        "#a8517a",
+        "#2a64c4",
+        "#d23a2e",
+        "#2f9e44",
+        "#e8910c",
+        "#8a39b0",
+        "#0e9aa7",
+        "#d23a8e",
+        "#6aa70e",
+        "#3b4cc0",
+        "#c0561e",
+        "#1ba0c4",
+        "#d6498b",
       ];
-      // A theme bundles the chart's non-CSS colours plus font + bar style. Keyed
-      // by skin, then by light/dark so both modes stay first-class everywhere.
+      // Themes are a flat list: each is a complete look (its own light/dark
+      // value set). `flat` switches the chart to solid band bars + a sans-serif
+      // chart font. CSS variables for each theme live under [data-theme="…"].
       const THEMES = {
-        default: {
-          light: {
-            text: "#1c2530",
-            muted: "#5d6b7c",
-            faint: "#98a3b1",
-            gridYear: "#e2e6ec",
-            gridMonth: "#eef1f5",
-            card: "#ffffff",
-            ctxArea: "#c9d7f5",
-            ctxLine: "#7d9ce8",
-            dim: "rgba(120,132,148,.18)",
-            font: SANS,
-            flat: false,
-          },
-          dark: {
-            text: "#e6ebf2",
-            muted: "#9aa7b6",
-            faint: "#5f6c7b",
-            gridYear: "#232b35",
-            gridMonth: "#1a212a",
-            card: "#151b23",
-            ctxArea: "#23344f",
-            ctxLine: "#4a6da8",
-            dim: "rgba(120,132,148,.14)",
-            font: SANS,
-            flat: false,
-          },
+        light: {
+          label: "Light",
+          text: "#1c2530",
+          muted: "#5d6b7c",
+          faint: "#98a3b1",
+          gridYear: "#e2e6ec",
+          gridMonth: "#eef1f5",
+          card: "#ffffff",
+          ctxArea: "#c9d7f5",
+          ctxLine: "#7d9ce8",
+          dim: "rgba(120,132,148,.18)",
+          font: SANS,
+          flat: false,
+        },
+        dark: {
+          label: "Dark",
+          text: "#e6ebf2",
+          muted: "#9aa7b6",
+          faint: "#5f6c7b",
+          gridYear: "#232b35",
+          gridMonth: "#1a212a",
+          card: "#151b23",
+          ctxArea: "#23344f",
+          ctxLine: "#4a6da8",
+          dim: "rgba(120,132,148,.14)",
+          font: SANS,
+          flat: false,
         },
         wikipedia: {
-          light: {
-            text: "#202122",
-            muted: "#54595d",
-            faint: "#72777d",
-            gridYear: "#c8ccd1",
-            gridMonth: "#eaecf0",
-            card: "#ffffff",
-            ctxArea: "#d8e0f2",
-            ctxLine: "#6b81c2",
-            dim: "rgba(120,132,148,.16)",
-            font: WIKI_SANS,
-            flat: true,
-          },
-          dark: {
-            text: "#eaecf0",
-            muted: "#a2a9b1",
-            faint: "#72777d",
-            gridYear: "#33373c",
-            gridMonth: "#23272c",
-            card: "#1b1f24",
-            ctxArea: "#2a3550",
-            ctxLine: "#5b6fae",
-            dim: "rgba(120,132,148,.16)",
-            font: WIKI_SANS,
-            flat: true,
-          },
+          label: "Wikipedia",
+          text: "#202122",
+          muted: "#54595d",
+          faint: "#72777d",
+          gridYear: "#c8ccd1",
+          gridMonth: "#eaecf0",
+          card: "#ffffff",
+          ctxArea: "#cdd9f2",
+          ctxLine: "#5b81d4",
+          dim: "rgba(120,132,148,.16)",
+          font: "sans-serif",
+          flat: true,
         },
       };
-      function skinName() {
-        return document.documentElement.dataset.skin || "default";
-      }
+      const THEME_ORDER = ["light", "dark", "wikipedia"];
       function themeName() {
-        return document.documentElement.dataset.theme || "light";
+        const t = document.documentElement.dataset.theme;
+        return THEMES[t] ? t : "light";
       }
       function theme() {
-        return (THEMES[skinName()] || THEMES.default)[themeName()];
+        return THEMES[themeName()];
       }
       // A stable index for a row, for assigning band colours.
       function bandColor(c) {
@@ -995,17 +955,18 @@
         return BAND_PALETTE[k % BAND_PALETTE.length];
       }
       function setTheme(name) {
+        if (!THEMES[name]) name = "light";
         document.documentElement.dataset.theme = name;
         localStorage.setItem("cg-theme", name);
-        $("#icon-moon").style.display = name === "light" ? "" : "none";
-        $("#icon-sun").style.display = name === "dark" ? "" : "none";
+        const sel = $("#theme");
+        if (sel) sel.value = name;
         renderAll();
       }
-      function setSkin(name) {
-        document.documentElement.dataset.skin = name;
-        localStorage.setItem("cg-skin", name);
-        if ($("#skin")) $("#skin").value = name;
-        renderAll();
+      function buildThemeMenu() {
+        const sel = $("#theme");
+        sel.innerHTML = THEME_ORDER.filter((t) => THEMES[t])
+          .map((t) => `<option value="${t}">${esc(THEMES[t].label)}</option>`)
+          .join("");
       }
 
       /* ---------- helpers ---------- */
@@ -1308,16 +1269,6 @@
       function rowColor(c) {
         // Affiliation rows are always coloured by their group.
         if (c.isGroup) return GROUP_COLOR[c.group] || OTHER_COLOR;
-        // The Wikipedia skin gives each row a distinct flat band colour unless
-        // the user has picked an explicit group/year colouring.
-        if (
-          theme().flat &&
-          (state.color === "activity" || state.color === "solid")
-        )
-          return bandColor(c);
-        if (state.color === "group" && c.group)
-          return GROUP_COLOR[c.group] || OTHER_COLOR;
-        if (state.color === "group") return OTHER_COLOR;
         if (state.color === "year") {
           const y0 = tsToDate(REPO.first).getUTCFullYear();
           const y = tsToDate(c.first).getUTCFullYear();
@@ -1326,7 +1277,12 @@
               (y < y0 ? YEAR_PALETTE.length : 0)
           ];
         }
-        return ACCENT;
+        // Flat themes give every row a distinct band colour — the defining
+        // feature of the "band members over time" look.
+        if (theme().flat) return bandColor(c);
+        if (state.color === "group")
+          return (c.group && GROUP_COLOR[c.group]) || OTHER_COLOR;
+        return ACCENT; // activity heat (shaded on top) or solid
       }
 
       /* ---------- time ticks ---------- */
@@ -2028,7 +1984,12 @@
       function renderLegend() {
         const el = $("#legend");
         // In affiliation mode the y-axis already labels every group.
-        if (!GROUPS.length || state.color !== "group" || affMode()) {
+        if (
+          !GROUPS.length ||
+          state.color !== "group" ||
+          affMode() ||
+          theme().flat
+        ) {
           el.hidden = true;
           return;
         }
@@ -2075,6 +2036,13 @@
           `<span><b>${fmtNum(REPO.total_commits)}</b> commits</span>` +
           `<span>${fmtMonthYear(REPO.first)} – ${fmtMonthYear(REPO.last)}</span>` +
           `<span>branch <b>${esc(REPO.branch)}</b></span>`;
+        const desc = $("#repo-desc");
+        if (REPO.description) {
+          desc.textContent = REPO.description;
+          desc.hidden = false;
+        } else {
+          desc.hidden = true;
+        }
         $("#footer").innerHTML =
           `Generated ${esc(REPO.generated)} · made with <a href="https://github.com/ewels/contributor-graphs" target="_blank" rel="noopener">contributor-graphs</a>`;
         document.title = REPO.name + " · contributors";
@@ -2154,7 +2122,6 @@
       }
       function syncControls() {
         const aff = affMode();
-        $("#skin").value = skinName();
         $("#rows").value = state.mode;
         $("#search").value = state.q;
         $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
@@ -2255,10 +2222,7 @@
         renderAll();
         writeHash();
       });
-      $("#theme-toggle").addEventListener("click", () =>
-        setTheme(themeName() === "light" ? "dark" : "light"),
-      );
-      $("#skin").addEventListener("change", (e) => setSkin(e.target.value));
+      $("#theme").addEventListener("change", (e) => setTheme(e.target.value));
 
       let resizeTimer;
       new ResizeObserver(() => {
@@ -2274,14 +2238,17 @@
 
       /* ---------- init ---------- */
       readHash();
-      document.documentElement.dataset.skin =
-        localStorage.getItem("cg-skin") || DATA.skin || "default";
+      buildThemeMenu();
+      // Prefer a saved choice; else the theme baked in at generation; else the
+      // OS light/dark preference.
       const savedTheme =
         localStorage.getItem("cg-theme") ||
+        (THEMES[DATA.theme] && DATA.theme) ||
         (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.dataset.theme = savedTheme;
-      $("#icon-moon").style.display = savedTheme === "light" ? "" : "none";
-      $("#icon-sun").style.display = savedTheme === "dark" ? "" : "none";
+      document.documentElement.dataset.theme = THEMES[savedTheme]
+        ? savedTheme
+        : "light";
+      $("#theme").value = themeName();
       renderHeader();
       syncControls();
       renderAll();

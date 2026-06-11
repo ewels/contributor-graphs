@@ -211,6 +211,16 @@ pub fn enrich_clusters(
     }
 }
 
+/// Fetch a repository's description from the GitHub API, if it has one.
+pub fn fetch_repo_description(client: &GhClient, slug: &str) -> Option<String> {
+    let v = client.get_json(&format!("https://api.github.com/repos/{slug}"))?;
+    v.get("description")
+        .and_then(|d| d.as_str())
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(String::from)
+}
+
 /// Fetch a GitHub avatar (e.g. an org/owner) and return it as a data URI.
 pub fn fetch_avatar(client: &GhClient, login: &str, size: u32) -> Option<String> {
     let url = format!("https://avatars.githubusercontent.com/{login}?s={size}");
