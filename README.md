@@ -1,12 +1,20 @@
-# contributor-graphs
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+    <img src="docs/logo.svg" alt="contributor-graphs" height="52">
+  </picture>
+</p>
 
-> Contributor timelines for any git or GitHub repository — a publication-ready
-> SVG and a self-contained interactive HTML page.
+<p align="center">
+  Contributor timelines for any git or GitHub repository — a publication-ready
+  SVG and a self-contained interactive HTML page.
+</p>
 
-[![CI](https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml/badge.svg)](https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/contributor-graphs.svg)](https://crates.io/crates/contributor-graphs)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-website-2f5fd0.svg)](https://ewels.github.io/contributor-graphs/)
+<p align="center">
+  <a href="https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml"><img src="https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
+  <a href="https://ewels.github.io/contributor-graphs/"><img src="https://img.shields.io/badge/docs-website-2f5fd0.svg" alt="Docs"></a>
+</p>
 
 The x-axis is time (first commit → today); each row is a contributor. Bars are
 shaded by monthly commit activity, so you can see at a glance who was active
@@ -49,9 +57,14 @@ Requires [Rust](https://rustup.rs). The [GitHub CLI](https://cli.github.com)
 (`gh`) is optional but recommended for enrichment without rate limits.
 
 ```bash
+# latest from GitHub
+cargo install --git https://github.com/ewels/contributor-graphs
+
+# once published to crates.io
+cargo install contributor-graphs
+
+# or from a local clone
 cargo install --path .
-# or build locally:
-cargo build --release   # → target/release/contributor-graphs
 ```
 
 ## Usage
