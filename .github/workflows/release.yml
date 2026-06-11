@@ -66,6 +66,9 @@ jobs:
     name: Publish to crates.io
     needs: binaries
     runs-on: ubuntu-latest
+    # Runs in the `release` environment; the crates.io Trusted Publishing
+    # config must list this same environment name (see README → Releasing).
+    environment: release
     # Trusted Publishing: mint a short-lived token via OIDC, no stored secrets.
     # Requires a one-time setup on crates.io (see README → Releasing).
     permissions:
