@@ -12,6 +12,8 @@ when, who carried a project, and how a community grew over the years.
   <img src="docs/example-rnaseq.svg" alt="Example: nf-core/rnaseq contributor timeline" width="100%">
 </p>
 
+**[Documentation &amp; live examples →](https://ewels.github.io/contributor-graphs/)**
+
 ## Features
 
 - **Works with anything** — a local path (`.`), a GitHub slug (`nf-core/rnaseq`),
