@@ -492,9 +492,6 @@
       #chart g.crow:hover .row-hit {
         fill: var(--accent-soft);
       }
-      #chart g.crow.on .row-hit {
-        fill: var(--accent-soft);
-      }
       #chart g.crow:hover .chev {
         stroke: var(--accent);
       }
@@ -1279,6 +1276,21 @@
           (v, i) => (2 * v + (months[i - 1] || 0) + (months[i + 1] || 0)) / 4,
         );
       }
+      // Peak monthly commits across the whole current mode, so expanded line
+      // plots share a fixed y-axis and stay comparable between rows. Computed
+      // over everyone (not just the filtered/visible rows) so it never shifts.
+      const _monthlyMax = {};
+      function globalMonthlyMax() {
+        const key = affMode() ? "aff" : "con";
+        if (_monthlyMax[key] != null) return _monthlyMax[key];
+        const rows = affMode()
+          ? aggregateByGroup(ALL.filter((c) => !c.bot))
+          : ALL;
+        let m = 1;
+        for (const c of rows) for (const v of c.months) if (v > m) m = v;
+        _monthlyMax[key] = m;
+        return m;
+      }
       function comparator(key) {
         switch (key) {
           case "last":
@@ -1365,7 +1377,7 @@
       const NAME_SIZE = 12.5,
         COUNT_W = 62,
         MARGIN_R = 14;
-      const EXP_H = 84; // extra height added to an expanded row for its plot
+      const EXP_H = 92; // extra height added to an expanded row for its plot
       let currentRows = [];
       // Per-visible-row vertical layout ({ y, h }), rebuilt every renderChart so
       // the tooltip and click handlers can map a pixel y back to a row.
@@ -1495,7 +1507,7 @@
             );
           if (isExpanded(c))
             defs.push(
-              `<clipPath id="exp${i}"><rect x="${chartX}" y="${y + ROW_H}" width="${chartW}" height="${EXP_H}"/></clipPath>`,
+              `<clipPath id="exp${i}"><rect x="${chartX}" y="${y}" width="${chartW}" height="${ROW_H + EXP_H}"/></clipPath>`,
             );
         });
         parts.push(`<defs>${defs.join("")}</defs>`);
@@ -1561,65 +1573,127 @@
               : nameEl,
           );
 
-          if (th.flat) {
-            // Wikipedia band block: one solid bar across the active span.
-            const w = Math.max(bw, 6),
-              x = bw < 6 ? bx + bw / 2 - 3 : bx;
-            r.push(
-              `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${color}" opacity="0.92"/>`,
-            );
-          } else {
-            r.push(
-              `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
-            );
-            if (state.color === "solid") {
+          // Summary bar — hidden when the row is expanded, which instead shows
+          // a full-height line plot plus the pinned detail panel.
+          if (!expanded) {
+            if (th.flat) {
+              // Wikipedia band block: one solid bar across the active span.
+              const w = Math.max(bw, 6),
+                x = bw < 6 ? bx + bw / 2 - 3 : bx;
               r.push(
-                `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+                `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${color}" opacity="0.92"/>`,
               );
-            } else if (bw > 6) {
-              const sm = smoothMonths(c.months);
-              const smax = maxOf(sm, 1e-9);
-              const seg = [`<g clip-path="url(#bar${i})">`];
-              sm.forEach((sval, mi) => {
-                if (sval <= 0) return;
-                const m = c.m0 + mi;
-                const x0 = sx(Math.max(monthStartTs(m), first)),
-                  x1 = sx(Math.min(monthStartTs(m + 1), last));
-                if (x1 < chartX || x0 > chartX + chartW) return;
-                const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
-                seg.push(
-                  `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
-                );
-              });
-              seg.push("</g>");
-              r.push(seg.join(""));
             } else {
               r.push(
-                `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
+                `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
               );
+              if (state.color === "solid") {
+                r.push(
+                  `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+                );
+              } else if (bw > 6) {
+                const sm = smoothMonths(c.months);
+                const smax = maxOf(sm, 1e-9);
+                const seg = [`<g clip-path="url(#bar${i})">`];
+                sm.forEach((sval, mi) => {
+                  if (sval <= 0) return;
+                  const m = c.m0 + mi;
+                  const x0 = sx(Math.max(monthStartTs(m), first)),
+                    x1 = sx(Math.min(monthStartTs(m + 1), last));
+                  if (x1 < chartX || x0 > chartX + chartW) return;
+                  const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
+                  seg.push(
+                    `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
+                  );
+                });
+                seg.push("</g>");
+                r.push(seg.join(""));
+              } else {
+                r.push(
+                  `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
+                );
+              }
             }
           }
           r.push(
             `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`,
           );
 
-          // Expanded detail: a time-aligned line plot of monthly activity.
+          // Expanded view: pinned hover detail on the left, a full-height
+          // monthly line plot on the right with a fixed (mode-wide) y-axis.
           if (expanded) {
-            const captionY = y + ROW_H + 13;
-            const yTop = y + ROW_H + 20,
+            const months = c.months,
+              n = months.length;
+            const active = months.filter(Boolean).length;
+            const spanMonths = Math.max(
+              1,
+              Math.round((c.last - c.first) / 2629800) + 1,
+            );
+            const span =
+              spanMonths >= 24
+                ? (spanMonths / 12).toFixed(1) + " years"
+                : spanMonths + " month" + (spanMonths === 1 ? "" : "s");
+
+            // Left: the detail panel (everything from the tooltip but the spark).
+            const ix = labelW - 16 - AVATAR - 8; // right edge, aligned with name
+            let iy = y + ROW_H + 8;
+            const info = (txt, fill, o) => {
+              o = o || {};
+              r.push(
+                `<text x="${ix}" y="${iy}" font-size="${o.size || 11}" font-weight="${o.weight || 400}" fill="${fill}" text-anchor="end">${txt}</text>`,
+              );
+              iy += o.gap || 15;
+            };
+            const fitLeft = (str, size) => {
+              let s = str;
+              while (s.length > 1 && textWidth(s, size, 400) > ix - 6)
+                s = s.slice(0, -2) + "…";
+              return s;
+            };
+            if (c.isGroup) {
+              info(
+                `${fmtNum(c.members)} ${c.members === 1 ? "contributor" : "contributors"}`,
+                th.muted,
+              );
+              const names = c.member_names || [];
+              const extra = c.members - names.length;
+              let list = names.join(", ") + (extra > 0 ? ` +${extra}` : "");
+              if (list) info(esc(fitLeft(list, 10)), th.faint, { size: 10 });
+            } else {
+              if (c.login) info("@" + esc(c.login), th.muted);
+              if (c.group)
+                info(
+                  esc(fitLeft(c.group, 11)),
+                  GROUP_COLOR[c.group] || OTHER_COLOR,
+                  {
+                    weight: 600,
+                  },
+                );
+            }
+            info(`${fmtNum(c.commits)} commits`, th.text, { weight: 600 });
+            info(`${fmtDate(c.first)} – ${fmtDate(c.last)}`, th.faint, {
+              size: 10.5,
+            });
+            info(
+              `${active} active month${active === 1 ? "" : "s"} · ${span}`,
+              th.faint,
+              {
+                size: 10.5,
+              },
+            );
+
+            // Right: full-height line plot, y-axis shared across the mode.
+            const yTop = y + 12,
               yBot = y + rh - 12,
               ph = yBot - yTop;
-            const months = c.months,
-              n = months.length,
-              mmax = maxOf(months, 1);
-            const active = months.filter(Boolean).length;
+            const gmax = globalMonthlyMax();
             r.push(
               `<line x1="${chartX}" y1="${yBot}" x2="${chartX + chartW}" y2="${yBot}" stroke="${th.gridMonth}"/>`,
             );
             const pts = [];
             for (let mi = 0; mi < n; mi++) {
               const px = sx(monthStartTs(c.m0 + mi));
-              const py = yBot - (months[mi] / mmax) * ph;
+              const py = yBot - Math.min(1, months[mi] / gmax) * ph;
               pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
             }
             if (n >= 2) {
@@ -1637,9 +1711,6 @@
               const [px, py] = pts[0].split(",");
               r.push(`<circle cx="${px}" cy="${py}" r="3" fill="${color}"/>`);
             }
-            r.push(
-              `<text x="${chartX}" y="${captionY}" font-size="10" fill="${th.faint}">Monthly commits · peak ${fmtNum(mmax)} · ${active} active month${active === 1 ? "" : "s"}</text>`,
-            );
           }
 
           r.push("</g>");

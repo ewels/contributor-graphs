@@ -12,8 +12,11 @@ All notable changes to this project are documented here. The format follows
   timeline, identities are resolved across all sources, and commits shared by
   overlapping histories are de-duplicated by SHA. New `analyze_many` library API.
 - Expandable rows in the interactive page: click a row (or its chevron) to grow
-  it and reveal a time-aligned line plot of that contributor's monthly activity.
-  An "Expand all / Collapse all" control toggles every visible row at once.
+  it into a detail card — the hover info (username, affiliation, commits, dates,
+  active span) pinned on the left and a full-width monthly line plot on the
+  right. The line plots share a fixed, mode-wide y-axis so expanded rows are
+  directly comparable, and the summary bar is hidden while expanded. An
+  "Expand all / Collapse all" control toggles every visible row at once.
 - Theming system with a new **Wikipedia** skin, modelled on the EasyTimeline
   "band members over time" charts: serif headings over an Arial body, Wikipedia
   colours, and flat solid per-row band bars. Choose it from the Theme selector
