@@ -31,16 +31,27 @@
       name="twitter:description"
       content="Contributor timelines for any git or GitHub repository."
     />
-    <meta
-      name="twitter:image"
-      content="https://ewels.github.io/contributor-graphs/og-card.png"
-    />
+    <meta name="theme-color" content="#f6f5f1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,650&family=IBM+Plex+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // set theme before first paint to avoid a flash
+      (function () {
+        try {
+          var t = localStorage.getItem("cg-theme");
+          if (t !== "light" && t !== "dark") {
+            t = matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <style>
       :root {
         --paper: #f6f5f1;
@@ -55,11 +66,31 @@
         --term-bg: #211f1c;
         --term-fg: #ece7dc;
         --term-faint: #8f897a;
+        --sel: #d8e0f5;
+        --shadow-sm: 0 1px 2px rgba(33, 31, 26, 0.05);
+        --shadow-lg: 0 24px 50px -36px rgba(33, 31, 26, 0.35);
         --serif: "Fraunces", Georgia, "Times New Roman", serif;
         --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
         --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-        --maxw: 1080px;
-        --col: 720px;
+        --maxw: 1140px;
+        --col: 740px;
+      }
+      html[data-theme="dark"] {
+        --paper: #17150f;
+        --paper-2: #211e17;
+        --ink: #ece7db;
+        --ink-soft: #b6ad9b;
+        --faint: #7e7766;
+        --rule: #322e25;
+        --rule-strong: #463f32;
+        --accent: #7ea0ee;
+        --accent-warm: #e98a5e;
+        --term-bg: #0e0d09;
+        --term-fg: #ece7dc;
+        --term-faint: #8a8474;
+        --sel: #2a3556;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 24px 50px -34px rgba(0, 0, 0, 0.7);
       }
       * {
         box-sizing: border-box;
@@ -82,14 +113,14 @@
         color: var(--ink);
         font-family: var(--sans);
         font-weight: 400;
-        font-size: 17px;
-        line-height: 1.62;
+        font-size: 16px;
+        line-height: 1.55;
         letter-spacing: -0.003em;
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
       ::selection {
-        background: #d8e0f5;
+        background: var(--sel);
       }
 
       a {
@@ -122,7 +153,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        margin: 0 0 26px;
+        margin: 0 0 18px;
       }
       .marker::before {
         content: counter(sec, decimal-leading-zero);
@@ -153,7 +184,7 @@
         position: sticky;
         top: 0;
         z-index: 50;
-        background: color-mix(in srgb, var(--paper) 88%, transparent);
+        background: color-mix(in srgb, var(--paper) 86%, transparent);
         backdrop-filter: saturate(1.4) blur(8px);
         border-bottom: 1px solid var(--rule);
       }
@@ -161,14 +192,14 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 60px;
+        height: 58px;
       }
       .brand {
         display: flex;
         align-items: center;
         gap: 9px;
         font-family: var(--mono);
-        font-size: 15.5px;
+        font-size: 15px;
         font-weight: 600;
         color: var(--ink);
         letter-spacing: -0.02em;
@@ -182,8 +213,8 @@
       .nav {
         display: flex;
         align-items: center;
-        gap: 26px;
-        font-size: 14.5px;
+        gap: 22px;
+        font-size: 14px;
       }
       .nav a {
         color: var(--ink-soft);
@@ -202,7 +233,37 @@
         width: 16px;
         height: 16px;
       }
-      @media (max-width: 640px) {
+      .iconbtn {
+        appearance: none;
+        background: none;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .iconbtn:hover {
+        color: var(--ink);
+        border-color: var(--rule-strong);
+        background: var(--paper-2);
+      }
+      .iconbtn svg {
+        width: 16px;
+        height: 16px;
+      }
+      html[data-theme="dark"] .theme-moon,
+      html:not([data-theme="dark"]) .theme-sun {
+        display: none;
+      }
+      @media (max-width: 680px) {
         .nav a:not(.gh) {
           display: none;
         }
@@ -210,37 +271,40 @@
 
       /* ---- hero ---- */
       .hero {
-        padding: clamp(56px, 9vw, 104px) 0 clamp(40px, 6vw, 64px);
+        padding: clamp(38px, 5.5vw, 64px) 0 clamp(34px, 5vw, 56px);
       }
-      .wordmark {
-        font-family: var(--mono);
-        font-size: clamp(18px, 2.4vw, 22px);
-        font-weight: 500;
-        letter-spacing: -0.02em;
-        color: var(--ink);
-        margin: 0 0 24px;
-        display: flex;
-        align-items: baseline;
-        gap: 11px;
-        flex-wrap: wrap;
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+        gap: clamp(28px, 4vw, 56px);
+        align-items: center;
       }
-      .wordmark .glyph {
-        color: var(--accent);
-        font-size: 0.9em;
+      .hero-grid > * {
+        min-width: 0;
       }
-      .wordmark .wm-sub {
-        font-family: var(--sans);
-        font-size: 14px;
-        font-weight: 400;
-        color: var(--faint);
-        letter-spacing: 0;
+      @media (max-width: 900px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+      }
+      .hero-logo {
+        display: block;
+        width: 800px;
+        max-width: 100%;
+        height: auto;
+        margin: 0 0 clamp(28px, 4vw, 44px);
+      }
+      html[data-theme="dark"] .hero-logo.logo-light,
+      html:not([data-theme="dark"]) .hero-logo.logo-dark {
+        display: none;
       }
       h1.title {
-        font-size: clamp(42px, 7.2vw, 82px);
-        line-height: 0.98;
-        letter-spacing: -0.028em;
-        margin: 0 0 26px;
-        max-width: 15ch;
+        font-size: clamp(38px, 5.4vw, 60px);
+        line-height: 0.99;
+        letter-spacing: -0.026em;
+        margin: 0 0 20px;
+        max-width: 14ch;
       }
       h1.title em {
         font-style: italic;
@@ -248,11 +312,11 @@
         color: var(--accent);
       }
       .lede {
-        font-size: clamp(18px, 2.1vw, 21px);
+        font-size: clamp(16.5px, 1.6vw, 18.5px);
         line-height: 1.5;
         color: var(--ink-soft);
-        max-width: 56ch;
-        margin: 0 0 36px;
+        max-width: 48ch;
+        margin: 0 0 26px;
       }
       .lede b {
         color: var(--ink);
@@ -266,33 +330,11 @@
         border-radius: 11px;
         font-family: var(--mono);
         font-size: 14px;
-        box-shadow:
-          0 1px 2px rgba(33, 31, 26, 0.16),
-          0 14px 40px -18px rgba(33, 31, 26, 0.5);
+        box-shadow: var(--shadow-sm), var(--shadow-lg);
         overflow: hidden;
       }
-      .term .bar {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 11px 14px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-      }
-      .term .bar i {
-        width: 11px;
-        height: 11px;
-        border-radius: 50%;
-        background: #4a473f;
-        display: block;
-      }
-      .term .bar .ttl {
-        margin-left: 8px;
-        color: var(--term-faint);
-        font-size: 12px;
-        letter-spacing: 0.02em;
-      }
       .term .body {
-        padding: 16px 18px;
+        padding: 14px 18px;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -318,21 +360,7 @@
       .term .cm {
         color: var(--term-faint);
       }
-      .term .out {
-        color: var(--term-faint);
-        padding-left: 22px;
-      }
-      .term .out .ok {
-        color: #7bb98a;
-      }
 
-      .hero-cta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: stretch;
-        margin-top: 4px;
-      }
       .copybtn {
         flex: none;
         align-self: stretch;
@@ -358,23 +386,27 @@
       }
       .install-row {
         display: flex;
+        box-shadow: var(--shadow-sm), var(--shadow-lg);
+        border-radius: 11px;
       }
       .install-row .term {
         flex: 1;
+        min-width: 0;
         border-radius: 11px 0 0 11px;
+        box-shadow: none;
       }
       .install-row .copybtn {
         border-radius: 0 11px 11px 0;
       }
 
       .meta-line {
-        margin-top: 22px;
+        margin-top: 18px;
         font-family: var(--mono);
         font-size: 12.5px;
         color: var(--faint);
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 16px;
+        gap: 7px 15px;
       }
       .meta-line span {
         display: inline-flex;
@@ -388,10 +420,7 @@
         background: var(--rule-strong);
       }
 
-      /* ---- figure / showcase ---- */
-      .figure {
-        margin: clamp(36px, 5vw, 60px) 0 0;
-      }
+      /* ---- hero figure ---- */
       .figframe {
         display: block;
         position: relative;
@@ -399,21 +428,16 @@
         border: 1px solid var(--rule);
         border-radius: 14px;
         padding: 8px;
-        box-shadow:
-          0 1px 2px rgba(33, 31, 26, 0.04),
-          0 30px 60px -40px rgba(33, 31, 26, 0.35);
-        transition: box-shadow 0.2s ease;
+        box-shadow: var(--shadow-sm), var(--shadow-lg);
+        transition:
+          box-shadow 0.2s ease,
+          border-color 0.2s ease;
         color: var(--ink-soft);
         text-decoration: none;
       }
-      .figframe:hover,
-      .figframe:hover .openlink {
-        text-decoration: none;
-      }
       .figframe:hover {
-        box-shadow:
-          0 1px 2px rgba(33, 31, 26, 0.06),
-          0 36px 70px -38px rgba(33, 31, 26, 0.45);
+        text-decoration: none;
+        border-color: var(--rule-strong);
       }
       .figframe video {
         display: block;
@@ -430,12 +454,12 @@
         align-items: center;
         gap: 7px;
         background: var(--ink);
-        color: var(--paper-2);
-        font-size: 13.5px;
+        color: var(--paper);
+        font-size: 13px;
         font-weight: 500;
         padding: 8px 15px;
         border-radius: 99px;
-        box-shadow: 0 8px 24px -8px rgba(33, 31, 26, 0.5);
+        box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
         opacity: 0;
         pointer-events: none;
         transition:
@@ -450,56 +474,51 @@
         opacity: 1;
         transform: translateX(-50%);
       }
-      .figbar {
+      .figcap {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        padding: 8px 8px 14px;
-        flex-wrap: wrap;
-      }
-      .figcap {
-        font-size: 13.5px;
+        gap: 12px;
+        padding: 9px 8px 4px;
+        font-size: 13px;
         color: var(--ink-soft);
-        display: flex;
-        align-items: center;
-        gap: 9px;
       }
       .figcap .repo {
         font-family: var(--mono);
         color: var(--ink);
-        font-size: 13px;
+        font-size: 12.5px;
       }
-      .openlink {
-        font-size: 13.5px;
-        font-family: var(--sans);
+      .figcap .openlink {
         color: var(--accent);
         display: inline-flex;
         align-items: center;
         gap: 6px;
       }
-      .openlink svg {
-        width: 13px;
-        height: 13px;
+      .figcap .openlink svg {
+        width: 12px;
+        height: 12px;
       }
 
       /* ---- prose sections ---- */
       .band {
-        padding: clamp(54px, 8vw, 92px) 0;
+        padding: clamp(40px, 5.5vw, 68px) 0;
         border-top: 1px solid var(--rule);
       }
       h2.head {
-        font-size: clamp(28px, 4vw, 40px);
+        font-size: clamp(25px, 3vw, 33px);
         letter-spacing: -0.02em;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
       }
       .band p {
         color: var(--ink-soft);
-        margin: 0 0 18px;
+        margin: 0 0 16px;
       }
       .band p b {
         color: var(--ink);
         font-weight: 500;
+      }
+      .lead-p {
+        max-width: 64ch;
       }
       code,
       kbd {
@@ -509,50 +528,155 @@
       p code,
       li code,
       td code {
-        background: color-mix(in srgb, var(--accent) 8%, var(--paper-2));
+        background: color-mix(in srgb, var(--accent) 12%, var(--paper-2));
         color: var(--ink);
         padding: 1.5px 5px;
         border-radius: 4px;
       }
 
-      /* outputs: two distinct, asymmetric blocks (not identical cards) */
-      .outputs {
+      /* ---- features grid (section 01) ---- */
+      .features {
         display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1px;
         background: var(--rule);
         border: 1px solid var(--rule);
         border-radius: 12px;
         overflow: hidden;
-        margin-top: 30px;
+        margin-top: 26px;
       }
-      .outputs > div {
-        background: var(--paper-2);
-        padding: 26px 28px;
+      @media (max-width: 860px) {
+        .features {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
-      .outputs h3 {
-        font-size: 20px;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-      }
-      .outputs h3 .ext {
-        font-family: var(--mono);
-        font-size: 12px;
-        color: var(--accent);
-        font-weight: 400;
-        letter-spacing: 0.02em;
-      }
-      .outputs p {
-        font-size: 15px;
-        line-height: 1.55;
-        margin: 0;
-      }
-      @media (max-width: 720px) {
-        .outputs {
+      @media (max-width: 520px) {
+        .features {
           grid-template-columns: 1fr;
         }
+      }
+      .feature {
+        background: var(--paper-2);
+        padding: 20px 22px;
+      }
+      .feature .ic {
+        color: var(--accent);
+        margin-bottom: 11px;
+        display: block;
+      }
+      .feature .ic svg {
+        width: 22px;
+        height: 22px;
+      }
+      .feature h3 {
+        font-family: var(--sans);
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+        color: var(--ink);
+        margin-bottom: 5px;
+      }
+      .feature p {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--ink-soft);
+        margin: 0;
+      }
+
+      /* ---- examples grid ---- */
+      .examples {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 26px;
+      }
+      @media (max-width: 700px) {
+        .examples {
+          grid-template-columns: 1fr;
+        }
+      }
+      .ex {
+        display: flex;
+        flex-direction: column;
+        background: var(--paper-2);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          box-shadow 0.18s ease,
+          border-color 0.18s ease,
+          transform 0.18s ease;
+      }
+      .ex:hover {
+        text-decoration: none;
+        border-color: var(--rule-strong);
+        box-shadow: var(--shadow-sm), var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+      .ex .thumb {
+        height: 168px;
+        background: #fbfaf7;
+        border-bottom: 1px solid var(--rule);
+        overflow: hidden;
+      }
+      .ex .thumb img {
+        width: 100%;
+        display: block;
+        object-fit: cover;
+        object-position: top center;
+        height: 100%;
+      }
+      .ex .exbody {
+        padding: 15px 18px 17px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        flex: 1;
+      }
+      .ex .extop {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-wrap: wrap;
+      }
+      .ex h3 {
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .ex .tag {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        padding: 2px 7px;
+        border-radius: 5px;
+      }
+      .ex p {
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--ink-soft);
+        margin: 0;
+      }
+      .ex .open {
+        margin-top: auto;
+        padding-top: 8px;
+        font-size: 13px;
+        color: var(--accent);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .ex .open svg {
+        width: 12px;
+        height: 12px;
       }
 
       /* code block */
@@ -565,7 +689,7 @@
         border-radius: 11px;
         padding: 18px 20px;
         overflow-x: auto;
-        margin: 22px 0;
+        margin: 20px 0;
         position: relative;
       }
       pre.code .cm {
@@ -583,12 +707,13 @@
         padding: 6px 10px;
       }
 
+      /* usage list */
       .usage-item {
-        padding: 18px 0;
+        padding: 15px 0;
         border-top: 1px solid var(--rule);
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        gap: 6px;
+        gap: 5px;
       }
       .usage-item:first-of-type {
         border-top: none;
@@ -604,7 +729,7 @@
         color: var(--accent);
       }
       .usage-item .desc {
-        font-size: 14.5px;
+        font-size: 14px;
         color: var(--ink-soft);
       }
       .install-h {
@@ -614,15 +739,32 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--faint);
-        margin: 26px 0 8px;
+        margin: 24px 0 8px;
       }
       .install-h:first-of-type {
         margin-top: 6px;
       }
 
+      /* a two-column split for dense docs sections */
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: clamp(28px, 4vw, 52px);
+        align-items: start;
+      }
+      .split > * {
+        min-width: 0;
+      }
+      @media (max-width: 820px) {
+        .split {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+      }
+
       /* options table */
       .tablewrap {
-        margin-top: 28px;
+        margin-top: 22px;
         border: 1px solid var(--rule);
         border-radius: 12px;
         overflow: hidden;
@@ -630,7 +772,7 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14.5px;
+        font-size: 14px;
       }
       thead th {
         text-align: left;
@@ -640,12 +782,12 @@
         letter-spacing: 0.06em;
         color: var(--faint);
         font-weight: 500;
-        padding: 12px 18px;
+        padding: 11px 18px;
         background: var(--paper-2);
         border-bottom: 1px solid var(--rule);
       }
       tbody td {
-        padding: 11px 18px;
+        padding: 10px 18px;
         border-bottom: 1px solid var(--rule);
         vertical-align: top;
         color: var(--ink-soft);
@@ -676,42 +818,52 @@
         list-style: none;
         counter-reset: step;
         padding: 0;
-        margin: 30px 0 0;
+        margin: 24px 0 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      @media (max-width: 700px) {
+        .steps {
+          grid-template-columns: 1fr;
+        }
       }
       .steps li {
         counter-increment: step;
-        padding: 18px 0 18px 56px;
+        padding: 20px 22px 20px 56px;
         position: relative;
-        border-top: 1px solid var(--rule);
-      }
-      .steps li:first-child {
-        border-top: none;
+        background: var(--paper-2);
       }
       .steps li::before {
-        content: counter(step);
+        content: counter(step, decimal-leading-zero);
         position: absolute;
-        left: 0;
-        top: 17px;
-        font-family: var(--serif);
-        font-size: 24px;
+        left: 22px;
+        top: 19px;
+        font-family: var(--mono);
+        font-size: 13px;
         font-weight: 500;
         color: var(--accent);
-        width: 40px;
-        text-align: left;
       }
       .steps b {
-        font-weight: 500;
+        font-weight: 600;
         color: var(--ink);
+        font-size: 15px;
       }
       .steps .s-body {
         color: var(--ink-soft);
-        font-size: 15px;
+        font-size: 14px;
+        display: block;
+        margin-top: 4px;
       }
 
       /* footer */
       footer {
         border-top: 1px solid var(--rule);
-        padding: 44px 0 64px;
+        padding: 40px 0 56px;
       }
       footer .wrap {
         display: flex;
@@ -729,6 +881,7 @@
         font-size: 13.5px;
         color: var(--faint);
         max-width: 48ch;
+        margin: 6px 0 0;
       }
       footer a {
         color: var(--ink-soft);
@@ -739,41 +892,13 @@
         font-size: 14px;
       }
 
-      /* load-in motion */
-      .reveal {
-        opacity: 0;
-        transform: translateY(14px);
-      }
-      .in .reveal {
-        opacity: 1;
-        transform: none;
-        transition:
-          opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-          transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-      .in .reveal:nth-child(2) {
-        transition-delay: 0.06s;
-      }
-      .in .reveal:nth-child(3) {
-        transition-delay: 0.12s;
-      }
-      .in .reveal:nth-child(4) {
-        transition-delay: 0.18s;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .reveal {
-          opacity: 1;
-          transform: none;
-        }
-      }
-
       .toast {
         position: fixed;
         bottom: 22px;
         left: 50%;
         transform: translateX(-50%) translateY(20px);
         background: var(--ink);
-        color: var(--paper-2);
+        color: var(--paper);
         font-size: 13.5px;
         font-family: var(--mono);
         padding: 9px 16px;
@@ -798,9 +923,45 @@
           ><span class="glyph">⎇</span>contributor-graphs</a
         >
         <nav class="nav">
+          <a href="#features">Features</a>
+          <a href="#examples">Examples</a>
           <a href="#install">Install</a>
           <a href="#usage">Usage</a>
-          <a href="#affiliations">Affiliations</a>
+          <button
+            class="iconbtn"
+            id="theme-toggle"
+            type="button"
+            aria-label="Toggle dark mode"
+            title="Toggle light / dark"
+          >
+            <svg
+              class="theme-moon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+            >
+              <path
+                d="M13.5 9.3A5.4 5.4 0 0 1 6.7 2.5 5.5 5.5 0 1 0 13.5 9.3Z"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <svg
+              class="theme-sun"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="8" r="3.1" />
+              <path
+                stroke-linecap="round"
+                d="M8 1.3v1.6M8 13.1v1.6M1.3 8h1.6M13.1 8h1.6M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M12.7 3.3l-1.1 1.1M4.4 11.6l-1.1 1.1"
+              />
+            </svg>
+          </button>
           <a
             class="gh"
             href="https://github.com/ewels/contributor-graphs"
@@ -821,29 +982,36 @@
     <a id="top"></a>
     <header class="hero">
       <div class="wrap">
-        <div class="col" id="herocol">
-          <p class="wordmark reveal">
-            <span class="glyph">⎇</span>contributor-graphs<span class="wm-sub"
-              >a small Rust tool for git &amp; GitHub</span
-            >
-          </p>
-          <h1 class="title reveal">Who built it,<br />and <em>when</em>.</h1>
-          <p class="lede reveal">
-            Point it at any repository and get a contributor timeline: a
-            <b>publication-ready SVG</b> for your paper or README, and a
-            <b>self-contained interactive HTML</b> page for digging in. Time
-            across the top, contributors down the side, every bar shaded by how
-            busy each month was.
-          </p>
-          <div class="reveal">
+        <img
+          class="hero-logo logo-light"
+          src="logo.svg"
+          alt="contributor-graphs"
+          width="555"
+          height="64"
+        />
+        <img
+          class="hero-logo logo-dark"
+          src="logo-dark.svg"
+          alt="contributor-graphs"
+          width="555"
+          height="64"
+        />
+        <div class="hero-grid">
+          <div>
+            <h1 class="title">Who built it,<br />and <em>when</em>.</h1>
+            <p class="lede">
+              Point it at any repository and get a contributor timeline: a
+              <b>publication-ready SVG</b> for your paper or README, and a
+              <b>self-contained interactive HTML</b> page for digging in. Time
+              across the top, contributors down the side, every bar shaded by
+              how busy that month was.
+            </p>
             <div class="install-row">
-              <div class="term" style="box-shadow: none">
-                <div class="body" style="padding: 14px 18px">
+              <div class="term">
+                <div class="body">
                   <div class="line">
                     <span class="pr">$</span
-                    ><span class="cmd" id="install-cmd"
-                      >cargo install contributor-graphs</span
-                    >
+                    ><span class="cmd">cargo install contributor-graphs</span>
                   </div>
                 </div>
               </div>
@@ -870,47 +1038,48 @@
                 ><span class="dot"></span>uses your <code>gh</code> token</span
               >
               <span
-                ><span class="dot"></span>local path · <code>owner/repo</code> ·
-                git URL</span
+                ><span class="dot"></span>path · <code>owner/repo</code> · git
+                URL</span
               >
             </p>
           </div>
-        </div>
 
-        <figure class="figure reveal">
-          <a
-            class="figframe"
-            href="rnaseq.html"
-            target="_blank"
-            rel="noopener"
-            title="Open the interactive version (opens in a new tab)"
-          >
-            <video
-              poster="app-rnaseq.png"
-              autoplay
-              loop
-              muted
-              playsinline
-              aria-label="Filtering, sorting, grouping and zooming the interactive chart"
+          <figure style="margin: 0">
+            <a
+              class="figframe"
+              href="rnaseq.html"
+              target="_blank"
+              rel="noopener"
+              title="Open the interactive version (opens in a new tab)"
             >
-              <source src="demo.mp4" type="video/mp4" />
-            </video>
-            <span class="fighint"
-              >Open the interactive version
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
+              <video
+                poster="app-rnaseq.png"
+                autoplay
+                loop
+                muted
+                playsinline
+                aria-label="Filtering, sorting, grouping and zooming the interactive chart"
               >
-                <path d="M6 3h7v7M13 3 4 12" /></svg
-            ></span>
-            <div class="figbar">
-              <span class="figcap">
-                <span class="repo">nf-core/rnaseq</span>
-                <span>search, filter, group, zoom — live</span>
-              </span>
-              <span class="openlink"
+                <source src="demo.mp4" type="video/mp4" />
+              </video>
+              <span class="fighint"
+                >Open the interactive version
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                >
+                  <path d="M6 3h7v7M13 3 4 12" /></svg
+              ></span>
+            </a>
+            <figcaption class="figcap">
+              <span class="repo">nf-core/rnaseq · live</span>
+              <a
+                class="openlink"
+                href="rnaseq.html"
+                target="_blank"
+                rel="noopener"
                 >Open interactive
                 <svg
                   viewBox="0 0 16 16"
@@ -919,179 +1088,590 @@
                   stroke-width="1.5"
                 >
                   <path d="M6 3h7v7M13 3 4 12" /></svg
-              ></span>
-            </div>
-          </a>
-          <figcaption
-            style="
-              margin-top: 12px;
-              text-align: center;
-              font-size: 14px;
-              color: var(--muted, #5d6b7c);
-              line-height: 1.7;
-            "
-          >
-            More live examples:
-            <a
-              href="nf-core.html"
-              target="_blank"
-              rel="noopener"
-              style="color: inherit; font-weight: 600"
-              >the whole nf-core org</a
-            >
-            ·
-            <a
-              href="sarek.html"
-              target="_blank"
-              rel="noopener"
-              style="color: inherit; font-weight: 600"
-              >Sarek, history recovered across two repos</a
-            >
-            ·
-            <a
-              href="rnaseq-wikipedia.html"
-              target="_blank"
-              rel="noopener"
-              style="color: inherit; font-weight: 600"
-              >the Wikipedia theme</a
-            >
-          </figcaption>
-        </figure>
+              ></a>
+            </figcaption>
+          </figure>
+        </div>
       </div>
     </header>
 
     <main>
-      <section class="band">
-        <div class="wrap col">
-          <p class="marker">Two outputs</p>
-          <h2 class="head">One command, two files.</h2>
-          <p>
-            Every run writes both. The SVG is vector, self-contained, and drops
-            straight into a manuscript figure or a README. The HTML carries the
-            same data but lets a reader filter, sort, zoom the timeline, and
-            read each contributor's detail on hover, with no server and no build
-            step, just a file you can open or commit to a
-            <code>gh-pages</code> branch.
+      <section class="band" id="features">
+        <div class="wrap">
+          <p class="marker">Features</p>
+          <h2 class="head">What it gives you.</h2>
+          <p class="lead-p">
+            One command reads the git history, merges scattered identities,
+            enriches them from GitHub, and draws the result two ways. No server,
+            no build step, no runtime.
           </p>
-          <div class="outputs">
-            <div>
-              <h3>Static chart <span class="ext">repo.svg</span></h3>
+          <div class="features">
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7.5" height="18" rx="1.5" />
+                  <rect x="13.5" y="3" width="7.5" height="18" rx="1.5" /></svg
+              ></span>
+              <h3>Two files per run</h3>
               <p>
-                Crisp at any size, avatars embedded as data URIs, theme-matched.
-                The top contributors by commit count, ordered however you like.
-                This is the one you cite.
+                A vector <code>.svg</code> you can cite, and an interactive
+                <code>.html</code> page from the same data.
               </p>
             </div>
-            <div>
-              <h3>Interactive page <span class="ext">repo.html</span></h3>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 21V3M3 21h18" />
+                  <rect
+                    x="6"
+                    y="13"
+                    width="2.5"
+                    height="4"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <rect
+                    x="10.5"
+                    y="9"
+                    width="2.5"
+                    height="8"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <rect
+                    x="15"
+                    y="6"
+                    width="2.5"
+                    height="11"
+                    fill="currentColor"
+                    stroke="none"
+                  /></svg
+              ></span>
+              <h3>Activity timeline</h3>
               <p>
-                Search and sort, set a minimum-commit threshold, filter by
-                affiliation, drag the activity strip to zoom a date range, flip
-                to dark mode, export a PNG. State lives in the URL, so a
-                filtered view is shareable.
+                Months across the top, contributors down the side, each cell
+                shaded by that month's commit count.
               </p>
             </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="7" cy="7" r="3" />
+                  <circle cx="17" cy="17" r="3" />
+                  <path
+                    d="M10 7h4a3 3 0 0 1 3 3v4M7 10v4a3 3 0 0 0 3 3h4"
+                  /></svg
+              ></span>
+              <h3>Identity merging</h3>
+              <p>
+                Folds one person's many names and email addresses back into a
+                single contributor.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" /></svg
+              ></span>
+              <h3>GitHub enrichment</h3>
+              <p>
+                Resolves usernames, avatars and company from GitHub in parallel,
+                even from old or noreply emails.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 21h18M6 21V9M12 21V4M18 21v-8" /></svg
+              ></span>
+              <h3>Affiliation grouping</h3>
+              <p>
+                Colour rows by organisation, or collapse to one row per company
+                with <code>--by-affiliation</code>.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="m20 20-4-4" /></svg
+              ></span>
+              <h3>Interactive page</h3>
+              <p>
+                Search, sort, set a commit threshold, brush-zoom a date range,
+                read details on hover, export a PNG.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z" />
+                  <path d="M3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" /></svg
+              ></span>
+              <h3>Many repos, one timeline</h3>
+              <p>
+                Point it at one repo, a handful, or every repo in an org, even
+                across several orgs. They pool into a single chart, with commits
+                shared by overlapping histories deduplicated by SHA.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m8 6-5 6 5 6M16 6l5 6-5 6" /></svg
+              ></span>
+              <h3>One binary</h3>
+              <p>
+                Rust with no runtime to install, and it finds your
+                <code>gh</code> token automatically. The HTML it writes inlines
+                its avatars, so it opens offline or on <code>gh-pages</code>.
+              </p>
+            </div>
+            <div class="feature">
+              <span class="ic"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path
+                    d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M3.5 9h17M3.5 15h17"
+                  /></svg
+              ></span>
+              <h3>Shareable views</h3>
+              <p>
+                Filters live in the URL, so a zoomed-in, filtered chart is a
+                link you can send.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="examples">
+        <div class="wrap">
+          <p class="marker">Examples</p>
+          <h2 class="head">See it on real repos.</h2>
+          <p class="lead-p">
+            Every page below is a single self-contained HTML file generated by
+            the tool. Open one and try the filters, the affiliation toggle, and
+            the brush-zoom for yourself.
+          </p>
+          <div class="examples">
+            <a class="ex" href="rnaseq.html" target="_blank" rel="noopener">
+              <span class="thumb"
+                ><img
+                  src="example-rnaseq.svg"
+                  alt="Contributor timeline for nf-core/rnaseq"
+                  loading="lazy"
+              /></span>
+              <span class="exbody">
+                <span class="extop">
+                  <h3>nf-core/rnaseq</h3>
+                  <span class="tag">per person</span>
+                </span>
+                <p>
+                  The flagship example: every contributor to a busy
+                  bioinformatics pipeline, shaded month by month.
+                </p>
+                <span class="open"
+                  >Open interactive
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M6 3h7v7M13 3 4 12" /></svg
+                ></span>
+              </span>
+            </a>
+
+            <a class="ex" href="nf-core.html" target="_blank" rel="noopener">
+              <span class="thumb"
+                ><img
+                  src="nf-core.svg"
+                  alt="Contributor timeline for the whole nf-core organisation"
+                  loading="lazy"
+              /></span>
+              <span class="exbody">
+                <span class="extop">
+                  <h3>the whole nf-core org</h3>
+                  <span class="tag">entire org</span>
+                </span>
+                <p>
+                  Every non-fork repo in the org pooled into one timeline:
+                  hundreds of repositories, deduplicated into a single chart.
+                  Flip the affiliation toggle to group by company.
+                </p>
+                <span class="open"
+                  >Open interactive
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M6 3h7v7M13 3 4 12" /></svg
+                ></span>
+              </span>
+            </a>
+
+            <a
+              class="ex"
+              href="nf-core-affiliation.html"
+              target="_blank"
+              rel="noopener"
+            >
+              <span class="thumb"
+                ><img
+                  src="nf-core-affiliation.svg"
+                  alt="nf-core contributors grouped by organisation"
+                  loading="lazy"
+              /></span>
+              <span class="exbody">
+                <span class="extop">
+                  <h3>nf-core by organisation</h3>
+                  <span class="tag">by affiliation</span>
+                </span>
+                <p>
+                  The same whole-org pool collapsed to one row per company, so
+                  the organisations behind the project are the story.
+                </p>
+                <span class="open"
+                  >Open interactive
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M6 3h7v7M13 3 4 12" /></svg
+                ></span>
+              </span>
+            </a>
+
+            <a class="ex" href="sarek.html" target="_blank" rel="noopener">
+              <span class="thumb"
+                ><img
+                  src="sarek.svg"
+                  alt="Contributor timeline for Sarek, recovered across two repositories"
+                  loading="lazy"
+              /></span>
+              <span class="exbody">
+                <span class="extop">
+                  <h3>nf-core/sarek</h3>
+                  <span class="tag">multi-repo</span>
+                </span>
+                <p>
+                  History stitched across two repositories, so the project's
+                  pre-migration past shows up in one continuous timeline.
+                </p>
+                <span class="open"
+                  >Open interactive
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M6 3h7v7M13 3 4 12" /></svg
+                ></span>
+              </span>
+            </a>
+
+            <a
+              class="ex"
+              href="rnaseq-wikipedia.html"
+              target="_blank"
+              rel="noopener"
+            >
+              <span class="thumb"
+                ><img
+                  src="example-rnaseq-wikipedia.svg"
+                  alt="nf-core/rnaseq rendered with the Wikipedia theme"
+                  loading="lazy"
+              /></span>
+              <span class="exbody">
+                <span class="extop">
+                  <h3>the Wikipedia theme</h3>
+                  <span class="tag">theming</span>
+                </span>
+                <p>
+                  The same rnaseq data in a different skin. Themes are
+                  data-driven, so the look travels into both outputs.
+                </p>
+                <span class="open"
+                  >Open interactive
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M6 3h7v7M13 3 4 12" /></svg
+                ></span>
+              </span>
+            </a>
           </div>
         </div>
       </section>
 
       <section class="band" id="install">
-        <div class="wrap col">
+        <div class="wrap">
           <p class="marker">Install</p>
           <h2 class="head">Get the binary.</h2>
-          <p>
-            Grab a prebuilt binary, install with Cargo, or run it through
-            Docker. The
-            <a href="https://cli.github.com" target="_blank" rel="noopener"
-              >GitHub CLI</a
-            >
-            is optional but worth having: it's how the tool finds a token for
-            username and avatar lookups without hitting the anonymous rate
-            limit.
-          </p>
-
-          <p class="install-h">Prebuilt binary</p>
-          <p>
-            Download the archive for your platform from the
-            <a
-              href="https://github.com/ewels/contributor-graphs/releases"
-              target="_blank"
-              rel="noopener"
-              >releases page</a
-            >, unpack it, and put <code>contributor-graphs</code> on your
-            <code>PATH</code>. No toolchain required.
-          </p>
-
-          <p class="install-h">Cargo</p>
-          <pre
-            class="code"
-          ><button class="copybtn" data-copy="cargo install --git https://github.com/ewels/contributor-graphs">Copy</button><span class="cm"># latest from GitHub</span>
+          <div class="split">
+            <div>
+              <p>
+                Grab a prebuilt binary, install with Cargo, or run it through
+                Docker. The
+                <a href="https://cli.github.com" target="_blank" rel="noopener"
+                  >GitHub CLI</a
+                >
+                is optional but worth having: it's how the tool finds a token
+                for username and avatar lookups without hitting the anonymous
+                rate limit.
+              </p>
+              <p>
+                In CI, the <code>GITHUB_TOKEN</code> that Actions injects is
+                picked up automatically, with nothing else to configure.
+              </p>
+              <p class="install-h">Prebuilt binary</p>
+              <p>
+                Download the archive for your platform from the
+                <a
+                  href="https://github.com/ewels/contributor-graphs/releases"
+                  target="_blank"
+                  rel="noopener"
+                  >releases page</a
+                >, unpack it, and put <code>contributor-graphs</code> on your
+                <code>PATH</code>. No toolchain required.
+              </p>
+            </div>
+            <div>
+              <p class="install-h">Cargo</p>
+              <pre
+                class="code"
+              ><button class="copybtn" data-copy="cargo install --git https://github.com/ewels/contributor-graphs">Copy</button><span class="cm"># latest from GitHub</span>
 cargo install --git https://github.com/ewels/contributor-graphs
 
 <span class="cm"># once published to crates.io</span>
 cargo install contributor-graphs</pre>
 
-          <p class="install-h">Docker</p>
-          <pre
-            class="code"
-          ><button class="copybtn" data-copy='docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN ghcr.io/ewels/contributor-graphs nf-core/rnaseq'>Copy</button><span class="cm"># writes into the mounted directory; passes your token through</span>
+              <p class="install-h">Docker</p>
+              <pre
+                class="code"
+              ><button class="copybtn" data-copy='docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN ghcr.io/ewels/contributor-graphs nf-core/rnaseq'>Copy</button><span class="cm"># writes into the mounted dir; passes your token through</span>
 docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
   ghcr.io/ewels/contributor-graphs nf-core/rnaseq</pre>
-
-          <p>
-            In CI, the <code>GITHUB_TOKEN</code> that Actions injects is picked
-            up automatically, with nothing else to configure.
-          </p>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="band" id="usage">
-        <div class="wrap col">
+        <div class="wrap">
           <p class="marker">Usage</p>
           <h2 class="head">Point it at a repo.</h2>
-          <p>
-            The first argument is a local path, a GitHub
-            <code>owner/repo</code> slug, or a git URL. Remote repositories are
-            cloned (commit history only) into a cache and reused on the next
-            run.
-          </p>
-          <div class="usage-item">
-            <code class="inv"
-              ><span class="pr">$</span> contributor-graphs nf-core/rnaseq</code
-            >
-            <span class="desc"
-              >Clone the history, enrich from GitHub, write
-              <code>nf-core-rnaseq.svg</code> and <code>.html</code>.</span
-            >
-          </div>
-          <div class="usage-item">
-            <code class="inv"
-              ><span class="pr">$</span> contributor-graphs . --open</code
-            >
-            <span class="desc"
-              >Use the current checkout and open the interactive page when it's
-              done.</span
-            >
-          </div>
-          <div class="usage-item">
-            <code class="inv"
-              ><span class="pr">$</span> contributor-graphs MultiQC/MultiQC
-              --min-commits 10 --sort commits</code
-            >
-            <span class="desc"
-              >Trim the long tail of one-off contributors and order by who
-              committed most.</span
-            >
-          </div>
-          <div class="usage-item">
-            <code class="inv"
-              ><span class="pr">$</span> contributor-graphs nf-core/rnaseq
-              --by-affiliation</code
-            >
-            <span class="desc"
-              >Collapse the chart to one row per organisation instead of per
-              person.</span
-            >
+          <div class="split">
+            <div>
+              <p>
+                Each argument is a local path, a GitHub
+                <code>owner/repo</code> slug, a git URL, or a bare
+                <code>owner</code> (org or user) that expands to all of its
+                repos.
+              </p>
+              <p>
+                Everything is cached under
+                <code>~/.cache/contributor-graphs</code>: the clones, the parsed
+                history, and the GitHub lookups. On a re-run a quick
+                <code>git ls-remote</code> checks each repo's tip, so anything
+                unchanged skips the fetch, the log parse, and the API calls
+                entirely. A whole org that took minutes the first time redraws
+                in seconds. Pass <code>--refresh</code> to pull everything
+                fresh.
+              </p>
+              <div class="usage-item">
+                <code class="inv"
+                  ><span class="pr">$</span> contributor-graphs
+                  nf-core/rnaseq</code
+                >
+                <span class="desc"
+                  >Clone the history, enrich from GitHub, write
+                  <code>nf-core-rnaseq.svg</code> and <code>.html</code>.</span
+                >
+              </div>
+              <div class="usage-item">
+                <code class="inv"
+                  ><span class="pr">$</span> contributor-graphs nf-core
+                  seqeralabs</code
+                >
+                <span class="desc"
+                  >Pool every non-fork repo across both orgs into one timeline,
+                  with shared commits deduplicated by SHA.</span
+                >
+              </div>
+              <div class="usage-item">
+                <code class="inv"
+                  ><span class="pr">$</span> contributor-graphs . --open</code
+                >
+                <span class="desc"
+                  >Use the current checkout and open the interactive page when
+                  it's done.</span
+                >
+              </div>
+              <div class="usage-item">
+                <code class="inv"
+                  ><span class="pr">$</span> contributor-graphs MultiQC/MultiQC
+                  --min-commits 10 --sort commits</code
+                >
+                <span class="desc"
+                  >Trim the long tail of one-off contributors and order by who
+                  committed most.</span
+                >
+              </div>
+              <div class="usage-item">
+                <code class="inv"
+                  ><span class="pr">$</span> contributor-graphs nf-core/rnaseq
+                  --by-affiliation</code
+                >
+                <span class="desc"
+                  >Collapse the chart to one row per organisation instead of per
+                  person.</span
+                >
+              </div>
+            </div>
+            <div>
+              <p class="install-h">Common flags</p>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Flag</th>
+                      <th>What it does</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="flag">-o, --output-dir</td>
+                      <td>
+                        Where to write the two files. Defaults to the cwd.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--min-commits</td>
+                      <td>Hide contributors below this many commits.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--max-contributors</td>
+                      <td>Cap the static chart to the top N (default 40).</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--by-affiliation</td>
+                      <td>One row per organisation instead of per person.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--sort</td>
+                      <td>
+                        <code>first</code> · <code>last</code> ·
+                        <code>commits</code> · <code>duration</code> ·
+                        <code>name</code>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--include-bots</td>
+                      <td>Keep bot accounts, dropped by default.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--groups</td>
+                      <td>TSV mapping contributors to organisations.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--identities</td>
+                      <td>TSV merging a person's names and emails.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--since / --until</td>
+                      <td>Restrict to a window of commit history.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--no-github</td>
+                      <td>Skip all network calls; render from git alone.</td>
+                    </tr>
+                    <tr>
+                      <td class="flag">--refresh</td>
+                      <td>
+                        Ignore the cache and pull history and GitHub data fresh.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="margin-top: 14px; font-size: 14px">
+                Run <code>--help</code> for the full list.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -1111,9 +1691,12 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
           <p>
             When the organisations are the story rather than the individuals,
             <code>--by-affiliation</code> merges everyone from each one into a
-            single bar (in the interactive page it's a live toggle, so try it in
-            the chart above). The auto-detection is imperfect, so a small
-            tab-separated file overrides it:
+            single bar (in the interactive page it's a live toggle, so try it on
+            the
+            <a href="nf-core.html" target="_blank" rel="noopener"
+              >whole-org example</a
+            >). The auto-detection is imperfect, so a small tab-separated file
+            overrides it:
           </p>
           <pre
             class="code"
@@ -1131,82 +1714,7 @@ qbicsoftware      QBiC
       </section>
 
       <section class="band">
-        <div class="wrap col">
-          <p class="marker">Reference</p>
-          <h2 class="head">Common flags.</h2>
-          <p>
-            Run <code>--help</code> for the full list. These are the ones you'll
-            use most.
-          </p>
-          <div class="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Flag</th>
-                  <th>What it does</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="flag">-o, --output-dir</td>
-                  <td>
-                    Where to write the two files. Defaults to the current
-                    directory.
-                  </td>
-                </tr>
-                <tr>
-                  <td class="flag">--min-commits</td>
-                  <td>
-                    Hide contributors below this many commits in the static
-                    chart.
-                  </td>
-                </tr>
-                <tr>
-                  <td class="flag">--max-contributors</td>
-                  <td>
-                    Cap the static chart to the top N by commits (default 40).
-                  </td>
-                </tr>
-                <tr>
-                  <td class="flag">--by-affiliation</td>
-                  <td>One row per organisation instead of per person.</td>
-                </tr>
-                <tr>
-                  <td class="flag">--sort</td>
-                  <td>
-                    <code>first</code> · <code>last</code> ·
-                    <code>commits</code> · <code>duration</code> ·
-                    <code>name</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="flag">--include-bots</td>
-                  <td>Keep bot accounts, which are dropped by default.</td>
-                </tr>
-                <tr>
-                  <td class="flag">--groups</td>
-                  <td>TSV mapping contributors to organisations.</td>
-                </tr>
-                <tr>
-                  <td class="flag">--identities</td>
-                  <td>TSV merging a person's several names and emails.</td>
-                </tr>
-                <tr>
-                  <td class="flag">--since / --until</td>
-                  <td>Restrict to a window of commit history.</td>
-                </tr>
-                <tr>
-                  <td class="flag">--no-github</td>
-                  <td>Skip all network calls; render from git alone.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="band">
-        <div class="wrap col">
+        <div class="wrap">
           <p class="marker">How it works</p>
           <h2 class="head">What happens on each run.</h2>
           <ol class="steps">
@@ -1220,25 +1728,23 @@ qbicsoftware      QBiC
             <li>
               <b>Merge identities.</b>
               <span class="s-body"
-                >Commits are clustered by shared email, then by shared name: the
-                usual mess of one person under five addresses, folded back
-                together.</span
+                >Commits are clustered by shared email, then by shared name: one
+                person under five addresses, folded back together.</span
               >
             </li>
             <li>
               <b>Ask GitHub.</b>
               <span class="s-body"
                 >Each identity is resolved to a username, avatar and profile in
-                parallel, so a noreply email or an old address still finds the
-                right account.</span
+                parallel, so a noreply email still finds the right
+                account.</span
               >
             </li>
             <li>
               <b>Bin and draw.</b>
               <span class="s-body"
                 >Commits are counted per month per person, then rendered to a
-                self-contained SVG and an interactive HTML page with everything
-                embedded.</span
+                self-contained SVG and an interactive HTML page.</span
               >
             </li>
           </ol>
@@ -1283,8 +1789,31 @@ qbicsoftware      QBiC
     <script>
       const $ = (s) => document.querySelector(s);
 
-      // staggered load-in
-      requestAnimationFrame(() => document.body.classList.add("in"));
+      // theme toggle
+      const root = document.documentElement;
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+      function applyTheme(t) {
+        root.setAttribute("data-theme", t);
+        if (themeMeta) themeMeta.content = t === "dark" ? "#17150f" : "#f6f5f1";
+      }
+      $("#theme-toggle").addEventListener("click", () => {
+        const next =
+          root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        applyTheme(next);
+        try {
+          localStorage.setItem("cg-theme", next);
+        } catch (e) {}
+      });
+      // follow the OS if the user hasn't explicitly chosen
+      matchMedia("(prefers-color-scheme: dark)").addEventListener(
+        "change",
+        (e) => {
+          try {
+            if (!localStorage.getItem("cg-theme"))
+              applyTheme(e.matches ? "dark" : "light");
+          } catch (err) {}
+        },
+      );
 
       // copy buttons
       const toast = $("#toast");
