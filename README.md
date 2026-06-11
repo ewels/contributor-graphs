@@ -147,11 +147,21 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--no-name-merge`                   | Don't merge identities that share an author name                     |
 | `--accent <HEX>`                    | Bar accent colour (default: `#2f6feb`)                               |
 | `--theme <light\|dark>`             | Background theme for the static SVG (default: `light`)               |
+| `--skin <default\|wikipedia>`       | Visual skin for both outputs (default: `default`)                    |
 | `--width <PX>`                      | Static SVG width (default: 1100)                                     |
 | `--format <svg\|html\|both>`        | Which outputs to write (default: both)                               |
 | `--open`                            | Open the HTML in your browser when done                              |
 
 Run `contributor-graphs --help` for the full list.
+
+### Themes
+
+Both outputs support light and dark modes, and a second skin. The **Wikipedia**
+skin (`--skin wikipedia`) borrows the look of Wikipedia's "band members over
+time" timelines: a serif title, Arial body, Wikipedia colours, and flat solid
+per-row bars instead of activity-heat shading. In the interactive page, pick a
+theme from the Theme selector and toggle light/dark with the header button; the
+choice is remembered per browser.
 
 ### Grouping by affiliation
 

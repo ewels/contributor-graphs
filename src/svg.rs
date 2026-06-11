@@ -14,6 +14,8 @@ pub struct SvgOptions {
     pub by_affiliation: bool,
     /// Render on a dark background.
     pub dark: bool,
+    /// Use the Wikipedia "band members" skin (flat band bars, serif title).
+    pub wikipedia: bool,
 }
 
 impl Default for SvgOptions {
@@ -27,6 +29,7 @@ impl Default for SvgOptions {
             accent: "#2f6feb".into(),
             by_affiliation: false,
             dark: false,
+            wikipedia: false,
         }
     }
 }
@@ -49,7 +52,23 @@ struct Theme {
     bg: &'static str,
     /// HSL lightness (%) for the initials-fallback avatar discs.
     avatar_l: u32,
+    /// Font stack for the chart body.
+    font: &'static str,
+    /// Font stack for the title (a serif for the Wikipedia skin).
+    display_font: &'static str,
+    /// Draw solid per-row "band" bars instead of activity-heat shading.
+    flat: bool,
 }
+
+const SANS: &str = "-apple-system, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif";
+const WIKI_SANS: &str = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
+const WIKI_SERIF: &str = "'Linux Libertine', Georgia, 'Times New Roman', serif";
+
+/// Flat, distinct per-row colours for the Wikipedia "band members" look.
+pub const BAND_PALETTE: &[&str] = &[
+    "#4f6fb0", "#c1543f", "#5a9e54", "#d39c3f", "#8a5fa6", "#3f9aa6", "#b75d8e", "#7d8b3f",
+    "#5b6fae", "#bf6b3f", "#4a9d86", "#a8517a",
+];
 
 const LIGHT: Theme = Theme {
     text: "#1c2530",
@@ -59,6 +78,9 @@ const LIGHT: Theme = Theme {
     grid_month: "#eef1f5",
     bg: "#ffffff",
     avatar_l: 62,
+    font: SANS,
+    display_font: SANS,
+    flat: false,
 };
 
 const DARK: Theme = Theme {
@@ -69,6 +91,35 @@ const DARK: Theme = Theme {
     grid_month: "#1a212a",
     bg: "#0d1117",
     avatar_l: 48,
+    font: SANS,
+    display_font: SANS,
+    flat: false,
+};
+
+const WIKI_LIGHT: Theme = Theme {
+    text: "#202122",
+    muted: "#54595d",
+    faint: "#72777d",
+    grid_year: "#c8ccd1",
+    grid_month: "#eaecf0",
+    bg: "#ffffff",
+    avatar_l: 62,
+    font: WIKI_SANS,
+    display_font: WIKI_SERIF,
+    flat: true,
+};
+
+const WIKI_DARK: Theme = Theme {
+    text: "#eaecf0",
+    muted: "#a2a9b1",
+    faint: "#72777d",
+    grid_year: "#33373c",
+    grid_month: "#23272c",
+    bg: "#101418",
+    avatar_l: 48,
+    font: WIKI_SANS,
+    display_font: WIKI_SERIF,
+    flat: true,
 };
 
 fn esc(s: &str) -> String {
@@ -258,7 +309,12 @@ pub fn smooth_months(months: &[u32]) -> Vec<f64> {
 }
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
-    let th = if opts.dark { &DARK } else { &LIGHT };
+    let th = match (opts.wikipedia, opts.dark) {
+        (true, false) => &WIKI_LIGHT,
+        (true, true) => &WIKI_DARK,
+        (false, false) => &LIGHT,
+        (false, true) => &DARK,
+    };
     let width = opts.width.max(360.0);
     // Colours are interpolated raw into SVG attributes; keep the user-supplied
     // accent from breaking out of them.
@@ -328,7 +384,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let sx = |ts: i64| chart_x + (ts - t0) as f64 / (t1 - t0) as f64 * chart_w;
 
     let mut s = String::with_capacity(256 * 1024);
-    let font = "-apple-system, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif";
+    let font = th.font;
     let _ = write!(
         s,
         r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{w}" height="{h}" viewBox="0 0 {w} {h}" font-family="{font}">"#,
@@ -350,8 +406,9 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     // ---- header ----
     let _ = write!(
         s,
-        r#"<text x="28" y="36" font-size="19" font-weight="700" fill="{}" letter-spacing="-0.2">{}</text>"#,
+        r#"<text x="28" y="36" font-size="19" font-weight="700" fill="{}" font-family="{}" letter-spacing="-0.2">{}</text>"#,
         th.text,
+        th.display_font,
         esc(&opts.title)
     );
     let _ = write!(
@@ -465,6 +522,9 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
             .unwrap_or_else(|| {
                 if has_groups {
                     OTHER_GROUP_COLOR.to_string()
+                } else if th.flat {
+                    // Wikipedia skin without groups: a distinct band per row.
+                    BAND_PALETTE[i % BAND_PALETTE.len()].to_string()
                 } else {
                     accent.clone()
                 }
@@ -570,51 +630,65 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
             None => s.push_str(&name_text),
         }
 
-        // Bar: faint base span + monthly activity segments.
+        // Bar: a flat band block (Wikipedia skin) or a faint base span with
+        // monthly activity-heat segments (default skin).
         let bx = sx(c.first);
         let bw = (sx(c.last) - bx).max(3.0);
         let by = y + (ROW_H - BAR_H) / 2.0;
-        let _ = write!(
-            s,
-            r#"<rect class="bar-base" x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" fill="{color}" opacity="0.16"/>"#,
-            x = n(bx),
-            y = n(by),
-            w = n(bw),
-            h = n(BAR_H),
-            r = n((BAR_H / 2.0).min(bw / 2.0))
-        );
-        let smoothed = smooth_months(&c.months);
-        let smax = smoothed.iter().fold(0.0_f64, |a, &b| a.max(b)).max(1e-9);
-        if bw > 6.0 {
-            let _ = write!(s, r#"<g clip-path="url(#bar{i})">"#);
-            for (mi, &sval) in smoothed.iter().enumerate() {
-                if sval <= 0.0 {
-                    continue;
-                }
-                let m = c.m0 + mi as i32;
-                let mx0 = sx(month_start_ts(m).max(c.first));
-                let mx1 = sx(month_start_ts(m + 1).min(c.last));
-                let w = (mx1 - mx0).max(1.2);
-                let op = 0.28 + 0.72 * (sval / smax).sqrt();
-                let _ = write!(
-                    s,
-                    r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{color}" opacity="{op:.2}"/>"#,
-                    x = n(mx0),
-                    y = n(by),
-                    w = n(w),
-                    h = n(BAR_H),
-                );
-            }
-            let _ = write!(s, "</g>");
-        } else {
-            // Single-burst contributor: solid pill.
+        if th.flat {
+            let w = bw.max(6.0);
+            let x = if bw < 6.0 { bx + bw / 2.0 - 3.0 } else { bx };
             let _ = write!(
                 s,
-                r#"<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}" opacity="0.9"/>"#,
-                cx = n(bx + bw / 2.0),
-                cy = n(cy),
-                r = n(BAR_H / 2.0 - 1.0)
+                r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="1.5" fill="{color}" opacity="0.92"/>"#,
+                x = n(x),
+                y = n(by),
+                w = n(w),
+                h = n(BAR_H),
             );
+        } else {
+            let _ = write!(
+                s,
+                r#"<rect class="bar-base" x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" fill="{color}" opacity="0.16"/>"#,
+                x = n(bx),
+                y = n(by),
+                w = n(bw),
+                h = n(BAR_H),
+                r = n((BAR_H / 2.0).min(bw / 2.0))
+            );
+            let smoothed = smooth_months(&c.months);
+            let smax = smoothed.iter().fold(0.0_f64, |a, &b| a.max(b)).max(1e-9);
+            if bw > 6.0 {
+                let _ = write!(s, r#"<g clip-path="url(#bar{i})">"#);
+                for (mi, &sval) in smoothed.iter().enumerate() {
+                    if sval <= 0.0 {
+                        continue;
+                    }
+                    let m = c.m0 + mi as i32;
+                    let mx0 = sx(month_start_ts(m).max(c.first));
+                    let mx1 = sx(month_start_ts(m + 1).min(c.last));
+                    let w = (mx1 - mx0).max(1.2);
+                    let op = 0.28 + 0.72 * (sval / smax).sqrt();
+                    let _ = write!(
+                        s,
+                        r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{color}" opacity="{op:.2}"/>"#,
+                        x = n(mx0),
+                        y = n(by),
+                        w = n(w),
+                        h = n(BAR_H),
+                    );
+                }
+                let _ = write!(s, "</g>");
+            } else {
+                // Single-burst contributor: solid pill.
+                let _ = write!(
+                    s,
+                    r#"<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}" opacity="0.9"/>"#,
+                    cx = n(bx + bw / 2.0),
+                    cy = n(cy),
+                    r = n(BAR_H / 2.0 - 1.0)
+                );
+            }
         }
 
         // Commit count in the right margin.

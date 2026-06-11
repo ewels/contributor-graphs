@@ -6,6 +6,9 @@ pub struct HtmlOptions {
     pub accent: String,
     pub by_affiliation: bool,
     pub unaffiliated_label: String,
+    /// Initial visual skin (`"default"` or `"wikipedia"`); a viewer can still
+    /// switch it, and a saved choice in `localStorage` takes precedence.
+    pub skin: String,
 }
 
 impl Default for HtmlOptions {
@@ -14,6 +17,7 @@ impl Default for HtmlOptions {
             accent: "#2f6feb".into(),
             by_affiliation: false,
             unaffiliated_label: "Unaffiliated".into(),
+            skin: "default".into(),
         }
     }
 }
@@ -25,6 +29,7 @@ pub fn render_html(meta: &RepoMeta, contributors: &[Contributor], opts: &HtmlOpt
         "accent": opts.accent,
         "byAffiliation": opts.by_affiliation,
         "unaffiliated": opts.unaffiliated_label,
+        "skin": opts.skin,
     });
     // `<\/` keeps any `</script>` inside the JSON from terminating the tag.
     let json = serde_json::to_string(&data)

@@ -117,6 +117,10 @@ struct Args {
     #[arg(long, value_enum, default_value = "light")]
     theme: SvgTheme,
 
+    /// Visual skin for both outputs (sets the HTML page's initial theme too)
+    #[arg(long, value_enum, default_value = "default")]
+    skin: Skin,
+
     /// Open the HTML output in a browser when done
     #[arg(long)]
     open: bool,
@@ -159,6 +163,14 @@ enum Format {
 enum SvgTheme {
     Light,
     Dark,
+}
+
+#[derive(Copy, Clone, PartialEq, ValueEnum)]
+enum Skin {
+    /// The standard activity-heat timeline
+    Default,
+    /// Wikipedia "band members over time" look: flat band bars, serif title
+    Wikipedia,
 }
 
 fn read_tsv(path: &PathBuf) -> Result<Vec<Vec<String>>> {
@@ -282,6 +294,7 @@ fn main() -> Result<()> {
             accent: args.accent.clone(),
             by_affiliation: args.by_affiliation,
             dark: args.theme == SvgTheme::Dark,
+            wikipedia: args.skin == Skin::Wikipedia,
         };
         let svg_str = svg::render_svg(&rows, &opts);
         let path = args.output_dir.join(format!("{basename}.svg"));
@@ -302,6 +315,11 @@ fn main() -> Result<()> {
             accent: args.accent.clone(),
             by_affiliation: args.by_affiliation,
             unaffiliated_label: args.unaffiliated_label.clone(),
+            skin: match args.skin {
+                Skin::Wikipedia => "wikipedia",
+                Skin::Default => "default",
+            }
+            .to_string(),
         };
         let html_str = html::render_html(&meta, &all, &html_opts);
         let path = args.output_dir.join(format!("{basename}.html"));

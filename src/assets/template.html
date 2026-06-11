@@ -26,6 +26,11 @@
         --grid-year: #e2e6ec;
         --grid-month: #eef1f5;
         --track: #e8ebf0;
+        --radius: 12px;
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Inter,
+          "Helvetica Neue", Arial, sans-serif;
+        --font-display: var(--font-sans);
         color-scheme: light;
       }
       [data-theme="dark"] {
@@ -44,6 +49,48 @@
         --track: #2a323d;
         color-scheme: dark;
       }
+
+      /* ---------- Wikipedia skin ---------- */
+      /* Evokes the EasyTimeline "band members over time" charts: a flat white
+         paper, Linux Libertine / Georgia headings over an Arial body, Wikipedia
+         link-blue, and (in the chart) solid per-row band colours. */
+      [data-skin="wikipedia"] {
+        --bg: #ffffff;
+        --card: #ffffff;
+        --border: #c8ccd1;
+        --border-strong: #a2a9b1;
+        --text: #202122;
+        --muted: #54595d;
+        --faint: #72777d;
+        --accent: #3366cc;
+        --accent-soft: rgba(51, 102, 204, 0.1);
+        --shadow: none;
+        --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.18);
+        --grid-year: #c8ccd1;
+        --grid-month: #eaecf0;
+        --track: #eaecf0;
+        --radius: 2px;
+        --font-sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        --font-display: "Linux Libertine", "Georgia", "Times New Roman", serif;
+        color-scheme: light;
+      }
+      [data-skin="wikipedia"][data-theme="dark"] {
+        --bg: #101418;
+        --card: #1b1f24;
+        --border: #3a3f44;
+        --border-strong: #54595d;
+        --text: #eaecf0;
+        --muted: #a2a9b1;
+        --faint: #72777d;
+        --accent: #88a3e8;
+        --accent-soft: rgba(136, 163, 232, 0.14);
+        --shadow: none;
+        --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.6);
+        --grid-year: #33373c;
+        --grid-month: #23272c;
+        --track: #33373c;
+        color-scheme: dark;
+      }
       * {
         box-sizing: border-box;
       }
@@ -57,14 +104,7 @@
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font:
-          14px/1.45 -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          Inter,
-          "Helvetica Neue",
-          Arial,
-          sans-serif;
+        font: 14px/1.45 var(--font-sans);
         -webkit-font-smoothing: antialiased;
       }
       .wrap {
@@ -83,6 +123,7 @@
       }
       .title-block h1 {
         margin: 0 0 6px;
+        font-family: var(--font-display);
         font-size: 24px;
         font-weight: 700;
         letter-spacing: -0.02em;
@@ -162,7 +203,7 @@
         z-index: 30;
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: var(--radius);
         box-shadow: var(--shadow);
         padding: 12px 16px;
         margin-bottom: 14px;
@@ -368,7 +409,7 @@
       .context-card {
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: var(--radius);
         box-shadow: var(--shadow);
         /* Horizontal padding matches .chart-card so the two SVGs share a
            screen-space origin and their plotting areas line up exactly. */
@@ -430,7 +471,7 @@
       .chart-card {
         background: var(--card);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: var(--radius);
         box-shadow: var(--shadow);
         padding: 8px 4px 4px;
         overflow: hidden;
@@ -662,6 +703,13 @@
       </header>
 
       <div class="toolbar">
+        <div class="ctl">
+          <label for="skin">Theme</label>
+          <select id="skin">
+            <option value="default">Default</option>
+            <option value="wikipedia">Wikipedia</option>
+          </select>
+        </div>
         <div class="ctl" id="ctl-rows" hidden>
           <label for="rows">Rows</label>
           <select id="rows">
@@ -857,41 +905,109 @@
       );
 
       /* ---------- theme ---------- */
+      const SANS =
+        "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif";
+      const WIKI_SANS = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
+      // Flat, distinct per-row colours for the Wikipedia "band members" look.
+      const BAND_PALETTE = [
+        "#4f6fb0",
+        "#c1543f",
+        "#5a9e54",
+        "#d39c3f",
+        "#8a5fa6",
+        "#3f9aa6",
+        "#b75d8e",
+        "#7d8b3f",
+        "#5b6fae",
+        "#bf6b3f",
+        "#4a9d86",
+        "#a8517a",
+      ];
+      // A theme bundles the chart's non-CSS colours plus font + bar style. Keyed
+      // by skin, then by light/dark so both modes stay first-class everywhere.
       const THEMES = {
-        light: {
-          text: "#1c2530",
-          muted: "#5d6b7c",
-          faint: "#98a3b1",
-          gridYear: "#e2e6ec",
-          gridMonth: "#eef1f5",
-          card: "#ffffff",
-          ctxArea: "#c9d7f5",
-          ctxLine: "#7d9ce8",
-          dim: "rgba(120,132,148,.18)",
+        default: {
+          light: {
+            text: "#1c2530",
+            muted: "#5d6b7c",
+            faint: "#98a3b1",
+            gridYear: "#e2e6ec",
+            gridMonth: "#eef1f5",
+            card: "#ffffff",
+            ctxArea: "#c9d7f5",
+            ctxLine: "#7d9ce8",
+            dim: "rgba(120,132,148,.18)",
+            font: SANS,
+            flat: false,
+          },
+          dark: {
+            text: "#e6ebf2",
+            muted: "#9aa7b6",
+            faint: "#5f6c7b",
+            gridYear: "#232b35",
+            gridMonth: "#1a212a",
+            card: "#151b23",
+            ctxArea: "#23344f",
+            ctxLine: "#4a6da8",
+            dim: "rgba(120,132,148,.14)",
+            font: SANS,
+            flat: false,
+          },
         },
-        dark: {
-          text: "#e6ebf2",
-          muted: "#9aa7b6",
-          faint: "#5f6c7b",
-          gridYear: "#232b35",
-          gridMonth: "#1a212a",
-          card: "#151b23",
-          ctxArea: "#23344f",
-          ctxLine: "#4a6da8",
-          dim: "rgba(120,132,148,.14)",
+        wikipedia: {
+          light: {
+            text: "#202122",
+            muted: "#54595d",
+            faint: "#72777d",
+            gridYear: "#c8ccd1",
+            gridMonth: "#eaecf0",
+            card: "#ffffff",
+            ctxArea: "#d8e0f2",
+            ctxLine: "#6b81c2",
+            dim: "rgba(120,132,148,.16)",
+            font: WIKI_SANS,
+            flat: true,
+          },
+          dark: {
+            text: "#eaecf0",
+            muted: "#a2a9b1",
+            faint: "#72777d",
+            gridYear: "#33373c",
+            gridMonth: "#23272c",
+            card: "#1b1f24",
+            ctxArea: "#2a3550",
+            ctxLine: "#5b6fae",
+            dim: "rgba(120,132,148,.16)",
+            font: WIKI_SANS,
+            flat: true,
+          },
         },
       };
+      function skinName() {
+        return document.documentElement.dataset.skin || "default";
+      }
       function themeName() {
         return document.documentElement.dataset.theme || "light";
       }
       function theme() {
-        return THEMES[themeName()];
+        return (THEMES[skinName()] || THEMES.default)[themeName()];
+      }
+      // A stable index for a row, for assigning band colours.
+      function bandColor(c) {
+        const k = c.isGroup ? hashHue(c.group) : c._id;
+        return BAND_PALETTE[k % BAND_PALETTE.length];
       }
       function setTheme(name) {
         document.documentElement.dataset.theme = name;
         localStorage.setItem("cg-theme", name);
         $("#icon-moon").style.display = name === "light" ? "" : "none";
         $("#icon-sun").style.display = name === "dark" ? "" : "none";
+        renderAll();
+      }
+      function setSkin(name) {
+        document.documentElement.dataset.skin = name;
+        localStorage.setItem("cg-skin", name);
+        if ($("#skin")) $("#skin").value = name;
         renderAll();
       }
 
@@ -1180,6 +1296,13 @@
       function rowColor(c) {
         // Affiliation rows are always coloured by their group.
         if (c.isGroup) return GROUP_COLOR[c.group] || OTHER_COLOR;
+        // The Wikipedia skin gives each row a distinct flat band colour unless
+        // the user has picked an explicit group/year colouring.
+        if (
+          theme().flat &&
+          (state.color === "activity" || state.color === "solid")
+        )
+          return bandColor(c);
         if (state.color === "group" && c.group)
           return GROUP_COLOR[c.group] || OTHER_COLOR;
         if (state.color === "group") return OTHER_COLOR;
@@ -1334,10 +1457,7 @@
         svg.setAttribute("width", width);
         svg.setAttribute("height", height);
         svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-        svg.setAttribute(
-          "font-family",
-          "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif",
-        );
+        svg.setAttribute("font-family", th.font);
 
         const parts = [];
         const gridTop = topPad - 12,
@@ -1441,34 +1561,43 @@
               : nameEl,
           );
 
-          r.push(
-            `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
-          );
-          if (state.color === "solid") {
+          if (th.flat) {
+            // Wikipedia band block: one solid bar across the active span.
+            const w = Math.max(bw, 6),
+              x = bw < 6 ? bx + bw / 2 - 3 : bx;
             r.push(
-              `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+              `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${color}" opacity="0.92"/>`,
             );
-          } else if (bw > 6) {
-            const sm = smoothMonths(c.months);
-            const smax = maxOf(sm, 1e-9);
-            const seg = [`<g clip-path="url(#bar${i})">`];
-            sm.forEach((sval, mi) => {
-              if (sval <= 0) return;
-              const m = c.m0 + mi;
-              const x0 = sx(Math.max(monthStartTs(m), first)),
-                x1 = sx(Math.min(monthStartTs(m + 1), last));
-              if (x1 < chartX || x0 > chartX + chartW) return;
-              const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
-              seg.push(
-                `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
-              );
-            });
-            seg.push("</g>");
-            r.push(seg.join(""));
           } else {
             r.push(
-              `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
+              `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
             );
+            if (state.color === "solid") {
+              r.push(
+                `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+              );
+            } else if (bw > 6) {
+              const sm = smoothMonths(c.months);
+              const smax = maxOf(sm, 1e-9);
+              const seg = [`<g clip-path="url(#bar${i})">`];
+              sm.forEach((sval, mi) => {
+                if (sval <= 0) return;
+                const m = c.m0 + mi;
+                const x0 = sx(Math.max(monthStartTs(m), first)),
+                  x1 = sx(Math.min(monthStartTs(m + 1), last));
+                if (x1 < chartX || x0 > chartX + chartW) return;
+                const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
+                seg.push(
+                  `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
+                );
+              });
+              seg.push("</g>");
+              r.push(seg.join(""));
+            } else {
+              r.push(
+                `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
+              );
+            }
           }
           r.push(
             `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`,
@@ -1954,6 +2083,7 @@
       }
       function syncControls() {
         const aff = affMode();
+        $("#skin").value = skinName();
         $("#rows").value = state.mode;
         $("#search").value = state.q;
         $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
@@ -2057,6 +2187,7 @@
       $("#theme-toggle").addEventListener("click", () =>
         setTheme(themeName() === "light" ? "dark" : "light"),
       );
+      $("#skin").addEventListener("change", (e) => setSkin(e.target.value));
 
       let resizeTimer;
       new ResizeObserver(() => {
@@ -2072,6 +2203,8 @@
 
       /* ---------- init ---------- */
       readHash();
+      document.documentElement.dataset.skin =
+        localStorage.getItem("cg-skin") || DATA.skin || "default";
       const savedTheme =
         localStorage.getItem("cg-theme") ||
         (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
