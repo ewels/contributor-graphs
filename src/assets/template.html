@@ -1,705 +1,1377 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__PAGE_TITLE__</title>
-<style>
-  :root {
-    --bg: #f6f7f9;
-    --card: #ffffff;
-    --border: #e4e7ec;
-    --border-strong: #d4d9e0;
-    --text: #1c2530;
-    --muted: #5d6b7c;
-    --faint: #98a3b1;
-    --accent: #2f6feb;
-    --accent-soft: rgba(47,111,235,.10);
-    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 6px rgba(16,24,40,.05);
-    --shadow-lg: 0 8px 28px rgba(16,24,40,.14);
-    --grid-year: #e2e6ec;
-    --grid-month: #eef1f5;
-    --track: #e8ebf0;
-    color-scheme: light;
-  }
-  [data-theme="dark"] {
-    --bg: #0d1117;
-    --card: #151b23;
-    --border: #262d37;
-    --border-strong: #333c48;
-    --text: #e6ebf2;
-    --muted: #9aa7b6;
-    --faint: #5f6c7b;
-    --accent-soft: rgba(83,140,255,.13);
-    --shadow: 0 1px 2px rgba(0,0,0,.4);
-    --shadow-lg: 0 10px 32px rgba(0,0,0,.55);
-    --grid-year: #232b35;
-    --grid-month: #1a212a;
-    --track: #2a323d;
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>__PAGE_TITLE__</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --border: #e4e7ec;
+        --border-strong: #d4d9e0;
+        --text: #1c2530;
+        --muted: #5d6b7c;
+        --faint: #98a3b1;
+        --accent: #2f6feb;
+        --accent-soft: rgba(47, 111, 235, 0.1);
+        --shadow:
+          0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 6px rgba(16, 24, 40, 0.05);
+        --shadow-lg: 0 8px 28px rgba(16, 24, 40, 0.14);
+        --grid-year: #e2e6ec;
+        --grid-month: #eef1f5;
+        --track: #e8ebf0;
+        color-scheme: light;
+      }
+      [data-theme="dark"] {
+        --bg: #0d1117;
+        --card: #151b23;
+        --border: #262d37;
+        --border-strong: #333c48;
+        --text: #e6ebf2;
+        --muted: #9aa7b6;
+        --faint: #5f6c7b;
+        --accent-soft: rgba(83, 140, 255, 0.13);
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 10px 32px rgba(0, 0, 0, 0.55);
+        --grid-year: #232b35;
+        --grid-month: #1a212a;
+        --track: #2a323d;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Inter,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 28px 24px 60px;
+      }
 
-  /* ---------- header ---------- */
-  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-  .title-block h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; letter-spacing: -.02em; display: flex; align-items: center; gap: 10px; }
-  .title-block h1 a { color: inherit; text-decoration: none; }
-  .title-block h1 a:hover { color: var(--accent); }
-  .title-block h1 svg { width: 22px; height: 22px; color: var(--faint); flex: none; }
-  .stats { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
-  .stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .header-actions { display: flex; gap: 8px; flex: none; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--card); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 7px 12px; font-size: 13px; font-weight: 500;
-    cursor: pointer; box-shadow: var(--shadow);
-    transition: border-color .12s, background .12s;
-  }
-  .btn:hover { border-color: var(--border-strong); }
-  .btn svg { width: 15px; height: 15px; }
-  .btn.icon { padding: 7px 9px; }
+      /* ---------- header ---------- */
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .title-block h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .title-block h1 a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .title-block h1 a:hover {
+        color: var(--accent);
+      }
+      .title-block h1 svg {
+        width: 22px;
+        height: 22px;
+        color: var(--faint);
+        flex: none;
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .stats b {
+        color: var(--text);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        flex: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        transition:
+          border-color 0.12s,
+          background 0.12s;
+      }
+      .btn:hover {
+        border-color: var(--border-strong);
+      }
+      .btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .btn.icon {
+        padding: 7px 9px;
+      }
 
-  /* ---------- toolbar ---------- */
-  .toolbar {
-    position: sticky; top: 12px; z-index: 30;
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    box-shadow: var(--shadow);
-    padding: 12px 16px; margin-bottom: 14px;
-    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center;
-  }
-  .ctl { display: flex; flex-direction: column; gap: 4px; }
-  .ctl > label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
-  .ctl-row { display: flex; align-items: center; gap: 8px; }
-  input[type="search"], input[type="number"], select {
-    background: var(--bg); color: var(--text);
-    border: 1px solid var(--border); border-radius: 7px;
-    padding: 6px 9px; font-size: 13px; font-family: inherit;
-    outline: none; transition: border-color .12s, box-shadow .12s;
-  }
-  input[type="search"]:focus, input[type="number"]:focus, select:focus {
-    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  input[type="search"] { width: 190px; }
-  input[type="number"] { width: 70px; }
-  .ctl .val { min-width: 42px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
-  input[type="range"] {
-    -webkit-appearance: none; appearance: none;
-    width: 130px; height: 4px; border-radius: 2px;
-    background: var(--track); outline: none; cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 15px; height: 15px; border-radius: 50%;
-    background: var(--accent); border: 2.5px solid var(--card);
-    box-shadow: 0 1px 4px rgba(16,24,40,.3); cursor: grab;
-  }
-  input[type="range"]::-moz-range-thumb {
-    width: 13px; height: 13px; border-radius: 50%;
-    background: var(--accent); border: 2.5px solid var(--card);
-    box-shadow: 0 1px 4px rgba(16,24,40,.3); cursor: grab;
-  }
-  .switch { position: relative; display: inline-flex; align-items: center; cursor: pointer; gap: 8px; padding-top: 3px; }
-  .switch input { position: absolute; opacity: 0; }
-  .switch .track {
-    width: 32px; height: 18px; border-radius: 9px; background: var(--track);
-    transition: background .15s; flex: none; position: relative;
-  }
-  .switch .track::after {
-    content: ""; position: absolute; top: 2px; left: 2px;
-    width: 14px; height: 14px; border-radius: 50%; background: var(--card);
-    box-shadow: 0 1px 3px rgba(16,24,40,.3); transition: transform .15s;
-  }
-  .switch input:checked + .track { background: var(--accent); }
-  .switch input:checked + .track::after { transform: translateX(14px); }
-  .switch span.lbl { font-size: 13px; color: var(--muted); }
-  .toolbar .spacer { flex: 1; }
-  .showing { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .showing b { color: var(--text); }
-  .btn.subtle { box-shadow: none; background: transparent; border-color: transparent; color: var(--muted); }
-  .btn.subtle:hover { color: var(--text); background: var(--accent-soft); }
+      /* ---------- toolbar ---------- */
+      .toolbar {
+        position: sticky;
+        top: 12px;
+        z-index: 30;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 22px;
+        align-items: center;
+      }
+      .ctl {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ctl > label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--faint);
+      }
+      .ctl-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      input[type="search"],
+      input[type="number"],
+      select {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 6px 9px;
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s;
+      }
+      input[type="search"]:focus,
+      input[type="number"]:focus,
+      select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      input[type="search"] {
+        width: 190px;
+      }
+      input[type="number"] {
+        width: 70px;
+      }
+      .ctl .val {
+        min-width: 42px;
+        font-size: 13px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 130px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--track);
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2.5px solid var(--card);
+        box-shadow: 0 1px 4px rgba(16, 24, 40, 0.3);
+        cursor: grab;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2.5px solid var(--card);
+        box-shadow: 0 1px 4px rgba(16, 24, 40, 0.3);
+        cursor: grab;
+      }
+      .switch {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        gap: 8px;
+        padding-top: 3px;
+      }
+      .switch input {
+        position: absolute;
+        opacity: 0;
+      }
+      .switch .track {
+        width: 32px;
+        height: 18px;
+        border-radius: 9px;
+        background: var(--track);
+        transition: background 0.15s;
+        flex: none;
+        position: relative;
+      }
+      .switch .track::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--card);
+        box-shadow: 0 1px 3px rgba(16, 24, 40, 0.3);
+        transition: transform 0.15s;
+      }
+      .switch input:checked + .track {
+        background: var(--accent);
+      }
+      .switch input:checked + .track::after {
+        transform: translateX(14px);
+      }
+      .switch span.lbl {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .toolbar .spacer {
+        flex: 1;
+      }
+      .showing {
+        font-size: 13px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .showing b {
+        color: var(--text);
+      }
+      .btn.subtle {
+        box-shadow: none;
+        background: transparent;
+        border-color: transparent;
+        color: var(--muted);
+      }
+      .btn.subtle:hover {
+        color: var(--text);
+        background: var(--accent-soft);
+      }
 
-  /* ---------- group legend ---------- */
-  .legend { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
-  .legend .chip {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: var(--card); border: 1px solid var(--border); border-radius: 99px;
-    padding: 4px 12px 4px 9px; font-size: 12.5px; color: var(--muted);
-    cursor: pointer; transition: border-color .12s, box-shadow .12s, opacity .12s;
-    user-select: none;
-  }
-  .legend .chip .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
-  .legend .chip .n { color: var(--faint); font-variant-numeric: tabular-nums; }
-  .legend .chip:hover { border-color: var(--border-strong); }
-  .legend .chip.on { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2.5px var(--accent-soft); }
-  .legend.has-sel .chip:not(.on) { opacity: .55; }
+      /* ---------- group legend ---------- */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-bottom: 14px;
+      }
+      .legend .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 99px;
+        padding: 4px 12px 4px 9px;
+        font-size: 12.5px;
+        color: var(--muted);
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s,
+          opacity 0.12s;
+        user-select: none;
+      }
+      .legend .chip .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
+        flex: none;
+      }
+      .legend .chip .n {
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+      }
+      .legend .chip:hover {
+        border-color: var(--border-strong);
+      }
+      .legend .chip.on {
+        border-color: var(--accent);
+        color: var(--text);
+        box-shadow: 0 0 0 2.5px var(--accent-soft);
+      }
+      .legend.has-sel .chip:not(.on) {
+        opacity: 0.55;
+      }
 
-  /* ---------- context strip ---------- */
-  .context-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    box-shadow: var(--shadow); padding: 10px 16px 6px; margin-bottom: 14px;
-  }
-  .context-card .hint { font-size: 11px; color: var(--faint); margin: 0 0 2px; display: flex; justify-content: space-between; }
-  #context { display: block; width: 100%; cursor: crosshair; touch-action: none; }
+      /* ---------- context strip ---------- */
+      .context-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 10px 16px 6px;
+        margin-bottom: 14px;
+      }
+      .context-card .hint {
+        font-size: 11px;
+        color: var(--faint);
+        margin: 0 0 2px;
+        display: flex;
+        justify-content: space-between;
+      }
+      #context {
+        display: block;
+        width: 100%;
+        cursor: crosshair;
+        touch-action: none;
+      }
 
-  /* ---------- chart ---------- */
-  .chart-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    box-shadow: var(--shadow); padding: 8px 4px 4px; overflow: hidden;
-  }
-  #chart { display: block; width: 100%; }
-  #chart a { cursor: pointer; }
-  #chart .row-hit { fill: transparent; }
-  #chart g.crow:hover .row-hit { fill: var(--accent-soft); }
-  .empty { text-align: center; padding: 70px 20px; color: var(--muted); }
-  .empty .big { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+      /* ---------- chart ---------- */
+      .chart-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 8px 4px 4px;
+        overflow: hidden;
+      }
+      #chart {
+        display: block;
+        width: 100%;
+      }
+      #chart a {
+        cursor: pointer;
+      }
+      #chart .row-hit {
+        fill: transparent;
+      }
+      #chart g.crow:hover .row-hit {
+        fill: var(--accent-soft);
+      }
+      .empty {
+        text-align: center;
+        padding: 70px 20px;
+        color: var(--muted);
+      }
+      .empty .big {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
 
-  /* ---------- tooltip ---------- */
-  #tooltip {
-    position: fixed; z-index: 100; pointer-events: none;
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    box-shadow: var(--shadow-lg); padding: 12px 14px; max-width: 290px;
-    opacity: 0; transform: translateY(4px); transition: opacity .1s, transform .1s;
-  }
-  #tooltip.show { opacity: 1; transform: none; }
-  #tooltip .tt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  #tooltip .tt-head img, #tooltip .tt-head .ph {
-    width: 36px; height: 36px; border-radius: 50%; flex: none;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 13px; color: #fff;
-  }
-  #tooltip .tt-name { font-weight: 600; font-size: 14px; }
-  #tooltip .tt-login { font-size: 12px; color: var(--muted); }
-  #tooltip .tt-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 12.5px; }
-  #tooltip .tt-grid dt { color: var(--muted); }
-  #tooltip .tt-grid dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; font-weight: 500; }
-  #tooltip .tt-members { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.5; }
-  #tooltip .tt-spark { margin-top: 8px; }
-  #tooltip .badge {
-    display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px;
-    border-radius: 99px; margin-left: 4px; vertical-align: 1px;
-  }
+      /* ---------- tooltip ---------- */
+      #tooltip {
+        position: fixed;
+        z-index: 100;
+        pointer-events: none;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: var(--shadow-lg);
+        padding: 12px 14px;
+        max-width: 290px;
+        opacity: 0;
+        transform: translateY(4px);
+        transition:
+          opacity 0.1s,
+          transform 0.1s;
+      }
+      #tooltip.show {
+        opacity: 1;
+        transform: none;
+      }
+      #tooltip .tt-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      #tooltip .tt-head img,
+      #tooltip .tt-head .ph {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+      }
+      #tooltip .tt-name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+      #tooltip .tt-login {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #tooltip .tt-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2px 12px;
+        font-size: 12.5px;
+      }
+      #tooltip .tt-grid dt {
+        color: var(--muted);
+      }
+      #tooltip .tt-grid dd {
+        margin: 0;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        font-weight: 500;
+      }
+      #tooltip .tt-members {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      #tooltip .tt-spark {
+        margin-top: 8px;
+      }
+      #tooltip .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 99px;
+        margin-left: 4px;
+        vertical-align: 1px;
+      }
 
-  footer { margin-top: 22px; text-align: center; font-size: 12px; color: var(--faint); }
-  footer a { color: var(--muted); }
+      footer {
+        margin-top: 22px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--faint);
+      }
+      footer a {
+        color: var(--muted);
+      }
 
-  @media (max-width: 760px) {
-    .wrap { padding: 16px 12px 40px; }
-    header { flex-direction: column; }
-    input[type="search"] { width: 100%; }
-  }
-  @media print {
-    .toolbar, .header-actions, .context-card, footer .no-print { display: none !important; }
-    body { background: #fff; }
-    .chart-card { border: none; box-shadow: none; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="title-block">
-      <h1 id="repo-title"></h1>
-      <div class="stats" id="stats"></div>
-    </div>
-    <div class="header-actions">
-      <button class="btn" id="dl-svg" title="Download current view as SVG">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8m0 0L5 7m3 3 3-3M2.5 12.5h11"/></svg>
-        SVG
-      </button>
-      <button class="btn" id="dl-png" title="Download current view as PNG">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8m0 0L5 7m3 3 3-3M2.5 12.5h11"/></svg>
-        PNG
-      </button>
-      <button class="btn icon" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-        <svg id="icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z"/></svg>
-        <svg id="icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/></svg>
-      </button>
-    </div>
-  </header>
+      @media (max-width: 760px) {
+        .wrap {
+          padding: 16px 12px 40px;
+        }
+        header {
+          flex-direction: column;
+        }
+        input[type="search"] {
+          width: 100%;
+        }
+      }
+      @media print {
+        .toolbar,
+        .header-actions,
+        .context-card,
+        footer .no-print {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
+        .chart-card {
+          border: none;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="title-block">
+          <h1 id="repo-title"></h1>
+          <div class="stats" id="stats"></div>
+        </div>
+        <div class="header-actions">
+          <button class="btn" id="dl-svg" title="Download current view as SVG">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M8 2v8m0 0L5 7m3 3 3-3M2.5 12.5h11" />
+            </svg>
+            SVG
+          </button>
+          <button class="btn" id="dl-png" title="Download current view as PNG">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M8 2v8m0 0L5 7m3 3 3-3M2.5 12.5h11" />
+            </svg>
+            PNG
+          </button>
+          <button
+            class="btn icon"
+            id="theme-toggle"
+            title="Toggle dark mode"
+            aria-label="Toggle dark mode"
+          >
+            <svg
+              id="icon-moon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7Z" />
+            </svg>
+            <svg
+              id="icon-sun"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="display: none"
+            >
+              <circle cx="8" cy="8" r="3.2" />
+              <path
+                d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
 
-  <div class="toolbar">
-    <div class="ctl" id="ctl-rows" hidden>
-      <label for="rows">Rows</label>
-      <select id="rows">
-        <option value="contributors">Contributors</option>
-        <option value="affiliations">Affiliations</option>
-      </select>
-    </div>
-    <div class="ctl">
-      <label for="search">Search</label>
-      <input type="search" id="search" placeholder="Name or username…" autocomplete="off">
-    </div>
-    <div class="ctl">
-      <label for="min-range">Min commits</label>
-      <div class="ctl-row">
-        <input type="range" id="min-range" min="0" max="100" value="0" step="1">
-        <input type="number" id="min-num" min="1" value="1" aria-label="Minimum commits">
+      <div class="toolbar">
+        <div class="ctl" id="ctl-rows" hidden>
+          <label for="rows">Rows</label>
+          <select id="rows">
+            <option value="contributors">Contributors</option>
+            <option value="affiliations">Affiliations</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label for="search">Search</label>
+          <input
+            type="search"
+            id="search"
+            placeholder="Name or username…"
+            autocomplete="off"
+          />
+        </div>
+        <div class="ctl">
+          <label for="min-range">Min commits</label>
+          <div class="ctl-row">
+            <input
+              type="range"
+              id="min-range"
+              min="0"
+              max="100"
+              value="0"
+              step="1"
+            />
+            <input
+              type="number"
+              id="min-num"
+              min="1"
+              value="1"
+              aria-label="Minimum commits"
+            />
+          </div>
+        </div>
+        <div class="ctl">
+          <label for="topn">Show top</label>
+          <div class="ctl-row">
+            <input type="number" id="topn" min="1" step="5" />
+            <span class="val" id="topn-of"></span>
+          </div>
+        </div>
+        <div class="ctl">
+          <label for="sort">Order by</label>
+          <select id="sort">
+            <option value="first">First commit</option>
+            <option value="last">Latest commit</option>
+            <option value="commits">Most commits</option>
+            <option value="duration">Longest active</option>
+            <option value="name">Name</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label for="color">Colour</label>
+          <select id="color">
+            <option value="activity">Activity heat</option>
+            <option value="solid">Solid</option>
+            <option value="year">Year joined</option>
+            <option value="group" id="opt-group" hidden>Group</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>&nbsp;</label>
+          <label class="switch">
+            <input type="checkbox" id="bots" />
+            <span class="track"></span>
+            <span class="lbl">Bots</span>
+          </label>
+        </div>
+        <div class="spacer"></div>
+        <div class="showing" id="showing"></div>
+        <button class="btn subtle" id="reset" title="Reset all filters">
+          Reset
+        </button>
       </div>
-    </div>
-    <div class="ctl">
-      <label for="topn">Show top</label>
-      <div class="ctl-row">
-        <input type="number" id="topn" min="1" step="5">
-        <span class="val" id="topn-of"></span>
+
+      <div class="context-card">
+        <p class="hint">
+          <span
+            >Repository activity — drag to zoom the timeline, double-click to
+            reset</span
+          ><span id="brush-label"></span>
+        </p>
+        <svg id="context" height="64"></svg>
       </div>
+
+      <div class="legend" id="legend" hidden></div>
+
+      <div class="chart-card">
+        <svg id="chart"></svg>
+        <div class="empty" id="empty" style="display: none">
+          <div class="big">Nothing matches these filters</div>
+          <div>
+            Try clearing the search or lowering the minimum commit filter.
+          </div>
+        </div>
+      </div>
+
+      <footer id="footer"></footer>
     </div>
-    <div class="ctl">
-      <label for="sort">Order by</label>
-      <select id="sort">
-        <option value="first">First commit</option>
-        <option value="last">Latest commit</option>
-        <option value="commits">Most commits</option>
-        <option value="duration">Longest active</option>
-        <option value="name">Name</option>
-      </select>
-    </div>
-    <div class="ctl">
-      <label for="color">Colour</label>
-      <select id="color">
-        <option value="activity">Activity heat</option>
-        <option value="solid">Solid</option>
-        <option value="year">Year joined</option>
-        <option value="group" id="opt-group" hidden>Group</option>
-      </select>
-    </div>
-    <div class="ctl">
-      <label>&nbsp;</label>
-      <label class="switch">
-        <input type="checkbox" id="bots">
-        <span class="track"></span>
-        <span class="lbl">Bots</span>
-      </label>
-    </div>
-    <div class="spacer"></div>
-    <div class="showing" id="showing"></div>
-    <button class="btn subtle" id="reset" title="Reset all filters">Reset</button>
-  </div>
 
-  <div class="context-card">
-    <p class="hint"><span>Repository activity — drag to zoom the timeline, double-click to reset</span><span id="brush-label"></span></p>
-    <svg id="context" height="64"></svg>
-  </div>
+    <div id="tooltip" role="tooltip"></div>
 
-  <div class="legend" id="legend" hidden></div>
-
-  <div class="chart-card">
-    <svg id="chart"></svg>
-    <div class="empty" id="empty" style="display:none">
-      <div class="big">Nothing matches these filters</div>
-      <div>Try clearing the search or lowering the minimum commit filter.</div>
-    </div>
-  </div>
-
-  <footer id="footer"></footer>
-</div>
-
-<div id="tooltip" role="tooltip"></div>
-
-<script id="data" type="application/json">__DATA__</script>
-<script>
-"use strict";
-const $ = s => document.querySelector(s);
-const DATA = JSON.parse($("#data").textContent);
-const REPO = DATA.repo;
-const ALL = DATA.contributors;
-ALL.forEach((c, i) => { c._id = i; });
-
-const ACCENT = DATA.accent || "#2f6feb";
-const GROUP_PALETTE = ["#4269d0","#e7a13d","#ff725c","#6cc5b0","#3ca951","#ff8ab7","#a463f2","#97bbf5","#9c6b4e","#9498a0","#2f7f8f","#c65b8a"];
-const YEAR_PALETTE = ["#4269d0","#3ca951","#e7a13d","#ff725c","#a463f2","#2f7f8f","#c65b8a","#6cc5b0"];
-
-/* Groups ranked by member count; top 10 get colours, the tail shares grey. */
-const OTHER_COLOR = "#9aa3ad";
-const GROUP_COUNTS = (() => {
-  const m = new Map();
-  for (const c of ALL) if (c.group && !c.bot) m.set(c.group, (m.get(c.group) || 0) + 1);
-  return [...m.entries()].sort((a, b) => b[1] - a[1]);
-})();
-const GROUPS = GROUP_COUNTS.map(([g]) => g);
-const GROUP_COLOR = Object.fromEntries(GROUP_COUNTS.map(([g], i) => [g, i < 10 ? GROUP_PALETTE[i % GROUP_PALETTE.length] : OTHER_COLOR]));
-if (GROUPS.length) $("#opt-group").hidden = false;
-
-const HUMANS = ALL.filter(c => !c.bot);
-const MAX_COMMITS = Math.max(...ALL.map(c => c.commits), 1);
-
-/* ---------- theme ---------- */
-const THEMES = {
-  light: { text:"#1c2530", muted:"#5d6b7c", faint:"#98a3b1", gridYear:"#e2e6ec", gridMonth:"#eef1f5", card:"#ffffff", ctxArea:"#c9d7f5", ctxLine:"#7d9ce8", dim:"rgba(120,132,148,.18)" },
-  dark:  { text:"#e6ebf2", muted:"#9aa7b6", faint:"#5f6c7b", gridYear:"#232b35", gridMonth:"#1a212a", card:"#151b23", ctxArea:"#23344f", ctxLine:"#4a6da8", dim:"rgba(120,132,148,.14)" },
-};
-function themeName() { return document.documentElement.dataset.theme || "light"; }
-function theme() { return THEMES[themeName()]; }
-function setTheme(name) {
-  document.documentElement.dataset.theme = name;
-  localStorage.setItem("cg-theme", name);
-  $("#icon-moon").style.display = name === "light" ? "" : "none";
-  $("#icon-sun").style.display = name === "dark" ? "" : "none";
-  renderAll();
-}
-
-/* ---------- helpers ---------- */
-const fmtNum = n => n.toLocaleString("en-US");
-const MONTHS_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function tsToDate(ts) { return new Date(ts * 1000); }
-function fmtMonthYear(ts) { const d = tsToDate(ts); return MONTHS_ABBR[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
-function fmtDate(ts) { const d = tsToDate(ts); return d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0"); }
-function monthIndex(ts) { const d = tsToDate(ts); return (d.getUTCFullYear() - 1970) * 12 + d.getUTCMonth(); }
-function monthStartTs(mi) { return Date.UTC(1970 + Math.floor(mi / 12), ((mi % 12) + 12) % 12, 1) / 1000; }
-function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function initials(name) {
-  const w = name.trim().split(/\s+/);
-  return ((w[0]||"?")[0] + (w.length > 1 ? w[w.length-1][0] : "")).toUpperCase();
-}
-function hashHue(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 360; }
-
-const measureCtx = document.createElement("canvas").getContext("2d");
-function textWidth(s, px, weight) {
-  measureCtx.font = (weight || 400) + " " + px + "px -apple-system, 'Segoe UI', Inter, Arial, sans-serif";
-  return measureCtx.measureText(s).width;
-}
-
-/* ---------- state ---------- */
-const UNAFFILIATED = DATA.unaffiliated || "Unaffiliated";
-const HAS_GROUPS = GROUPS.length > 0;
-const DEFAULT_MODE = (DATA.byAffiliation && HAS_GROUPS) ? "affiliations" : "contributors";
-const DEFAULT_TOP = Math.min(50, HUMANS.length);
-const DEFAULT_COLOR = HAS_GROUPS ? "group" : "activity";
-const state = {
-  mode: DEFAULT_MODE,
-  q: "", min: 1, top: DEFAULT_TOP, sort: "first",
-  color: DEFAULT_COLOR,
-  bots: false, t0: null, t1: null,
-  gsel: new Set(),
-};
-if (HAS_GROUPS) $("#ctl-rows").hidden = false;
-
-/* Collapse contributors into one row per affiliation. */
-function aggregateByGroup(rows) {
-  const map = new Map();
-  for (const c of rows) {
-    const g = c.group || UNAFFILIATED;
-    let a = map.get(g);
-    if (!a) {
-      a = { name: g, group: g, isGroup: true, commits: 0, first: Infinity, last: -Infinity,
-            members: 0, login: null, avatar: null, url: null, bot: false, _m: new Map(), _names: [] };
-      map.set(g, a);
-    }
-    a.commits += c.commits;
-    a.first = Math.min(a.first, c.first);
-    a.last = Math.max(a.last, c.last);
-    a.members++;
-    a._names.push([c.name, c.commits]);
-    c.months.forEach((v, i) => { if (v) { const m = c.m0 + i; a._m.set(m, (a._m.get(m) || 0) + v); } });
-  }
-  const out = [];
-  for (const a of map.values()) {
-    const ms = [...a._m.keys()];
-    a.m0 = ms.length ? Math.min(...ms) : monthIndex(a.first);
-    const m1 = ms.length ? Math.max(...ms) : a.m0;
-    a.months = new Array(m1 - a.m0 + 1).fill(0);
-    a._m.forEach((v, m) => { a.months[m - a.m0] = v; });
-    a._names.sort((x, y) => y[1] - x[1]);
-    a.member_names = a._names.slice(0, 8).map(x => x[0]);
-    delete a._m; delete a._names;
-    out.push(a);
-  }
-  return out;
-}
-
-const GSEP = String.fromCharCode(31); // separator for group names in the URL hash
-function readHash() {
-  if (!location.hash) return;
-  try {
-    const p = new URLSearchParams(location.hash.slice(1));
-    if (p.has("q")) state.q = p.get("q");
-    if (p.has("min")) state.min = +p.get("min") || 1;
-    if (p.has("top")) state.top = +p.get("top") || DEFAULT_TOP;
-    if (p.has("sort")) state.sort = p.get("sort");
-    if (p.has("color")) state.color = p.get("color");
-    if (p.has("bots")) state.bots = p.get("bots") === "1";
-    if (p.has("t0")) state.t0 = +p.get("t0");
-    if (p.has("t1")) state.t1 = +p.get("t1");
-    if (p.has("g")) state.gsel = new Set(p.get("g").split(GSEP).filter(g => GROUPS.includes(g)));
-    if (p.has("rows") && HAS_GROUPS) state.mode = p.get("rows") === "affiliations" ? "affiliations" : "contributors";
-  } catch (e) {}
-}
-let hashTimer;
-function writeHash() {
-  clearTimeout(hashTimer);
-  hashTimer = setTimeout(() => {
-    const p = new URLSearchParams();
-    if (state.q) p.set("q", state.q);
-    if (state.min > 1) p.set("min", state.min);
-    if (state.top !== DEFAULT_TOP) p.set("top", state.top);
-    if (state.sort !== "first") p.set("sort", state.sort);
-    if (state.color !== DEFAULT_COLOR) p.set("color", state.color);
-    if (state.bots) p.set("bots", "1");
-    if (state.t0 != null) { p.set("t0", Math.round(state.t0)); p.set("t1", Math.round(state.t1)); }
-    if (state.gsel.size) p.set("g", [...state.gsel].join(GSEP));
-    if (state.mode !== DEFAULT_MODE) p.set("rows", state.mode);
-    const s = p.toString();
-    history.replaceState(null, "", s ? "#" + s : location.pathname + location.search);
-  }, 200);
-}
-
-/* min-commits slider: log scale */
-const minRange = $("#min-range");
-function sliderToMin(v) { return Math.max(1, Math.round(Math.exp(v / 100 * Math.log(MAX_COMMITS)))); }
-function minToSlider(m) { return Math.round(100 * Math.log(Math.max(1, m)) / Math.log(MAX_COMMITS)); }
-
-/* ---------- filtering ---------- */
-function domain() {
-  const t0 = state.t0 != null ? state.t0 : REPO.first;
-  const t1 = state.t1 != null ? state.t1 : REPO.last;
-  return [t0, t1];
-}
-function affMode() { return state.mode === "affiliations"; }
-function filtered() {
-  const [t0, t1] = domain();
-  const q = state.q.trim().toLowerCase();
-  const aff = affMode();
-  let base = ALL.filter(c => state.bots || !c.bot);
-  if (aff) base = aggregateByGroup(base);
-  let rows = base.filter(c =>
-    c.commits >= state.min &&
-    c.last >= t0 && c.first <= t1 &&
-    (aff || !state.gsel.size || (c.group && state.gsel.has(c.group))) &&
-    (!q || c.name.toLowerCase().includes(q) || (c.login || "").toLowerCase().includes(q) || (c.group || "").toLowerCase().includes(q))
-  );
-  const eligible = rows.length;
-  const total = base.length;
-  if (rows.length > state.top) {
-    rows = rows.slice().sort((a, b) => b.commits - a.commits).slice(0, state.top);
-  }
-  rows = rows.slice().sort(comparator(state.sort));
-  return { rows, eligible, total };
-}
-function smoothMonths(months) {
-  return months.map((v, i) =>
-    (2 * v + (months[i - 1] || 0) + (months[i + 1] || 0)) / 4);
-}
-function comparator(key) {
-  switch (key) {
-    case "last": return (a, b) => b.last - a.last || b.commits - a.commits;
-    case "commits": return (a, b) => b.commits - a.commits;
-    case "duration": return (a, b) => (b.last - b.first) - (a.last - a.first);
-    case "name": return (a, b) => a.name.localeCompare(b.name);
-    default: return (a, b) => a.first - b.first || b.commits - a.commits;
-  }
-}
-function rowColor(c) {
-  // Affiliation rows are always coloured by their group.
-  if (c.isGroup) return GROUP_COLOR[c.group] || OTHER_COLOR;
-  if (state.color === "group" && c.group) return GROUP_COLOR[c.group] || OTHER_COLOR;
-  if (state.color === "group") return OTHER_COLOR;
-  if (state.color === "year") {
-    const y0 = tsToDate(REPO.first).getUTCFullYear();
-    const y = tsToDate(c.first).getUTCFullYear();
-    return YEAR_PALETTE[(y - y0) % YEAR_PALETTE.length + (y < y0 ? YEAR_PALETTE.length : 0)];
-  }
-  return ACCENT;
-}
-
-/* ---------- time ticks ---------- */
-function timeTicks(t0, t1) {
-  const spanDays = (t1 - t0) / 86400;
-  const spanYears = spanDays / 365.25;
-  const y0 = tsToDate(t0).getUTCFullYear(), y1 = tsToDate(t1).getUTCFullYear();
-  const major = [], minor = [];
-  if (spanYears > 2.2) {
-    const step = Math.max(1, Math.ceil(spanYears / 11));
-    for (let y = y0; y <= y1 + 1; y++) {
-      if ((y - y0) % step) continue;
-      const ts = Date.UTC(y, 0, 1) / 1000;
-      if (ts >= t0 && ts <= t1) major.push([ts, String(y)]);
-    }
-    const minorMonths = spanYears <= 5 ? 1 : spanYears <= 11 ? 3 : 12;
-    for (let m = (y0 - 1970) * 12; m <= (y1 + 1 - 1970) * 12 + 11; m++) {
-      if (m % minorMonths) continue;
-      const ts = monthStartTs(m);
-      if (ts >= t0 && ts <= t1 && !major.some(([t]) => t === ts)) minor.push(ts);
-    }
-  } else {
-    const step = spanDays > 500 ? 3 : spanDays > 240 ? 2 : 1;
-    let lastYear = -1;
-    for (let m = (y0 - 1970) * 12; m <= (y1 + 1 - 1970) * 12 + 11; m++) {
-      const ts = monthStartTs(m);
-      if (ts < t0 || ts > t1) continue;
-      if (m % step === 0) {
-        const year = 1970 + Math.floor(m / 12);
-        const lbl = MONTHS_ABBR[((m % 12) + 12) % 12] + (year !== lastYear ? " " + year : "");
-        lastYear = year;
-        major.push([ts, lbl]);
-      } else minor.push(ts);
-    }
-  }
-  return { major, minor };
-}
-
-/* ---------- main chart ---------- */
-const ROW_H = 28, BAR_H = 13, AVATAR = 20;
-let currentRows = [];
-
-function renderChart() {
-  const { rows, eligible, total } = filtered();
-  currentRows = rows;
-  const svg = $("#chart");
-  const th = theme();
-  $("#empty").style.display = rows.length ? "none" : "";
-  if (!rows.length) { svg.innerHTML = ""; svg.setAttribute("height", 0); updateShowing(rows, eligible, total); return; }
-
-  const width = svg.parentElement.clientWidth - 8;
-  const [d0raw, d1raw] = domain();
-  const pad = Math.max(86400, (d1raw - d0raw) * 0.012);
-  const t0 = d0raw - pad, t1 = d1raw + pad;
-
-  const nameSize = 12.5;
-  const maxNameW = Math.max(...rows.map(c => textWidth(c.name, nameSize, 500)), 60);
-  const labelW = Math.min(Math.max(maxNameW + AVATAR + 56, 140), Math.max(170, width * 0.34));
-  const countW = 62, marginR = 14;
-  const chartX = labelW, chartW = width - labelW - countW - marginR;
-  const topPad = 26, axisH = 30;
-  const height = topPad + rows.length * ROW_H + axisH;
-  const sx = ts => chartX + (ts - t0) / (t1 - t0) * chartW;
-
-  svg.setAttribute("width", width);
-  svg.setAttribute("height", height);
-  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.setAttribute("font-family", "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif");
-
-  const parts = [];
-  const gridTop = topPad - 12, gridBot = topPad + rows.length * ROW_H + 6;
-
-  const ticks = timeTicks(t0, t1);
-  for (const ts of ticks.minor)
-    parts.push(`<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridMonth}"/>`);
-  for (const [ts, lbl] of ticks.major) {
-    parts.push(`<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridYear}"/>`);
-    parts.push(`<text x="${sx(ts)}" y="${gridBot + 18}" font-size="11" font-weight="600" fill="${th.muted}" text-anchor="middle">${lbl}</text>`);
-  }
-  parts.push(`<line x1="${chartX - 4}" y1="${gridBot}" x2="${chartX + chartW + 4}" y2="${gridBot}" stroke="${th.gridYear}"/>`);
-
-  const defs = [];
-  rows.forEach((c, i) => {
-    const y = topPad + i * ROW_H, cy = y + ROW_H / 2;
-    const bx = sx(Math.max(c.first, t0)), bw = Math.max(sx(Math.min(c.last, t1)) - bx, 3);
-    defs.push(`<clipPath id="bar${i}"><rect x="${bx}" y="${(y + (ROW_H - BAR_H) / 2).toFixed(1)}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}"/></clipPath>`);
-    if (c.avatar) defs.push(`<clipPath id="av${i}"><circle cx="${labelW - 16 - AVATAR / 2}" cy="${cy}" r="${AVATAR / 2}"/></clipPath>`);
-  });
-  parts.push(`<defs>${defs.join("")}</defs>`);
-
-  rows.forEach((c, i) => {
-    const y = topPad + i * ROW_H, cy = y + ROW_H / 2;
-    const color = rowColor(c);
-    const first = Math.max(c.first, t0), last = Math.min(c.last, t1);
-    const bx = sx(first), bw = Math.max(sx(last) - bx, 3);
-    const by = y + (ROW_H - BAR_H) / 2;
-    const r = [`<g class="crow" data-i="${i}">`];
-    r.push(`<rect class="row-hit" x="0" y="${y}" width="${width}" height="${ROW_H}" rx="6"/>`);
-
-    const acx = labelW - 16 - AVATAR / 2;
-    if (c.isGroup) {
-      const label = c.members < 100 ? String(c.members) : "99+";
-      r.push(`<circle cx="${acx}" cy="${cy}" r="${AVATAR / 2}" fill="${color}"/>`);
-      r.push(`<text x="${acx}" y="${cy + 3}" font-size="${c.members < 100 ? 9 : 7}" font-weight="700" fill="#fff" text-anchor="middle">${label}</text>`);
-    } else if (c.avatar) {
-      r.push(`<image x="${acx - AVATAR / 2}" y="${cy - AVATAR / 2}" width="${AVATAR}" height="${AVATAR}" preserveAspectRatio="xMidYMid slice" clip-path="url(#av${i})" href="${esc(c.avatar)}"/>`);
-    } else {
-      const hue = hashHue(c.name);
-      r.push(`<circle cx="${acx}" cy="${cy}" r="${AVATAR / 2}" fill="hsl(${hue},42%,${themeName() === "dark" ? 45 : 62}%)"/>`);
-      r.push(`<text x="${acx}" y="${cy + 3}" font-size="8" font-weight="700" fill="#fff" text-anchor="middle">${esc(initials(c.name))}</text>`);
-    }
-
-    let display = c.name;
-    while (textWidth(display, nameSize, 500) > labelW - 52 && display.length > 4) display = display.slice(0, -2) + "…";
-    const nameEl = `<text x="${labelW - 16 - AVATAR - 8}" y="${cy + 4.2}" font-size="${nameSize}" font-weight="500" fill="${th.text}" text-anchor="end">${esc(display)}${c.bot ? ` <tspan fill="${th.faint}" font-size="10">bot</tspan>` : ""}</text>`;
-    r.push(c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${nameEl}</a>` : nameEl);
-
-    r.push(`<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`);
-    if (state.color === "solid") {
-      r.push(`<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`);
-    } else if (bw > 6) {
-      const sm = smoothMonths(c.months);
-      const smax = Math.max(...sm, 1e-9);
-      const seg = [`<g clip-path="url(#bar${i})">`];
-      sm.forEach((sval, mi) => {
-        if (sval <= 0) return;
-        const m = c.m0 + mi;
-        const x0 = sx(Math.max(monthStartTs(m), first)), x1 = sx(Math.min(monthStartTs(m + 1), last));
-        if (x1 < chartX || x0 > chartX + chartW) return;
-        const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
-        seg.push(`<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`);
+    <script id="data" type="application/json">
+      __DATA__
+    </script>
+    <script>
+      "use strict";
+      const $ = (s) => document.querySelector(s);
+      const DATA = JSON.parse($("#data").textContent);
+      const REPO = DATA.repo;
+      const ALL = DATA.contributors;
+      ALL.forEach((c, i) => {
+        c._id = i;
       });
-      seg.push("</g>");
-      r.push(seg.join(""));
-    } else {
-      r.push(`<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`);
-    }
-    r.push(`<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`);
-    r.push("</g>");
-    parts.push(r.join(""));
-  });
 
-  svg.innerHTML = parts.join("");
-  updateShowing(rows, eligible, total);
-}
+      const ACCENT = DATA.accent || "#2f6feb";
+      const GROUP_PALETTE = [
+        "#4269d0",
+        "#e7a13d",
+        "#ff725c",
+        "#6cc5b0",
+        "#3ca951",
+        "#ff8ab7",
+        "#a463f2",
+        "#97bbf5",
+        "#9c6b4e",
+        "#9498a0",
+        "#2f7f8f",
+        "#c65b8a",
+      ];
+      const YEAR_PALETTE = [
+        "#4269d0",
+        "#3ca951",
+        "#e7a13d",
+        "#ff725c",
+        "#a463f2",
+        "#2f7f8f",
+        "#c65b8a",
+        "#6cc5b0",
+      ];
 
-function updateShowing(rows, eligible, total) {
-  const noun = affMode() ? "affiliations" : "contributors";
-  let txt = `<b>${fmtNum(rows.length)}</b> of <b>${fmtNum(total)}</b> ${noun}`;
-  if (rows.length < eligible) txt += ` (top ${fmtNum(rows.length)} by commits)`;
-  $("#showing").innerHTML = txt;
-}
+      /* Groups ranked by member count; top 10 get colours, the tail shares grey. */
+      const OTHER_COLOR = "#9aa3ad";
+      const GROUP_COUNTS = (() => {
+        const m = new Map();
+        for (const c of ALL)
+          if (c.group && !c.bot) m.set(c.group, (m.get(c.group) || 0) + 1);
+        return [...m.entries()].sort((a, b) => b[1] - a[1]);
+      })();
+      const GROUPS = GROUP_COUNTS.map(([g]) => g);
+      const GROUP_COLOR = Object.fromEntries(
+        GROUP_COUNTS.map(([g], i) => [
+          g,
+          i < 10 ? GROUP_PALETTE[i % GROUP_PALETTE.length] : OTHER_COLOR,
+        ]),
+      );
+      if (GROUPS.length) $("#opt-group").hidden = false;
 
-/* ---------- tooltip ---------- */
-const tooltip = $("#tooltip");
-let ttRow = -1;
-$("#chart").addEventListener("pointermove", e => {
-  const svg = $("#chart");
-  const rect = svg.getBoundingClientRect();
-  const y = e.clientY - rect.top;
-  const i = Math.floor((y - 26) / ROW_H);
-  if (i < 0 || i >= currentRows.length) { hideTooltip(); return; }
-  const c = currentRows[i];
-  if (i !== ttRow) {
-    ttRow = i;
-    tooltip.innerHTML = tooltipHtml(c);
-  }
-  tooltip.classList.add("show");
-  const tw = tooltip.offsetWidth, thh = tooltip.offsetHeight;
-  let x = e.clientX + 16, ty = e.clientY + 14;
-  if (x + tw > innerWidth - 12) x = e.clientX - tw - 14;
-  if (ty + thh > innerHeight - 12) ty = e.clientY - thh - 12;
-  tooltip.style.left = x + "px";
-  tooltip.style.top = ty + "px";
-});
-$("#chart").addEventListener("pointerleave", hideTooltip);
-function hideTooltip() { tooltip.classList.remove("show"); ttRow = -1; }
+      const HUMANS = ALL.filter((c) => !c.bot);
+      const MAX_COMMITS = Math.max(...ALL.map((c) => c.commits), 1);
 
-function tooltipHtml(c) {
-  const months = Math.max(1, Math.round((c.last - c.first) / 2629800) + 1);
-  const active = c.months.filter(Boolean).length;
-  const span = months >= 24 ? (months / 12).toFixed(1) + " years" : months + " months";
-  const color = rowColor(c);
-  const spark = sparkline(c, color);
+      /* ---------- theme ---------- */
+      const THEMES = {
+        light: {
+          text: "#1c2530",
+          muted: "#5d6b7c",
+          faint: "#98a3b1",
+          gridYear: "#e2e6ec",
+          gridMonth: "#eef1f5",
+          card: "#ffffff",
+          ctxArea: "#c9d7f5",
+          ctxLine: "#7d9ce8",
+          dim: "rgba(120,132,148,.18)",
+        },
+        dark: {
+          text: "#e6ebf2",
+          muted: "#9aa7b6",
+          faint: "#5f6c7b",
+          gridYear: "#232b35",
+          gridMonth: "#1a212a",
+          card: "#151b23",
+          ctxArea: "#23344f",
+          ctxLine: "#4a6da8",
+          dim: "rgba(120,132,148,.14)",
+        },
+      };
+      function themeName() {
+        return document.documentElement.dataset.theme || "light";
+      }
+      function theme() {
+        return THEMES[themeName()];
+      }
+      function setTheme(name) {
+        document.documentElement.dataset.theme = name;
+        localStorage.setItem("cg-theme", name);
+        $("#icon-moon").style.display = name === "light" ? "" : "none";
+        $("#icon-sun").style.display = name === "dark" ? "" : "none";
+        renderAll();
+      }
 
-  if (c.isGroup) {
-    const names = c.member_names || [];
-    const extra = c.members - names.length;
-    const people = names.map(esc).join(", ") + (extra > 0 ? ` +${extra} more` : "");
-    return `<div class="tt-head"><span class="ph" style="background:${color}">${c.members < 100 ? c.members : "99+"}</span>
+      /* ---------- helpers ---------- */
+      const fmtNum = (n) => n.toLocaleString("en-US");
+      const MONTHS_ABBR = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      function tsToDate(ts) {
+        return new Date(ts * 1000);
+      }
+      function fmtMonthYear(ts) {
+        const d = tsToDate(ts);
+        return MONTHS_ABBR[d.getUTCMonth()] + " " + d.getUTCFullYear();
+      }
+      function fmtDate(ts) {
+        const d = tsToDate(ts);
+        return (
+          d.getUTCFullYear() +
+          "-" +
+          String(d.getUTCMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getUTCDate()).padStart(2, "0")
+        );
+      }
+      function monthIndex(ts) {
+        const d = tsToDate(ts);
+        return (d.getUTCFullYear() - 1970) * 12 + d.getUTCMonth();
+      }
+      function monthStartTs(mi) {
+        return (
+          Date.UTC(1970 + Math.floor(mi / 12), ((mi % 12) + 12) % 12, 1) / 1000
+        );
+      }
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function initials(name) {
+        const w = name.trim().split(/\s+/);
+        return (
+          (w[0] || "?")[0] + (w.length > 1 ? w[w.length - 1][0] : "")
+        ).toUpperCase();
+      }
+      function hashHue(s) {
+        let h = 2166136261;
+        for (const c of s) {
+          h ^= c.charCodeAt(0);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0) % 360;
+      }
+
+      const measureCtx = document.createElement("canvas").getContext("2d");
+      function textWidth(s, px, weight) {
+        measureCtx.font =
+          (weight || 400) +
+          " " +
+          px +
+          "px -apple-system, 'Segoe UI', Inter, Arial, sans-serif";
+        return measureCtx.measureText(s).width;
+      }
+
+      /* ---------- state ---------- */
+      const UNAFFILIATED = DATA.unaffiliated || "Unaffiliated";
+      const HAS_GROUPS = GROUPS.length > 0;
+      const DEFAULT_MODE =
+        DATA.byAffiliation && HAS_GROUPS ? "affiliations" : "contributors";
+      const DEFAULT_TOP = Math.min(50, HUMANS.length);
+      const DEFAULT_COLOR = HAS_GROUPS ? "group" : "activity";
+      const state = {
+        mode: DEFAULT_MODE,
+        q: "",
+        min: 1,
+        top: DEFAULT_TOP,
+        sort: "first",
+        color: DEFAULT_COLOR,
+        bots: false,
+        t0: null,
+        t1: null,
+        gsel: new Set(),
+      };
+      if (HAS_GROUPS) $("#ctl-rows").hidden = false;
+
+      /* Collapse contributors into one row per affiliation. */
+      function aggregateByGroup(rows) {
+        const map = new Map();
+        for (const c of rows) {
+          const g = c.group || UNAFFILIATED;
+          let a = map.get(g);
+          if (!a) {
+            a = {
+              name: g,
+              group: g,
+              isGroup: true,
+              commits: 0,
+              first: Infinity,
+              last: -Infinity,
+              members: 0,
+              login: null,
+              avatar: null,
+              url: null,
+              bot: false,
+              _m: new Map(),
+              _names: [],
+            };
+            map.set(g, a);
+          }
+          a.commits += c.commits;
+          a.first = Math.min(a.first, c.first);
+          a.last = Math.max(a.last, c.last);
+          a.members++;
+          a._names.push([c.name, c.commits]);
+          c.months.forEach((v, i) => {
+            if (v) {
+              const m = c.m0 + i;
+              a._m.set(m, (a._m.get(m) || 0) + v);
+            }
+          });
+        }
+        const out = [];
+        for (const a of map.values()) {
+          const ms = [...a._m.keys()];
+          a.m0 = ms.length ? Math.min(...ms) : monthIndex(a.first);
+          const m1 = ms.length ? Math.max(...ms) : a.m0;
+          a.months = new Array(m1 - a.m0 + 1).fill(0);
+          a._m.forEach((v, m) => {
+            a.months[m - a.m0] = v;
+          });
+          a._names.sort((x, y) => y[1] - x[1]);
+          a.member_names = a._names.slice(0, 8).map((x) => x[0]);
+          delete a._m;
+          delete a._names;
+          out.push(a);
+        }
+        return out;
+      }
+
+      const GSEP = String.fromCharCode(31); // separator for group names in the URL hash
+      function readHash() {
+        if (!location.hash) return;
+        try {
+          const p = new URLSearchParams(location.hash.slice(1));
+          if (p.has("q")) state.q = p.get("q");
+          if (p.has("min")) state.min = +p.get("min") || 1;
+          if (p.has("top")) state.top = +p.get("top") || DEFAULT_TOP;
+          if (p.has("sort")) state.sort = p.get("sort");
+          if (p.has("color")) state.color = p.get("color");
+          if (p.has("bots")) state.bots = p.get("bots") === "1";
+          if (p.has("t0")) state.t0 = +p.get("t0");
+          if (p.has("t1")) state.t1 = +p.get("t1");
+          if (p.has("g"))
+            state.gsel = new Set(
+              p
+                .get("g")
+                .split(GSEP)
+                .filter((g) => GROUPS.includes(g)),
+            );
+          if (p.has("rows") && HAS_GROUPS)
+            state.mode =
+              p.get("rows") === "affiliations"
+                ? "affiliations"
+                : "contributors";
+        } catch (e) {}
+      }
+      let hashTimer;
+      function writeHash() {
+        clearTimeout(hashTimer);
+        hashTimer = setTimeout(() => {
+          const p = new URLSearchParams();
+          if (state.q) p.set("q", state.q);
+          if (state.min > 1) p.set("min", state.min);
+          if (state.top !== DEFAULT_TOP) p.set("top", state.top);
+          if (state.sort !== "first") p.set("sort", state.sort);
+          if (state.color !== DEFAULT_COLOR) p.set("color", state.color);
+          if (state.bots) p.set("bots", "1");
+          if (state.t0 != null) {
+            p.set("t0", Math.round(state.t0));
+            p.set("t1", Math.round(state.t1));
+          }
+          if (state.gsel.size) p.set("g", [...state.gsel].join(GSEP));
+          if (state.mode !== DEFAULT_MODE) p.set("rows", state.mode);
+          const s = p.toString();
+          history.replaceState(
+            null,
+            "",
+            s ? "#" + s : location.pathname + location.search,
+          );
+        }, 200);
+      }
+
+      /* min-commits slider: log scale */
+      const minRange = $("#min-range");
+      function sliderToMin(v) {
+        return Math.max(
+          1,
+          Math.round(Math.exp((v / 100) * Math.log(MAX_COMMITS))),
+        );
+      }
+      function minToSlider(m) {
+        return Math.round(
+          (100 * Math.log(Math.max(1, m))) / Math.log(MAX_COMMITS),
+        );
+      }
+
+      /* ---------- filtering ---------- */
+      function domain() {
+        const t0 = state.t0 != null ? state.t0 : REPO.first;
+        const t1 = state.t1 != null ? state.t1 : REPO.last;
+        return [t0, t1];
+      }
+      function affMode() {
+        return state.mode === "affiliations";
+      }
+      function filtered() {
+        const [t0, t1] = domain();
+        const q = state.q.trim().toLowerCase();
+        const aff = affMode();
+        let base = ALL.filter((c) => state.bots || !c.bot);
+        if (aff) base = aggregateByGroup(base);
+        let rows = base.filter(
+          (c) =>
+            c.commits >= state.min &&
+            c.last >= t0 &&
+            c.first <= t1 &&
+            (aff || !state.gsel.size || (c.group && state.gsel.has(c.group))) &&
+            (!q ||
+              c.name.toLowerCase().includes(q) ||
+              (c.login || "").toLowerCase().includes(q) ||
+              (c.group || "").toLowerCase().includes(q)),
+        );
+        const eligible = rows.length;
+        const total = base.length;
+        if (rows.length > state.top) {
+          rows = rows
+            .slice()
+            .sort((a, b) => b.commits - a.commits)
+            .slice(0, state.top);
+        }
+        rows = rows.slice().sort(comparator(state.sort));
+        return { rows, eligible, total };
+      }
+      function smoothMonths(months) {
+        return months.map(
+          (v, i) => (2 * v + (months[i - 1] || 0) + (months[i + 1] || 0)) / 4,
+        );
+      }
+      function comparator(key) {
+        switch (key) {
+          case "last":
+            return (a, b) => b.last - a.last || b.commits - a.commits;
+          case "commits":
+            return (a, b) => b.commits - a.commits;
+          case "duration":
+            return (a, b) => b.last - b.first - (a.last - a.first);
+          case "name":
+            return (a, b) => a.name.localeCompare(b.name);
+          default:
+            return (a, b) => a.first - b.first || b.commits - a.commits;
+        }
+      }
+      function rowColor(c) {
+        // Affiliation rows are always coloured by their group.
+        if (c.isGroup) return GROUP_COLOR[c.group] || OTHER_COLOR;
+        if (state.color === "group" && c.group)
+          return GROUP_COLOR[c.group] || OTHER_COLOR;
+        if (state.color === "group") return OTHER_COLOR;
+        if (state.color === "year") {
+          const y0 = tsToDate(REPO.first).getUTCFullYear();
+          const y = tsToDate(c.first).getUTCFullYear();
+          return YEAR_PALETTE[
+            ((y - y0) % YEAR_PALETTE.length) +
+              (y < y0 ? YEAR_PALETTE.length : 0)
+          ];
+        }
+        return ACCENT;
+      }
+
+      /* ---------- time ticks ---------- */
+      function timeTicks(t0, t1) {
+        const spanDays = (t1 - t0) / 86400;
+        const spanYears = spanDays / 365.25;
+        const y0 = tsToDate(t0).getUTCFullYear(),
+          y1 = tsToDate(t1).getUTCFullYear();
+        const major = [],
+          minor = [];
+        if (spanYears > 2.2) {
+          const step = Math.max(1, Math.ceil(spanYears / 11));
+          for (let y = y0; y <= y1 + 1; y++) {
+            if ((y - y0) % step) continue;
+            const ts = Date.UTC(y, 0, 1) / 1000;
+            if (ts >= t0 && ts <= t1) major.push([ts, String(y)]);
+          }
+          const minorMonths = spanYears <= 5 ? 1 : spanYears <= 11 ? 3 : 12;
+          for (let m = (y0 - 1970) * 12; m <= (y1 + 1 - 1970) * 12 + 11; m++) {
+            if (m % minorMonths) continue;
+            const ts = monthStartTs(m);
+            if (ts >= t0 && ts <= t1 && !major.some(([t]) => t === ts))
+              minor.push(ts);
+          }
+        } else {
+          const step = spanDays > 500 ? 3 : spanDays > 240 ? 2 : 1;
+          let lastYear = -1;
+          for (let m = (y0 - 1970) * 12; m <= (y1 + 1 - 1970) * 12 + 11; m++) {
+            const ts = monthStartTs(m);
+            if (ts < t0 || ts > t1) continue;
+            if (m % step === 0) {
+              const year = 1970 + Math.floor(m / 12);
+              const lbl =
+                MONTHS_ABBR[((m % 12) + 12) % 12] +
+                (year !== lastYear ? " " + year : "");
+              lastYear = year;
+              major.push([ts, lbl]);
+            } else minor.push(ts);
+          }
+        }
+        return { major, minor };
+      }
+
+      /* ---------- main chart ---------- */
+      const ROW_H = 28,
+        BAR_H = 13,
+        AVATAR = 20;
+      let currentRows = [];
+
+      function renderChart() {
+        const { rows, eligible, total } = filtered();
+        currentRows = rows;
+        const svg = $("#chart");
+        const th = theme();
+        $("#empty").style.display = rows.length ? "none" : "";
+        if (!rows.length) {
+          svg.innerHTML = "";
+          svg.setAttribute("height", 0);
+          updateShowing(rows, eligible, total);
+          return;
+        }
+
+        const width = svg.parentElement.clientWidth - 8;
+        const [d0raw, d1raw] = domain();
+        const pad = Math.max(86400, (d1raw - d0raw) * 0.012);
+        const t0 = d0raw - pad,
+          t1 = d1raw + pad;
+
+        const nameSize = 12.5;
+        const maxNameW = Math.max(
+          ...rows.map((c) => textWidth(c.name, nameSize, 500)),
+          60,
+        );
+        const labelW = Math.min(
+          Math.max(maxNameW + AVATAR + 56, 140),
+          Math.max(170, width * 0.34),
+        );
+        const countW = 62,
+          marginR = 14;
+        const chartX = labelW,
+          chartW = width - labelW - countW - marginR;
+        const topPad = 26,
+          axisH = 30;
+        const height = topPad + rows.length * ROW_H + axisH;
+        const sx = (ts) => chartX + ((ts - t0) / (t1 - t0)) * chartW;
+
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        svg.setAttribute(
+          "font-family",
+          "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif",
+        );
+
+        const parts = [];
+        const gridTop = topPad - 12,
+          gridBot = topPad + rows.length * ROW_H + 6;
+
+        const ticks = timeTicks(t0, t1);
+        for (const ts of ticks.minor)
+          parts.push(
+            `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridMonth}"/>`,
+          );
+        for (const [ts, lbl] of ticks.major) {
+          parts.push(
+            `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridYear}"/>`,
+          );
+          parts.push(
+            `<text x="${sx(ts)}" y="${gridBot + 18}" font-size="11" font-weight="600" fill="${th.muted}" text-anchor="middle">${lbl}</text>`,
+          );
+        }
+        parts.push(
+          `<line x1="${chartX - 4}" y1="${gridBot}" x2="${chartX + chartW + 4}" y2="${gridBot}" stroke="${th.gridYear}"/>`,
+        );
+
+        const defs = [];
+        rows.forEach((c, i) => {
+          const y = topPad + i * ROW_H,
+            cy = y + ROW_H / 2;
+          const bx = sx(Math.max(c.first, t0)),
+            bw = Math.max(sx(Math.min(c.last, t1)) - bx, 3);
+          defs.push(
+            `<clipPath id="bar${i}"><rect x="${bx}" y="${(y + (ROW_H - BAR_H) / 2).toFixed(1)}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}"/></clipPath>`,
+          );
+          if (c.avatar)
+            defs.push(
+              `<clipPath id="av${i}"><circle cx="${labelW - 16 - AVATAR / 2}" cy="${cy}" r="${AVATAR / 2}"/></clipPath>`,
+            );
+        });
+        parts.push(`<defs>${defs.join("")}</defs>`);
+
+        rows.forEach((c, i) => {
+          const y = topPad + i * ROW_H,
+            cy = y + ROW_H / 2;
+          const color = rowColor(c);
+          const first = Math.max(c.first, t0),
+            last = Math.min(c.last, t1);
+          const bx = sx(first),
+            bw = Math.max(sx(last) - bx, 3);
+          const by = y + (ROW_H - BAR_H) / 2;
+          const r = [`<g class="crow" data-i="${i}">`];
+          r.push(
+            `<rect class="row-hit" x="0" y="${y}" width="${width}" height="${ROW_H}" rx="6"/>`,
+          );
+
+          const acx = labelW - 16 - AVATAR / 2;
+          if (c.isGroup) {
+            const label = c.members < 100 ? String(c.members) : "99+";
+            r.push(
+              `<circle cx="${acx}" cy="${cy}" r="${AVATAR / 2}" fill="${color}"/>`,
+            );
+            r.push(
+              `<text x="${acx}" y="${cy + 3}" font-size="${c.members < 100 ? 9 : 7}" font-weight="700" fill="#fff" text-anchor="middle">${label}</text>`,
+            );
+          } else if (c.avatar) {
+            r.push(
+              `<image x="${acx - AVATAR / 2}" y="${cy - AVATAR / 2}" width="${AVATAR}" height="${AVATAR}" preserveAspectRatio="xMidYMid slice" clip-path="url(#av${i})" href="${esc(c.avatar)}"/>`,
+            );
+          } else {
+            const hue = hashHue(c.name);
+            r.push(
+              `<circle cx="${acx}" cy="${cy}" r="${AVATAR / 2}" fill="hsl(${hue},42%,${themeName() === "dark" ? 45 : 62}%)"/>`,
+            );
+            r.push(
+              `<text x="${acx}" y="${cy + 3}" font-size="8" font-weight="700" fill="#fff" text-anchor="middle">${esc(initials(c.name))}</text>`,
+            );
+          }
+
+          let display = c.name;
+          while (
+            textWidth(display, nameSize, 500) > labelW - 52 &&
+            display.length > 4
+          )
+            display = display.slice(0, -2) + "…";
+          const nameEl = `<text x="${labelW - 16 - AVATAR - 8}" y="${cy + 4.2}" font-size="${nameSize}" font-weight="500" fill="${th.text}" text-anchor="end">${esc(display)}${c.bot ? ` <tspan fill="${th.faint}" font-size="10">bot</tspan>` : ""}</text>`;
+          r.push(
+            c.url
+              ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${nameEl}</a>`
+              : nameEl,
+          );
+
+          r.push(
+            `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
+          );
+          if (state.color === "solid") {
+            r.push(
+              `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+            );
+          } else if (bw > 6) {
+            const sm = smoothMonths(c.months);
+            const smax = Math.max(...sm, 1e-9);
+            const seg = [`<g clip-path="url(#bar${i})">`];
+            sm.forEach((sval, mi) => {
+              if (sval <= 0) return;
+              const m = c.m0 + mi;
+              const x0 = sx(Math.max(monthStartTs(m), first)),
+                x1 = sx(Math.min(monthStartTs(m + 1), last));
+              if (x1 < chartX || x0 > chartX + chartW) return;
+              const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
+              seg.push(
+                `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
+              );
+            });
+            seg.push("</g>");
+            r.push(seg.join(""));
+          } else {
+            r.push(
+              `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
+            );
+          }
+          r.push(
+            `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`,
+          );
+          r.push("</g>");
+          parts.push(r.join(""));
+        });
+
+        svg.innerHTML = parts.join("");
+        updateShowing(rows, eligible, total);
+      }
+
+      function updateShowing(rows, eligible, total) {
+        const noun = affMode() ? "affiliations" : "contributors";
+        let txt = `<b>${fmtNum(rows.length)}</b> of <b>${fmtNum(total)}</b> ${noun}`;
+        if (rows.length < eligible)
+          txt += ` (top ${fmtNum(rows.length)} by commits)`;
+        $("#showing").innerHTML = txt;
+      }
+
+      /* ---------- tooltip ---------- */
+      const tooltip = $("#tooltip");
+      let ttRow = -1;
+      $("#chart").addEventListener("pointermove", (e) => {
+        const svg = $("#chart");
+        const rect = svg.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const i = Math.floor((y - 26) / ROW_H);
+        if (i < 0 || i >= currentRows.length) {
+          hideTooltip();
+          return;
+        }
+        const c = currentRows[i];
+        if (i !== ttRow) {
+          ttRow = i;
+          tooltip.innerHTML = tooltipHtml(c);
+        }
+        tooltip.classList.add("show");
+        const tw = tooltip.offsetWidth,
+          thh = tooltip.offsetHeight;
+        let x = e.clientX + 16,
+          ty = e.clientY + 14;
+        if (x + tw > innerWidth - 12) x = e.clientX - tw - 14;
+        if (ty + thh > innerHeight - 12) ty = e.clientY - thh - 12;
+        tooltip.style.left = x + "px";
+        tooltip.style.top = ty + "px";
+      });
+      $("#chart").addEventListener("pointerleave", hideTooltip);
+      function hideTooltip() {
+        tooltip.classList.remove("show");
+        ttRow = -1;
+      }
+
+      function tooltipHtml(c) {
+        const months = Math.max(
+          1,
+          Math.round((c.last - c.first) / 2629800) + 1,
+        );
+        const active = c.months.filter(Boolean).length;
+        const span =
+          months >= 24
+            ? (months / 12).toFixed(1) + " years"
+            : months + " months";
+        const color = rowColor(c);
+        const spark = sparkline(c, color);
+
+        if (c.isGroup) {
+          const names = c.member_names || [];
+          const extra = c.members - names.length;
+          const people =
+            names.map(esc).join(", ") + (extra > 0 ? ` +${extra} more` : "");
+          return `<div class="tt-head"><span class="ph" style="background:${color}">${c.members < 100 ? c.members : "99+"}</span>
       <div><div class="tt-name">${esc(c.name)}</div><div class="tt-login">${fmtNum(c.members)} ${c.members === 1 ? "contributor" : "contributors"}</div></div></div>
     <dl class="tt-grid">
       <dt>Commits</dt><dd>${fmtNum(c.commits)}</dd>
@@ -709,13 +1381,15 @@ function tooltipHtml(c) {
     </dl>
     ${people ? `<div class="tt-members">${people}</div>` : ""}
     <div class="tt-spark">${spark}</div>`;
-  }
+        }
 
-  const av = c.avatar
-    ? `<img src="${esc(c.avatar)}" alt="">`
-    : `<span class="ph" style="background:hsl(${hashHue(c.name)},42%,55%)">${esc(initials(c.name))}</span>`;
-  const badge = c.group ? `<span class="badge" style="background:${(GROUP_COLOR[c.group]||OTHER_COLOR)}22;color:${GROUP_COLOR[c.group]||OTHER_COLOR}">${esc(c.group)}</span>` : "";
-  return `<div class="tt-head">${av}<div><div class="tt-name">${esc(c.name)}${badge}</div>${c.login ? `<div class="tt-login">@${esc(c.login)}</div>` : ""}</div></div>
+        const av = c.avatar
+          ? `<img src="${esc(c.avatar)}" alt="">`
+          : `<span class="ph" style="background:hsl(${hashHue(c.name)},42%,55%)">${esc(initials(c.name))}</span>`;
+        const badge = c.group
+          ? `<span class="badge" style="background:${GROUP_COLOR[c.group] || OTHER_COLOR}22;color:${GROUP_COLOR[c.group] || OTHER_COLOR}">${esc(c.group)}</span>`
+          : "";
+        return `<div class="tt-head">${av}<div><div class="tt-name">${esc(c.name)}${badge}</div>${c.login ? `<div class="tt-login">@${esc(c.login)}</div>` : ""}</div></div>
   <dl class="tt-grid">
     <dt>Commits</dt><dd>${fmtNum(c.commits)}</dd>
     <dt>First commit</dt><dd>${fmtDate(c.first)}</dd>
@@ -724,287 +1398,409 @@ function tooltipHtml(c) {
     <dt>Active months</dt><dd>${active}</dd>
   </dl>
   <div class="tt-spark">${spark}</div>`;
-}
-function sparkline(c, color) {
-  const w = 250, h = 34;
-  const n = c.months.length;
-  if (n < 2) return "";
-  const max = Math.max(...c.months, 1);
-  const pts = c.months.map((v, i) => `${(i / (n - 1) * w).toFixed(1)},${(h - 2 - v / max * (h - 6)).toFixed(1)}`);
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="0,${h - 2} ${pts.join(" ")} ${w},${h - 2}" fill="${color}22" stroke="none"/><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
-}
+      }
+      function sparkline(c, color) {
+        const w = 250,
+          h = 34;
+        const n = c.months.length;
+        if (n < 2) return "";
+        const max = Math.max(...c.months, 1);
+        const pts = c.months.map(
+          (v, i) =>
+            `${((i / (n - 1)) * w).toFixed(1)},${(h - 2 - (v / max) * (h - 6)).toFixed(1)}`,
+        );
+        return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="0,${h - 2} ${pts.join(" ")} ${w},${h - 2}" fill="${color}22" stroke="none"/><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+      }
 
-/* ---------- context strip with brush ---------- */
-const CTX_H = 64;
-let ctxGeom = null;
+      /* ---------- context strip with brush ---------- */
+      const CTX_H = 64;
+      let ctxGeom = null;
 
-function repoMonthlySeries() {
-  const m0 = monthIndex(REPO.first), m1 = monthIndex(REPO.last);
-  const bins = new Array(m1 - m0 + 1).fill(0);
-  for (const c of HUMANS) {
-    c.months.forEach((v, i) => {
-      const idx = c.m0 + i - m0;
-      if (idx >= 0 && idx < bins.length) bins[idx] += v;
-    });
-  }
-  return { m0, bins };
-}
-const SERIES = repoMonthlySeries();
+      function repoMonthlySeries() {
+        const m0 = monthIndex(REPO.first),
+          m1 = monthIndex(REPO.last);
+        const bins = new Array(m1 - m0 + 1).fill(0);
+        for (const c of HUMANS) {
+          c.months.forEach((v, i) => {
+            const idx = c.m0 + i - m0;
+            if (idx >= 0 && idx < bins.length) bins[idx] += v;
+          });
+        }
+        return { m0, bins };
+      }
+      const SERIES = repoMonthlySeries();
 
-function renderContext() {
-  const svg = $("#context");
-  const th = theme();
-  const width = svg.parentElement.clientWidth - 4;
-  svg.setAttribute("width", width);
-  svg.setAttribute("viewBox", `0 0 ${width} ${CTX_H}`);
+      function renderContext() {
+        const svg = $("#context");
+        const th = theme();
+        const width = svg.parentElement.clientWidth - 4;
+        svg.setAttribute("width", width);
+        svg.setAttribute("viewBox", `0 0 ${width} ${CTX_H}`);
 
-  const t0 = REPO.first, t1 = REPO.last;
-  const padX = 6;
-  const w = width - padX * 2;
-  const sx = ts => padX + (ts - t0) / (t1 - t0) * w;
-  ctxGeom = { sx, t0, t1, padX, w };
+        const t0 = REPO.first,
+          t1 = REPO.last;
+        const padX = 6;
+        const w = width - padX * 2;
+        const sx = (ts) => padX + ((ts - t0) / (t1 - t0)) * w;
+        ctxGeom = { sx, t0, t1, padX, w };
 
-  const { m0, bins } = SERIES;
-  const max = Math.max(...bins, 1);
-  const baseY = CTX_H - 16;
-  const pts = bins.map((v, i) => {
-    const ts = (monthStartTs(m0 + i) + monthStartTs(m0 + i + 1)) / 2;
-    return `${sx(Math.min(Math.max(ts, t0), t1)).toFixed(1)},${(baseY - Math.sqrt(v / max) * (baseY - 6)).toFixed(1)}`;
-  });
-  const parts = [];
-  // Year ticks.
-  for (const [ts, lbl] of timeTicks(t0, t1).major) {
-    parts.push(`<line x1="${sx(ts)}" y1="2" x2="${sx(ts)}" y2="${baseY}" stroke="${th.gridYear}"/>`);
-    parts.push(`<text x="${sx(ts)}" y="${CTX_H - 4}" font-size="9.5" fill="${th.faint}" text-anchor="middle">${lbl}</text>`);
-  }
-  parts.push(`<polyline points="${sx(t0)},${baseY} ${pts.join(" ")} ${sx(t1)},${baseY}" fill="${th.ctxArea}" stroke="none"/>`);
-  parts.push(`<polyline points="${pts.join(" ")}" fill="none" stroke="${th.ctxLine}" stroke-width="1.2"/>`);
-  parts.push(`<line x1="${padX}" y1="${baseY}" x2="${width - padX}" y2="${baseY}" stroke="${th.gridYear}"/>`);
-  // Brush layer (updated separately).
-  parts.push(`<g id="brushg"></g>`);
-  svg.innerHTML = parts.join("");
-  updateBrushVisual();
-}
+        const { m0, bins } = SERIES;
+        const max = Math.max(...bins, 1);
+        const baseY = CTX_H - 16;
+        const pts = bins.map((v, i) => {
+          const ts = (monthStartTs(m0 + i) + monthStartTs(m0 + i + 1)) / 2;
+          return `${sx(Math.min(Math.max(ts, t0), t1)).toFixed(1)},${(baseY - Math.sqrt(v / max) * (baseY - 6)).toFixed(1)}`;
+        });
+        const parts = [];
+        // Year ticks.
+        for (const [ts, lbl] of timeTicks(t0, t1).major) {
+          parts.push(
+            `<line x1="${sx(ts)}" y1="2" x2="${sx(ts)}" y2="${baseY}" stroke="${th.gridYear}"/>`,
+          );
+          parts.push(
+            `<text x="${sx(ts)}" y="${CTX_H - 4}" font-size="9.5" fill="${th.faint}" text-anchor="middle">${lbl}</text>`,
+          );
+        }
+        parts.push(
+          `<polyline points="${sx(t0)},${baseY} ${pts.join(" ")} ${sx(t1)},${baseY}" fill="${th.ctxArea}" stroke="none"/>`,
+        );
+        parts.push(
+          `<polyline points="${pts.join(" ")}" fill="none" stroke="${th.ctxLine}" stroke-width="1.2"/>`,
+        );
+        parts.push(
+          `<line x1="${padX}" y1="${baseY}" x2="${width - padX}" y2="${baseY}" stroke="${th.gridYear}"/>`,
+        );
+        // Brush layer (updated separately).
+        parts.push(`<g id="brushg"></g>`);
+        svg.innerHTML = parts.join("");
+        updateBrushVisual();
+      }
 
-function updateBrushVisual() {
-  const g = $("#brushg");
-  if (!g || !ctxGeom) return;
-  const th = theme();
-  const baseY = CTX_H - 16;
-  if (state.t0 == null) { g.innerHTML = ""; $("#brush-label").textContent = ""; return; }
-  const x0 = ctxGeom.sx(state.t0), x1 = ctxGeom.sx(state.t1);
-  g.innerHTML =
-    `<rect x="${ctxGeom.padX}" y="2" width="${Math.max(0, x0 - ctxGeom.padX)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
-    `<rect x="${x1}" y="2" width="${Math.max(0, ctxGeom.padX + ctxGeom.w - x1)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
-    `<rect class="sel" x="${x0}" y="2" width="${Math.max(2, x1 - x0)}" height="${baseY - 2}" fill="none" stroke="${ACCENT}" stroke-width="1.3" rx="3" style="cursor:grab"/>` +
-    `<rect class="hl" x="${x0 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>` +
-    `<rect class="hr" x="${x1 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>`;
-  $("#brush-label").textContent = fmtMonthYear(state.t0) + " – " + fmtMonthYear(state.t1);
-}
+      function updateBrushVisual() {
+        const g = $("#brushg");
+        if (!g || !ctxGeom) return;
+        const th = theme();
+        const baseY = CTX_H - 16;
+        if (state.t0 == null) {
+          g.innerHTML = "";
+          $("#brush-label").textContent = "";
+          return;
+        }
+        const x0 = ctxGeom.sx(state.t0),
+          x1 = ctxGeom.sx(state.t1);
+        g.innerHTML =
+          `<rect x="${ctxGeom.padX}" y="2" width="${Math.max(0, x0 - ctxGeom.padX)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
+          `<rect x="${x1}" y="2" width="${Math.max(0, ctxGeom.padX + ctxGeom.w - x1)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
+          `<rect class="sel" x="${x0}" y="2" width="${Math.max(2, x1 - x0)}" height="${baseY - 2}" fill="none" stroke="${ACCENT}" stroke-width="1.3" rx="3" style="cursor:grab"/>` +
+          `<rect class="hl" x="${x0 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>` +
+          `<rect class="hr" x="${x1 - 3.5}" y="${baseY / 2 - 9}" width="7" height="22" rx="3.5" fill="${ACCENT}" style="cursor:ew-resize"/>`;
+        $("#brush-label").textContent =
+          fmtMonthYear(state.t0) + " – " + fmtMonthYear(state.t1);
+      }
 
-(function initBrush() {
-  const svg = $("#context");
-  let drag = null;
-  const tsAt = clientX => {
-    const rect = svg.getBoundingClientRect();
-    const x = Math.min(Math.max(clientX - rect.left, ctxGeom.padX), ctxGeom.padX + ctxGeom.w);
-    return ctxGeom.t0 + (x - ctxGeom.padX) / ctxGeom.w * (ctxGeom.t1 - ctxGeom.t0);
-  };
-  svg.addEventListener("pointerdown", e => {
-    if (!ctxGeom) return;
-    svg.setPointerCapture(e.pointerId);
-    const ts = tsAt(e.clientX);
-    const cls = e.target.getAttribute && e.target.getAttribute("class");
-    if (cls === "hl") drag = { mode: "resize", fix: state.t1 };
-    else if (cls === "hr") drag = { mode: "resize", fix: state.t0 };
-    else if (cls === "sel") drag = { mode: "move", start: ts, t0: state.t0, t1: state.t1 };
-    else { drag = { mode: "new", anchor: ts }; state.t0 = ts; state.t1 = ts; }
-    e.preventDefault();
-  });
-  svg.addEventListener("pointermove", e => {
-    if (!drag) return;
-    const ts = tsAt(e.clientX);
-    if (drag.mode === "new" || drag.mode === "resize") {
-      const fix = drag.mode === "new" ? drag.anchor : drag.fix;
-      state.t0 = Math.min(fix, ts);
-      state.t1 = Math.max(fix, ts);
-    } else {
-      const dt = ts - drag.start;
-      const span = drag.t1 - drag.t0;
-      let nt0 = drag.t0 + dt;
-      nt0 = Math.min(Math.max(nt0, ctxGeom.t0), ctxGeom.t1 - span);
-      state.t0 = nt0; state.t1 = nt0 + span;
-    }
-    updateBrushVisual();
-    scheduleRender();
-  });
-  const finish = () => {
-    if (!drag) return;
-    // Tiny selections are accidental clicks — clear.
-    if (state.t0 != null && state.t1 - state.t0 < 86400 * 3) { state.t0 = state.t1 = null; }
-    drag = null;
-    updateBrushVisual();
-    scheduleRender();
-    writeHash();
-  };
-  svg.addEventListener("pointerup", finish);
-  svg.addEventListener("pointercancel", finish);
-  svg.addEventListener("dblclick", () => { state.t0 = state.t1 = null; updateBrushVisual(); scheduleRender(); writeHash(); });
-})();
+      (function initBrush() {
+        const svg = $("#context");
+        let drag = null;
+        const tsAt = (clientX) => {
+          const rect = svg.getBoundingClientRect();
+          const x = Math.min(
+            Math.max(clientX - rect.left, ctxGeom.padX),
+            ctxGeom.padX + ctxGeom.w,
+          );
+          return (
+            ctxGeom.t0 +
+            ((x - ctxGeom.padX) / ctxGeom.w) * (ctxGeom.t1 - ctxGeom.t0)
+          );
+        };
+        svg.addEventListener("pointerdown", (e) => {
+          if (!ctxGeom) return;
+          svg.setPointerCapture(e.pointerId);
+          const ts = tsAt(e.clientX);
+          const cls = e.target.getAttribute && e.target.getAttribute("class");
+          if (cls === "hl") drag = { mode: "resize", fix: state.t1 };
+          else if (cls === "hr") drag = { mode: "resize", fix: state.t0 };
+          else if (cls === "sel")
+            drag = { mode: "move", start: ts, t0: state.t0, t1: state.t1 };
+          else {
+            drag = { mode: "new", anchor: ts };
+            state.t0 = ts;
+            state.t1 = ts;
+          }
+          e.preventDefault();
+        });
+        svg.addEventListener("pointermove", (e) => {
+          if (!drag) return;
+          const ts = tsAt(e.clientX);
+          if (drag.mode === "new" || drag.mode === "resize") {
+            const fix = drag.mode === "new" ? drag.anchor : drag.fix;
+            state.t0 = Math.min(fix, ts);
+            state.t1 = Math.max(fix, ts);
+          } else {
+            const dt = ts - drag.start;
+            const span = drag.t1 - drag.t0;
+            let nt0 = drag.t0 + dt;
+            nt0 = Math.min(Math.max(nt0, ctxGeom.t0), ctxGeom.t1 - span);
+            state.t0 = nt0;
+            state.t1 = nt0 + span;
+          }
+          updateBrushVisual();
+          scheduleRender();
+        });
+        const finish = () => {
+          if (!drag) return;
+          // Tiny selections are accidental clicks — clear.
+          if (state.t0 != null && state.t1 - state.t0 < 86400 * 3) {
+            state.t0 = state.t1 = null;
+          }
+          drag = null;
+          updateBrushVisual();
+          scheduleRender();
+          writeHash();
+        };
+        svg.addEventListener("pointerup", finish);
+        svg.addEventListener("pointercancel", finish);
+        svg.addEventListener("dblclick", () => {
+          state.t0 = state.t1 = null;
+          updateBrushVisual();
+          scheduleRender();
+          writeHash();
+        });
+      })();
 
-let renderQueued = false;
-function scheduleRender() {
-  if (renderQueued) return;
-  renderQueued = true;
-  requestAnimationFrame(() => { renderQueued = false; renderChart(); });
-}
+      let renderQueued = false;
+      function scheduleRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        requestAnimationFrame(() => {
+          renderQueued = false;
+          renderChart();
+        });
+      }
 
-/* ---------- group legend ---------- */
-function renderLegend() {
-  const el = $("#legend");
-  // In affiliation mode the y-axis already labels every group.
-  if (!GROUPS.length || state.color !== "group" || affMode()) { el.hidden = true; return; }
-  el.hidden = false;
-  el.classList.toggle("has-sel", state.gsel.size > 0);
-  const top = GROUP_COUNTS.slice(0, 18);
-  el.innerHTML = top.map(([g, n]) =>
-    `<span class="chip${state.gsel.has(g) ? " on" : ""}" data-g="${esc(g)}" role="button" tabindex="0" title="Click to filter">` +
-    `<span class="dot" style="background:${GROUP_COLOR[g]}"></span>${esc(g)} <span class="n">${n}</span></span>`
-  ).join("") + (GROUP_COUNTS.length > top.length ? `<span class="chip" style="cursor:default;opacity:.7"><span class="dot" style="background:${OTHER_COLOR}"></span>+${GROUP_COUNTS.length - top.length} more</span>` : "");
-  el.querySelectorAll(".chip[data-g]").forEach(chip => {
-    chip.addEventListener("click", () => {
-      const g = chip.dataset.g;
-      if (state.gsel.has(g)) state.gsel.delete(g); else state.gsel.add(g);
-      renderLegend(); scheduleRender(); writeHash();
-    });
-  });
-}
+      /* ---------- group legend ---------- */
+      function renderLegend() {
+        const el = $("#legend");
+        // In affiliation mode the y-axis already labels every group.
+        if (!GROUPS.length || state.color !== "group" || affMode()) {
+          el.hidden = true;
+          return;
+        }
+        el.hidden = false;
+        el.classList.toggle("has-sel", state.gsel.size > 0);
+        const top = GROUP_COUNTS.slice(0, 18);
+        el.innerHTML =
+          top
+            .map(
+              ([g, n]) =>
+                `<span class="chip${state.gsel.has(g) ? " on" : ""}" data-g="${esc(g)}" role="button" tabindex="0" title="Click to filter">` +
+                `<span class="dot" style="background:${GROUP_COLOR[g]}"></span>${esc(g)} <span class="n">${n}</span></span>`,
+            )
+            .join("") +
+          (GROUP_COUNTS.length > top.length
+            ? `<span class="chip" style="cursor:default;opacity:.7"><span class="dot" style="background:${OTHER_COLOR}"></span>+${GROUP_COUNTS.length - top.length} more</span>`
+            : "");
+        el.querySelectorAll(".chip[data-g]").forEach((chip) => {
+          chip.addEventListener("click", () => {
+            const g = chip.dataset.g;
+            if (state.gsel.has(g)) state.gsel.delete(g);
+            else state.gsel.add(g);
+            renderLegend();
+            scheduleRender();
+            writeHash();
+          });
+        });
+      }
 
-/* ---------- header / footer ---------- */
-function renderHeader() {
-  const icon = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878Zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm3-8.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"/></svg>`;
-  const name = esc(REPO.name);
-  $("#repo-title").innerHTML = icon + (REPO.url ? `<a href="${esc(REPO.url)}" target="_blank" rel="noopener">${name}</a>` : name);
-  $("#stats").innerHTML =
-    `<span><b>${fmtNum(REPO.total_contributors)}</b> contributors</span>` +
-    `<span><b>${fmtNum(REPO.total_commits)}</b> commits</span>` +
-    `<span>${fmtMonthYear(REPO.first)} – ${fmtMonthYear(REPO.last)}</span>` +
-    `<span>branch <b>${esc(REPO.branch)}</b></span>`;
-  $("#footer").innerHTML = `Generated ${esc(REPO.generated)} · made with <a href="https://github.com/ewels/contributor-graphs" target="_blank" rel="noopener">contributor-graphs</a>`;
-  document.title = REPO.name + " · contributors";
-}
+      /* ---------- header / footer ---------- */
+      function renderHeader() {
+        const icon = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878Zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm3-8.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"/></svg>`;
+        const name = esc(REPO.name);
+        $("#repo-title").innerHTML =
+          icon +
+          (REPO.url
+            ? `<a href="${esc(REPO.url)}" target="_blank" rel="noopener">${name}</a>`
+            : name);
+        $("#stats").innerHTML =
+          `<span><b>${fmtNum(REPO.total_contributors)}</b> contributors</span>` +
+          `<span><b>${fmtNum(REPO.total_commits)}</b> commits</span>` +
+          `<span>${fmtMonthYear(REPO.first)} – ${fmtMonthYear(REPO.last)}</span>` +
+          `<span>branch <b>${esc(REPO.branch)}</b></span>`;
+        $("#footer").innerHTML =
+          `Generated ${esc(REPO.generated)} · made with <a href="https://github.com/ewels/contributor-graphs" target="_blank" rel="noopener">contributor-graphs</a>`;
+        document.title = REPO.name + " · contributors";
+      }
 
-/* ---------- export ---------- */
-function exportSvgString() {
-  const svg = $("#chart").cloneNode(true);
-  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  bg.setAttribute("width", "100%"); bg.setAttribute("height", "100%");
-  bg.setAttribute("fill", theme().card);
-  svg.insertBefore(bg, svg.firstChild);
-  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg);
-}
-function download(name, blob) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-const fileBase = (REPO.slug || REPO.name).replace(/[^A-Za-z0-9.-]+/g, "-") + "-contributors";
-$("#dl-svg").addEventListener("click", () => {
-  download(fileBase + ".svg", new Blob([exportSvgString()], { type: "image/svg+xml" }));
-});
-$("#dl-png").addEventListener("click", () => {
-  const src = exportSvgString();
-  const img = new Image();
-  const scale = 2;
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    const w = $("#chart").getAttribute("width"), h = $("#chart").getAttribute("height");
-    canvas.width = w * scale; canvas.height = h * scale;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0);
-    canvas.toBlob(b => b && download(fileBase + ".png", b), "image/png");
-  };
-  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
-});
+      /* ---------- export ---------- */
+      function exportSvgString() {
+        const svg = $("#chart").cloneNode(true);
+        const bg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        bg.setAttribute("width", "100%");
+        bg.setAttribute("height", "100%");
+        bg.setAttribute("fill", theme().card);
+        svg.insertBefore(bg, svg.firstChild);
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        return (
+          '<?xml version="1.0" encoding="UTF-8"?>\n' +
+          new XMLSerializer().serializeToString(svg)
+        );
+      }
+      function download(name, blob) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }
+      const fileBase =
+        (REPO.slug || REPO.name).replace(/[^A-Za-z0-9.-]+/g, "-") +
+        "-contributors";
+      $("#dl-svg").addEventListener("click", () => {
+        download(
+          fileBase + ".svg",
+          new Blob([exportSvgString()], { type: "image/svg+xml" }),
+        );
+      });
+      $("#dl-png").addEventListener("click", () => {
+        const src = exportSvgString();
+        const img = new Image();
+        const scale = 2;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const w = $("#chart").getAttribute("width"),
+            h = $("#chart").getAttribute("height");
+          canvas.width = w * scale;
+          canvas.height = h * scale;
+          const ctx = canvas.getContext("2d");
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(
+            (b) => b && download(fileBase + ".png", b),
+            "image/png",
+          );
+        };
+        img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
+      });
 
-/* ---------- wire up controls ---------- */
-function totalUnits() {
-  const base = ALL.filter(c => state.bots || !c.bot);
-  return affMode() ? aggregateByGroup(base).length : base.length;
-}
-function syncControls() {
-  const aff = affMode();
-  $("#rows").value = state.mode;
-  $("#search").value = state.q;
-  $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
-  minRange.value = minToSlider(state.min);
-  $("#min-num").value = state.min;
-  $("#min-num").max = MAX_COMMITS;
-  $("#topn").value = state.top;
-  $("#topn").max = totalUnits();
-  $("#topn-of").textContent = "of " + fmtNum(totalUnits());
-  $("#sort").value = state.sort;
-  $("#color").value = state.color;
-  // Colour is always by-affiliation when rows are affiliations.
-  $("#color").disabled = aff;
-  $("#color").closest(".ctl").style.opacity = aff ? ".5" : "";
-  $("#bots").checked = state.bots;
-}
-$("#rows").addEventListener("change", e => {
-  state.mode = e.target.value;
-  state.gsel.clear();
-  syncControls(); renderLegend(); scheduleRender(); writeHash();
-});
-$("#search").addEventListener("input", e => { state.q = e.target.value; scheduleRender(); writeHash(); });
-minRange.addEventListener("input", e => {
-  state.min = sliderToMin(+e.target.value);
-  $("#min-num").value = state.min;
-  scheduleRender(); writeHash();
-});
-$("#min-num").addEventListener("input", e => {
-  state.min = Math.max(1, +e.target.value || 1);
-  minRange.value = minToSlider(state.min);
-  scheduleRender(); writeHash();
-});
-$("#topn").addEventListener("input", e => {
-  const v = Math.max(1, Math.min(totalUnits(), +e.target.value || DEFAULT_TOP));
-  state.top = v; scheduleRender(); writeHash();
-});
-$("#sort").addEventListener("change", e => { state.sort = e.target.value; scheduleRender(); writeHash(); });
-$("#color").addEventListener("change", e => { state.color = e.target.value; renderLegend(); scheduleRender(); writeHash(); });
-$("#bots").addEventListener("change", e => { state.bots = e.target.checked; syncControls(); scheduleRender(); writeHash(); });
-$("#reset").addEventListener("click", () => {
-  state.mode = DEFAULT_MODE;
-  state.q = ""; state.min = 1; state.top = DEFAULT_TOP; state.sort = "first";
-  state.color = DEFAULT_COLOR; state.bots = false;
-  state.t0 = state.t1 = null; state.gsel.clear();
-  syncControls(); updateBrushVisual(); renderAll(); writeHash();
-});
-$("#theme-toggle").addEventListener("click", () => setTheme(themeName() === "light" ? "dark" : "light"));
+      /* ---------- wire up controls ---------- */
+      function totalUnits() {
+        const base = ALL.filter((c) => state.bots || !c.bot);
+        return affMode() ? aggregateByGroup(base).length : base.length;
+      }
+      function syncControls() {
+        const aff = affMode();
+        $("#rows").value = state.mode;
+        $("#search").value = state.q;
+        $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
+        minRange.value = minToSlider(state.min);
+        $("#min-num").value = state.min;
+        $("#min-num").max = MAX_COMMITS;
+        $("#topn").value = state.top;
+        $("#topn").max = totalUnits();
+        $("#topn-of").textContent = "of " + fmtNum(totalUnits());
+        $("#sort").value = state.sort;
+        $("#color").value = state.color;
+        // Colour is always by-affiliation when rows are affiliations.
+        $("#color").disabled = aff;
+        $("#color").closest(".ctl").style.opacity = aff ? ".5" : "";
+        $("#bots").checked = state.bots;
+      }
+      $("#rows").addEventListener("change", (e) => {
+        state.mode = e.target.value;
+        state.gsel.clear();
+        syncControls();
+        renderLegend();
+        scheduleRender();
+        writeHash();
+      });
+      $("#search").addEventListener("input", (e) => {
+        state.q = e.target.value;
+        scheduleRender();
+        writeHash();
+      });
+      minRange.addEventListener("input", (e) => {
+        state.min = sliderToMin(+e.target.value);
+        $("#min-num").value = state.min;
+        scheduleRender();
+        writeHash();
+      });
+      $("#min-num").addEventListener("input", (e) => {
+        state.min = Math.max(1, +e.target.value || 1);
+        minRange.value = minToSlider(state.min);
+        scheduleRender();
+        writeHash();
+      });
+      $("#topn").addEventListener("input", (e) => {
+        const v = Math.max(
+          1,
+          Math.min(totalUnits(), +e.target.value || DEFAULT_TOP),
+        );
+        state.top = v;
+        scheduleRender();
+        writeHash();
+      });
+      $("#sort").addEventListener("change", (e) => {
+        state.sort = e.target.value;
+        scheduleRender();
+        writeHash();
+      });
+      $("#color").addEventListener("change", (e) => {
+        state.color = e.target.value;
+        renderLegend();
+        scheduleRender();
+        writeHash();
+      });
+      $("#bots").addEventListener("change", (e) => {
+        state.bots = e.target.checked;
+        syncControls();
+        scheduleRender();
+        writeHash();
+      });
+      $("#reset").addEventListener("click", () => {
+        state.mode = DEFAULT_MODE;
+        state.q = "";
+        state.min = 1;
+        state.top = DEFAULT_TOP;
+        state.sort = "first";
+        state.color = DEFAULT_COLOR;
+        state.bots = false;
+        state.t0 = state.t1 = null;
+        state.gsel.clear();
+        syncControls();
+        updateBrushVisual();
+        renderAll();
+        writeHash();
+      });
+      $("#theme-toggle").addEventListener("click", () =>
+        setTheme(themeName() === "light" ? "dark" : "light"),
+      );
 
-let resizeTimer;
-new ResizeObserver(() => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(renderAll, 120);
-}).observe(document.querySelector(".chart-card"));
+      let resizeTimer;
+      new ResizeObserver(() => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(renderAll, 120);
+      }).observe(document.querySelector(".chart-card"));
 
-function renderAll() { renderLegend(); renderContext(); renderChart(); }
+      function renderAll() {
+        renderLegend();
+        renderContext();
+        renderChart();
+      }
 
-/* ---------- init ---------- */
-readHash();
-const savedTheme = localStorage.getItem("cg-theme") ||
-  (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-document.documentElement.dataset.theme = savedTheme;
-$("#icon-moon").style.display = savedTheme === "light" ? "" : "none";
-$("#icon-sun").style.display = savedTheme === "dark" ? "" : "none";
-renderHeader();
-syncControls();
-renderAll();
-</script>
-</body>
+      /* ---------- init ---------- */
+      readHash();
+      const savedTheme =
+        localStorage.getItem("cg-theme") ||
+        (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = savedTheme;
+      $("#icon-moon").style.display = savedTheme === "light" ? "" : "none";
+      $("#icon-sun").style.display = savedTheme === "dark" ? "" : "none";
+      renderHeader();
+      syncControls();
+      renderAll();
+    </script>
+  </body>
 </html>

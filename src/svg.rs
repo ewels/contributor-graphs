@@ -12,6 +12,8 @@ pub struct SvgOptions {
     pub accent: String,
     /// Each row is a whole affiliation rather than one person.
     pub group_mode: bool,
+    /// Render on a dark background.
+    pub dark: bool,
 }
 
 pub const GROUP_PALETTE: &[&str] = &[
@@ -30,6 +32,8 @@ struct Theme {
     grid_year: &'static str,
     grid_month: &'static str,
     bg: &'static str,
+    /// HSL lightness (%) for the initials-fallback avatar discs.
+    avatar_l: u32,
 }
 
 const LIGHT: Theme = Theme {
@@ -39,6 +43,17 @@ const LIGHT: Theme = Theme {
     grid_year: "#e2e6ec",
     grid_month: "#eef1f5",
     bg: "#ffffff",
+    avatar_l: 62,
+};
+
+const DARK: Theme = Theme {
+    text: "#e6ebf2",
+    muted: "#9aa7b6",
+    faint: "#5f6c7b",
+    grid_year: "#232b35",
+    grid_month: "#1a212a",
+    bg: "#0d1117",
+    avatar_l: 48,
 };
 
 fn esc(s: &str) -> String {
@@ -228,7 +243,7 @@ pub fn smooth_months(months: &[u32]) -> Vec<f64> {
 }
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
-    let th = &LIGHT;
+    let th = if opts.dark { &DARK } else { &LIGHT };
     let width = opts.width;
 
     let t_first = rows.iter().map(|c| c.first).min().unwrap_or(0);
@@ -497,12 +512,13 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                     let hue = hash_hue(&c.name);
                     let _ = write!(
                         s,
-                        r##"<circle cx="{cx}" cy="{cy}" r="{r}" fill="hsl({hue},42%,62%)"/><text x="{cx}" y="{ty}" font-size="7.5" font-weight="700" fill="#fff" text-anchor="middle">{init}</text>"##,
+                        r##"<circle cx="{cx}" cy="{cy}" r="{r}" fill="hsl({hue},42%,{l}%)"/><text x="{cx}" y="{ty}" font-size="7.5" font-weight="700" fill="#fff" text-anchor="middle">{init}</text>"##,
                         cx = n(acx),
                         cy = n(cy),
                         r = n(AVATAR / 2.0),
                         ty = n(cy + 2.7),
                         hue = hue,
+                        l = th.avatar_l,
                         init = esc(&initials(&c.name))
                     );
                 }

@@ -111,6 +111,10 @@ struct Args {
     #[arg(long, default_value = "#2f6feb")]
     accent: String,
 
+    /// Background theme for the static SVG
+    #[arg(long, value_enum, default_value = "light")]
+    theme: SvgTheme,
+
     /// Open the HTML output in a browser when done
     #[arg(long)]
     open: bool,
@@ -135,6 +139,12 @@ enum Format {
     Svg,
     Html,
     Both,
+}
+
+#[derive(Copy, Clone, PartialEq, ValueEnum)]
+enum SvgTheme {
+    Light,
+    Dark,
 }
 
 fn read_tsv(path: &PathBuf) -> Result<Vec<Vec<String>>> {
@@ -333,6 +343,7 @@ fn main() -> Result<()> {
             footer_right: format!("generated {} · contributor-graphs", meta.generated),
             accent: args.accent.clone(),
             group_mode: args.by_affiliation,
+            dark: args.theme == SvgTheme::Dark,
         };
         let svg_str = svg::render_svg(&rows, &opts);
         let path = args.output_dir.join(format!("{basename}.svg"));
