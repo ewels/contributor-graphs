@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-06-11
 
 ### Added
 
@@ -33,6 +33,20 @@ All notable changes to this project are documented here. The format follows
   switcher is shown (`lock` / `--lock-theme`) — so you can ship a single custom
   look with no switching. `--theme <id>` selects the theme for both outputs and
   replaces the old `--theme light|dark` / `--skin` flags.
+- Whole-org and multi-owner runs: a bare GitHub `owner` (org or user) expands
+  to every non-fork repository it owns, and several owners can be combined in
+  one run, with overlapping commits de-duplicated by SHA. A same-owner pool
+  (one repo or a whole org) shows the owner's avatar in the interactive header
+  and is titled by the owner.
+- On-disk cache under `$XDG_CACHE_HOME/contributor-graphs` (bare clones, parsed
+  git history keyed by the branch tip SHA, and GitHub author/profile/avatar
+  lookups and org listings). A quick `git ls-remote` checks each repo's tip, so
+  an unchanged repo skips the fetch, the log parse, and the API calls; a warm
+  whole-org run drops from minutes to seconds. `--refresh` forces a fresh pull.
+- Co-authored commits: `Co-authored-by` trailers are counted as commits for
+  each co-author, with full credit (a commit counts for its author and each
+  co-author), on by default. `--no-co-authors` disables it, and the interactive
+  page has a live "Co-authors" toggle.
 
 ### Changed
 
@@ -40,6 +54,11 @@ All notable changes to this project are documented here. The format follows
   with the contributor rows, so a spike in overall activity sits directly above
   the rows that drove it. Toggle it with the ↔ button on the activity bar; the
   strip stays full-width by default.
+- The affiliation row mode and its search are labelled "current affiliations",
+  since the grouping comes from each contributor's present GitHub profile and
+  is often out of date for past commits.
+- The expanded-row detail panel is larger and uses a higher-contrast colour, so
+  it stays readable (it was small and faint, especially in dark mode).
 
 ## [1.0.0] - 2026-06-11
 
@@ -57,4 +76,5 @@ First public release.
   live search, sorting, group filtering, timeline zoom, and dark mode.
 - Usable as a Rust library via the `analyze` API.
 
+[1.1.0]: https://github.com/ewels/contributor-graphs/releases/tag/v1.1.0
 [1.0.0]: https://github.com/ewels/contributor-graphs/releases/tag/v1.0.0

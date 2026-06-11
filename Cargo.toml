@@ -1,6 +1,6 @@
 [package]
 name = "contributor-graphs"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 rust-version = "1.87"
 description = "Generate contributor timeline graphs (static SVG + interactive HTML) for any git or GitHub repository"
