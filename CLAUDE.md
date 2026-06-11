@@ -38,8 +38,12 @@ token`), parallel login/avatar resolution and profile/company lookup, avatar
   interactivity (filters, brush-zoom, tooltips, affiliation toggle, theming,
   export) lives in the template's inline `<script>`.
 - `docs/`: the documentation website (`index.html`), served via GitHub Pages.
-  `rnaseq.html` / `multiqc.html` / `example-*.svg` are generated showcase
-  assets; regenerate them with the binary if the rendering changes.
+  `rnaseq*.html` / `example-rnaseq*.svg` are generated showcase assets;
+  regenerate them with `scripts/regen-examples.sh` (needs a GitHub token) when
+  the renderers change. The `regen-examples` GitHub Action runs that script on
+  every push to `main` that touches the source and commits the result. The
+  `app-rnaseq*.png` screenshots and `demo.mp4` are captured by hand, not by the
+  script.
 
 ## Conventions
 

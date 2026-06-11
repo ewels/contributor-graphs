@@ -3,7 +3,9 @@ target/
 
 # Generated showcase assets (produced by the binary, not hand-edited)
 docs/rnaseq.html
+docs/rnaseq-wikipedia.html
 docs/example-rnaseq.svg
+docs/example-rnaseq-wikipedia.svg
 
 # Lockfile and license are managed elsewhere
 Cargo.lock

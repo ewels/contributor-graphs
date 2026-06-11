@@ -1,0 +1,51 @@
+name: Regenerate examples
+
+# Rebuild the docs/ showcase SVG + HTML whenever the renderers change, and
+# commit the result back. The commit only touches docs/**, which triggers the
+# Pages deploy; this workflow ignores docs/** so it never retriggers itself.
+#
+# The PNG screenshots (docs/app-rnaseq*.png) and demo.mp4 are NOT regenerated
+# here — they are captured by hand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "scripts/regen-examples.sh"
+      - ".github/workflows/regen-examples.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regen-examples
+  cancel-in-progress: true
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Regenerate SVG + HTML
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/regen-examples.sh
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- docs/; then
+            echo "No changes to the generated examples."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git commit -m "Regenerate docs examples [skip ci]"
+          git push

@@ -1,7 +1,9 @@
 # Generated showcase assets — exclude from GitHub language stats and diffs.
 # (docs/index.html is hand-written and intentionally left counted.)
 docs/rnaseq.html linguist-generated=true
+docs/rnaseq-wikipedia.html linguist-generated=true
 docs/example-rnaseq.svg linguist-generated=true
+docs/example-rnaseq-wikipedia.svg linguist-generated=true
 docs/logo.svg linguist-generated=true
 docs/logo-dark.svg linguist-generated=true
 docs/favicon.svg linguist-generated=true
