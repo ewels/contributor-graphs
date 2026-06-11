@@ -914,12 +914,11 @@
           </p>
           <pre
             class="code"
-          ><button class="copybtn" data-copy="cargo install contributor-graphs">Copy</button><span class="cm"># from crates.io</span>
-cargo install contributor-graphs
+          ><button class="copybtn" data-copy="cargo install --git https://github.com/ewels/contributor-graphs">Copy</button><span class="cm"># latest from GitHub</span>
+cargo install --git https://github.com/ewels/contributor-graphs
 
-<span class="cm"># or from a local clone</span>
-git clone https://github.com/ewels/contributor-graphs
-cargo install --path contributor-graphs</pre>
+<span class="cm"># once published to crates.io</span>
+cargo install contributor-graphs</pre>
           <p>
             In CI, the <code>GITHUB_TOKEN</code> that Actions injects is picked
             up automatically — nothing else to configure.
