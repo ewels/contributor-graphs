@@ -1,0 +1,26 @@
+[package]
+name = "contributor-graphs"
+version = "0.1.0"
+edition = "2021"
+description = "Generate contributor timeline graphs (static SVG + interactive HTML) for any git or GitHub repository"
+license = "MIT"
+repository = "https://github.com/ewels/contributor-graphs"
+keywords = ["git", "github", "contributors", "visualization", "timeline"]
+categories = ["command-line-utilities", "visualization"]
+
+[[bin]]
+name = "contributor-graphs"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4", features = ["derive", "wrap_help"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }
+
+[profile.release]
+lto = true
+strip = true
