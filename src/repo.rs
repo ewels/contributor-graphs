@@ -165,7 +165,9 @@ fn resolve_branch(dir: &Path, requested: Option<&str>) -> String {
     git(dir, &["symbolic-ref", "--short", "HEAD"]).unwrap_or_else(|_| "HEAD".into())
 }
 
-/// Run `git log` and parse one commit per line.
+/// Run `git log` and parse one commit per record. Records are separated by a
+/// record-separator byte (\x1e) so a commit's multi-value `Co-authored-by`
+/// trailers (joined with \x1f) can't be confused with the next commit.
 pub fn read_commits(
     repo: &PreparedRepo,
     branch: Option<&str>,
@@ -175,7 +177,8 @@ pub fn read_commits(
     cmd.arg("-C").arg(&repo.git_dir).args([
         "log",
         "--use-mailmap",
-        "--pretty=format:%H%x09%at%x09%aN%x09%aE",
+        "--pretty=format:%x1e%H%x09%at%x09%aN%x09%aE%x09\
+         %(trailers:key=Co-authored-by,valueonly,separator=%x1f)",
     ]);
     if filter.no_merges {
         cmd.arg("--no-merges");
@@ -197,23 +200,48 @@ pub fn read_commits(
     }
     let text = String::from_utf8_lossy(&out.stdout);
     let mut commits = Vec::new();
-    for line in text.lines() {
-        let mut parts = line.splitn(4, '\t');
+    for rec in text.split('\u{1e}') {
+        let mut parts = rec.splitn(5, '\t');
         let (Some(sha), Some(ts), Some(name), Some(email)) =
             (parts.next(), parts.next(), parts.next(), parts.next())
         else {
             continue;
         };
         let Ok(ts) = ts.parse::<i64>() else { continue };
+        let email = email.trim().to_lowercase();
+        let coauthors = parts
+            .next()
+            .into_iter()
+            .flat_map(|block| block.split('\u{1f}'))
+            .filter_map(parse_coauthor)
+            .filter(|(_, e)| e != &email)
+            .collect();
         commits.push(Commit {
             sha: sha.to_string(),
             ts,
             name: name.trim().to_string(),
-            email: email.trim().to_lowercase(),
+            email,
+            coauthors,
             src: 0,
         });
     }
     Ok(commits)
+}
+
+/// Parse a `Co-authored-by` value (`Name <email>`) into `(name, email)`.
+fn parse_coauthor(raw: &str) -> Option<(String, String)> {
+    let s = raw.trim();
+    if s.is_empty() {
+        return None;
+    }
+    match (s.find('<'), s.rfind('>')) {
+        (Some(lt), Some(gt)) if gt > lt => {
+            let name = s[..lt].trim().to_string();
+            let email = s[lt + 1..gt].trim().to_lowercase();
+            (!email.is_empty() || !name.is_empty()).then_some((name, email))
+        }
+        _ => Some((s.to_string(), String::new())),
+    }
 }
 
 fn git(dir: &Path, args: &[&str]) -> Result<String> {

@@ -752,6 +752,14 @@
             <span class="lbl">Bots</span>
           </label>
         </div>
+        <div class="ctl" id="ctl-coauthors" hidden>
+          <label>&nbsp;</label>
+          <label class="switch">
+            <input type="checkbox" id="coauthors" />
+            <span class="track"></span>
+            <span class="lbl">Co-authors</span>
+          </label>
+        </div>
         <div class="spacer"></div>
         <div class="showing" id="showing"></div>
         <button
@@ -826,6 +834,28 @@
       ALL.forEach((c, i) => {
         c._id = i;
       });
+
+      // Co-author credit: months/commits arrive combined (author + co-author);
+      // co_months/co_commits are the co-authored subset. Stash both forms so the
+      // Co-authors toggle can switch each row between combined and authored-only.
+      const HAS_COAUTHORS = ALL.some((c) => c.co_commits > 0);
+      if (HAS_COAUTHORS) {
+        ALL.forEach((c) => {
+          c._monthsAll = c.months;
+          c._commitsAll = c.commits;
+          const co = c.co_months || [];
+          c._monthsAuth = c.months.map((v, i) => v - (co[i] || 0));
+          c._commitsAuth = c.commits - (c.co_commits || 0);
+        });
+      }
+      function applyCoauthors() {
+        if (!HAS_COAUTHORS) return;
+        const on = state.coauthors;
+        for (const c of ALL) {
+          c.months = on ? c._monthsAll : c._monthsAuth;
+          c.commits = on ? c._commitsAll : c._commitsAuth;
+        }
+      }
 
       const ACCENT = DATA.accent || "#2f6feb";
       const GROUP_PALETTE = [
@@ -1092,6 +1122,7 @@
         sort: "first",
         color: DEFAULT_COLOR,
         bots: false,
+        coauthors: true, // count Co-authored-by trailers (full credit each)
         align: false, // align the activity strip with the rows (default: full width)
         t0: null,
         t1: null,
@@ -1099,6 +1130,7 @@
         expanded: new Set(), // row keys (see rowKey) drawn with an inline plot
       };
       if (HAS_GROUPS) $("#ctl-rows").hidden = false;
+      if (HAS_COAUTHORS) $("#ctl-coauthors").hidden = false;
 
       /* Collapse contributors into one row per affiliation. */
       function aggregateByGroup(rows) {
@@ -1165,6 +1197,7 @@
           if (p.has("sort")) state.sort = p.get("sort");
           if (p.has("color")) state.color = p.get("color");
           if (p.has("bots")) state.bots = p.get("bots") === "1";
+          if (p.has("co")) state.coauthors = p.get("co") !== "0";
           if (p.has("align")) state.align = p.get("align") === "1";
           if (p.has("t0")) state.t0 = +p.get("t0");
           if (p.has("t1")) state.t1 = +p.get("t1");
@@ -1193,6 +1226,7 @@
           if (state.sort !== "first") p.set("sort", state.sort);
           if (state.color !== DEFAULT_COLOR) p.set("color", state.color);
           if (state.bots) p.set("bots", "1");
+          if (HAS_COAUTHORS && !state.coauthors) p.set("co", "0");
           if (state.align) p.set("align", "1");
           if (state.t0 != null) {
             p.set("t0", Math.round(state.t0));
@@ -1228,6 +1262,10 @@
       function affMode() {
         return state.mode === "affiliations";
       }
+      // A row with no commits exists only as a co-author and the toggle is off.
+      function hasCommits(c) {
+        return c.commits > 0;
+      }
       function filtered() {
         const [t0, t1] = domain();
         const q = state.q.trim().toLowerCase();
@@ -1246,7 +1284,9 @@
               (c.group || "").toLowerCase().includes(q)),
         );
         const eligible = rows.length;
-        const total = base.length;
+        // Count only rows with commits, so people who exist solely as
+        // co-authors drop out of the total when co-authors are toggled off.
+        const total = base.filter(hasCommits).length;
         if (rows.length > state.top) {
           rows = rows
             .slice()
@@ -2143,7 +2183,8 @@
       /* ---------- wire up controls ---------- */
       function totalUnits() {
         const base = ALL.filter((c) => state.bots || !c.bot);
-        return affMode() ? aggregateByGroup(base).length : base.length;
+        if (affMode()) return aggregateByGroup(base).length;
+        return base.filter(hasCommits).length;
       }
       function syncControls() {
         const aff = affMode();
@@ -2164,6 +2205,7 @@
         $("#color").disabled = aff;
         $("#color").closest(".ctl").style.opacity = aff ? ".5" : "";
         $("#bots").checked = state.bots;
+        $("#coauthors").checked = state.coauthors;
         $("#align-ctx").setAttribute(
           "aria-pressed",
           state.align ? "true" : "false",
@@ -2232,6 +2274,13 @@
         scheduleRender();
         writeHash();
       });
+      $("#coauthors").addEventListener("change", (e) => {
+        state.coauthors = e.target.checked;
+        applyCoauthors();
+        syncControls();
+        renderAll();
+        writeHash();
+      });
       $("#reset").addEventListener("click", () => {
         state.mode = DEFAULT_MODE;
         state.q = "";
@@ -2240,6 +2289,8 @@
         state.sort = "first";
         state.color = DEFAULT_COLOR;
         state.bots = false;
+        state.coauthors = true;
+        applyCoauthors();
         state.align = false;
         state.t0 = state.t1 = null;
         state.gsel.clear();
@@ -2265,6 +2316,7 @@
 
       /* ---------- init ---------- */
       readHash();
+      applyCoauthors();
       buildThemeMenu();
       // When the theme is locked, pin to the configured default and hide the
       // switcher. Otherwise prefer a saved choice, then the generation-time

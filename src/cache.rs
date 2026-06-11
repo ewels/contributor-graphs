@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Bump when the cached layout changes in a backwards-incompatible way.
-const COMMITS_VERSION: u32 = 1;
+const COMMITS_VERSION: u32 = 2;
 /// Profiles can change (a company move), so they expire.
 const PROFILE_TTL: i64 = 30 * 24 * 60 * 60;
 /// Avatars change rarely; keep them longer.
@@ -66,6 +66,8 @@ pub struct CachedCommit {
     pub ts: i64,
     pub name: String,
     pub email: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub coauthors: Vec<(String, String)>,
 }
 
 /// One repository's cached `git log`, valid only while `tip` and the filters

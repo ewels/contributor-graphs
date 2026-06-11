@@ -6,7 +6,10 @@ use std::collections::HashMap;
 pub struct Cluster {
     pub emails: Vec<String>,
     pub names: Vec<String>,
+    /// Commits this person authored.
     pub commit_idxs: Vec<usize>,
+    /// Commits this person was a `Co-authored-by` on (and did not author).
+    pub coauthored_idxs: Vec<usize>,
     pub login: Option<String>,
     pub avatar_url: Option<String>,
     /// Display name from the GitHub user profile.
@@ -47,58 +50,114 @@ fn norm_name(name: &str) -> String {
         .to_lowercase()
 }
 
-/// Group commits into identity clusters. Commits sharing an email always
-/// merge; commits sharing a normalised author name merge unless disabled.
-pub fn cluster_commits(commits: &[Commit], merge_names: bool) -> Vec<Cluster> {
-    let mut dsu = Dsu::new();
-    let mut by_email: HashMap<&str, usize> = HashMap::new();
-    let mut by_name: HashMap<String, usize> = HashMap::new();
-    let mut commit_node: Vec<usize> = Vec::with_capacity(commits.len());
-
-    for c in commits {
-        let key: &str = if c.email.is_empty() {
-            &c.name
-        } else {
-            &c.email
-        };
-        let node = match by_email.get(key) {
-            Some(&n) => n,
-            None => {
-                let n = dsu.make();
-                by_email.insert(key, n);
-                n
-            }
-        };
-        if merge_names {
-            let nn = norm_name(&c.name);
-            if !nn.is_empty() {
-                match by_name.get(&nn) {
-                    Some(&other) => dsu.union(node, other),
-                    None => {
-                        by_name.insert(nn, node);
-                    }
+/// The graph node for an identity: keyed by email (or name when email-less),
+/// unioned with any prior identity sharing a normalised name.
+fn node_for(
+    dsu: &mut Dsu,
+    by_email: &mut HashMap<String, usize>,
+    by_name: &mut HashMap<String, usize>,
+    merge_names: bool,
+    name: &str,
+    email: &str,
+) -> usize {
+    let key = if email.is_empty() { name } else { email };
+    let node = match by_email.get(key) {
+        Some(&n) => n,
+        None => {
+            let n = dsu.make();
+            by_email.insert(key.to_string(), n);
+            n
+        }
+    };
+    if merge_names {
+        let nn = norm_name(name);
+        if !nn.is_empty() {
+            match by_name.get(&nn) {
+                Some(&other) => dsu.union(node, other),
+                None => {
+                    by_name.insert(nn, node);
                 }
             }
         }
-        commit_node.push(node);
+    }
+    node
+}
+
+fn add_identity(cl: &mut Cluster, name: &str, email: &str) {
+    if !email.is_empty() && !cl.emails.iter().any(|e| e == email) {
+        cl.emails.push(email.to_string());
+    }
+    if !name.is_empty() && !cl.names.iter().any(|n| n == name) {
+        cl.names.push(name.to_string());
+    }
+}
+
+fn cluster_index(
+    dsu: &mut Dsu,
+    map: &mut HashMap<usize, usize>,
+    clusters: &mut Vec<Cluster>,
+    node: usize,
+) -> usize {
+    let root = dsu.find(node);
+    *map.entry(root).or_insert_with(|| {
+        clusters.push(Cluster::default());
+        clusters.len() - 1
+    })
+}
+
+/// Group commit identities into clusters, one per person. Authors and their
+/// `Co-authored-by` identities all share the graph (so a co-author merges with
+/// the same person's authored commits); each cluster records the commits it
+/// authored and, separately, those it only co-authored.
+pub fn cluster_commits(commits: &[Commit], merge_names: bool) -> Vec<Cluster> {
+    let mut dsu = Dsu::new();
+    let mut by_email: HashMap<String, usize> = HashMap::new();
+    let mut by_name: HashMap<String, usize> = HashMap::new();
+    let mut author_node: Vec<usize> = Vec::with_capacity(commits.len());
+    let mut coauthor_nodes: Vec<Vec<usize>> = Vec::with_capacity(commits.len());
+
+    for c in commits {
+        author_node.push(node_for(
+            &mut dsu,
+            &mut by_email,
+            &mut by_name,
+            merge_names,
+            &c.name,
+            &c.email,
+        ));
+        let cns = c
+            .coauthors
+            .iter()
+            .map(|(n, e)| node_for(&mut dsu, &mut by_email, &mut by_name, merge_names, n, e))
+            .collect();
+        coauthor_nodes.push(cns);
     }
 
     let mut clusters: Vec<Cluster> = Vec::new();
     let mut root_to_cluster: HashMap<usize, usize> = HashMap::new();
     for (i, c) in commits.iter().enumerate() {
-        let root = dsu.find(commit_node[i]);
-        let ci = *root_to_cluster.entry(root).or_insert_with(|| {
-            clusters.push(Cluster::default());
-            clusters.len() - 1
-        });
-        let cl = &mut clusters[ci];
-        if !c.email.is_empty() && !cl.emails.iter().any(|e| e == &c.email) {
-            cl.emails.push(c.email.clone());
+        let ci_a = cluster_index(
+            &mut dsu,
+            &mut root_to_cluster,
+            &mut clusters,
+            author_node[i],
+        );
+        add_identity(&mut clusters[ci_a], &c.name, &c.email);
+        clusters[ci_a].commit_idxs.push(i);
+        for (k, (n, e)) in c.coauthors.iter().enumerate() {
+            let ci_c = cluster_index(
+                &mut dsu,
+                &mut root_to_cluster,
+                &mut clusters,
+                coauthor_nodes[i][k],
+            );
+            add_identity(&mut clusters[ci_c], n, e);
+            // Skip when the co-author is the author, or already credited for
+            // this commit (a duplicate trailer, or two of their aliases on it).
+            if ci_c != ci_a && clusters[ci_c].coauthored_idxs.last() != Some(&i) {
+                clusters[ci_c].coauthored_idxs.push(i);
+            }
         }
-        if !c.name.is_empty() && !cl.names.iter().any(|n| n == &c.name) {
-            cl.names.push(c.name.clone());
-        }
-        cl.commit_idxs.push(i);
     }
     clusters
 }
@@ -179,6 +238,7 @@ fn merge_into(target: &mut Cluster, donor: Cluster) {
         }
     }
     target.commit_idxs.extend(donor.commit_idxs);
+    target.coauthored_idxs.extend(donor.coauthored_idxs);
     if target.login.is_none() {
         target.login = donor.login;
     }
@@ -271,20 +331,28 @@ fn display_name(cl: &Cluster, commits: &[Commit]) -> String {
         })
 }
 
-/// Build final contributors with stats and monthly activity bins.
+/// Build final contributors with stats and monthly activity bins. With
+/// `count_coauthors`, each `Co-authored-by` credit is counted alongside the
+/// authored commits (and tracked separately in `co_months` / `co_commits`).
 pub fn build_contributors(
     clusters: &[Cluster],
     commits: &[Commit],
     groups: &[(String, String)],
+    count_coauthors: bool,
 ) -> Vec<Contributor> {
     let mut out = Vec::with_capacity(clusters.len());
     for cl in clusters {
-        if cl.commit_idxs.is_empty() {
+        let coauthored: &[usize] = if count_coauthors {
+            &cl.coauthored_idxs
+        } else {
+            &[]
+        };
+        if cl.commit_idxs.is_empty() && coauthored.is_empty() {
             continue;
         }
         let mut first = i64::MAX;
         let mut last = i64::MIN;
-        for &i in &cl.commit_idxs {
+        for &i in cl.commit_idxs.iter().chain(coauthored.iter()) {
             first = first.min(commits[i].ts);
             last = last.max(commits[i].ts);
         }
@@ -292,10 +360,21 @@ pub fn build_contributors(
         let m1 = month_index(last);
         // Clamp the span so a single corrupt/extreme commit date can't trigger
         // a huge allocation (commits outside the window are simply not binned).
-        let mut months = vec![0u32; (m1 - m0 + 1).clamp(1, 6000) as usize];
+        let len = (m1 - m0 + 1).clamp(1, 6000) as usize;
+        let mut months = vec![0u32; len];
+        // Only the co-authored rows allocate a second array.
+        let mut co_months = vec![0u32; if coauthored.is_empty() { 0 } else { len }];
         for &i in &cl.commit_idxs {
-            let mi = month_index(commits[i].ts) - m0;
-            if let Some(slot) = months.get_mut(mi as usize) {
+            if let Some(slot) = months.get_mut((month_index(commits[i].ts) - m0) as usize) {
+                *slot += 1;
+            }
+        }
+        for &i in coauthored {
+            let mi = (month_index(commits[i].ts) - m0) as usize;
+            if let Some(slot) = months.get_mut(mi) {
+                *slot += 1;
+            }
+            if let Some(slot) = co_months.get_mut(mi) {
                 *slot += 1;
             }
         }
@@ -318,13 +397,15 @@ pub fn build_contributors(
             url,
             first,
             last,
-            commits: cl.commit_idxs.len() as u32,
+            commits: (cl.commit_idxs.len() + coauthored.len()) as u32,
             bot: is_bot(cl),
             group,
             members: 1,
             member_names: Vec::new(),
             m0,
             months,
+            co_months,
+            co_commits: coauthored.len() as u32,
         });
     }
     out

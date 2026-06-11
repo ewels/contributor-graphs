@@ -87,6 +87,10 @@ struct Args {
     #[arg(long)]
     no_name_merge: bool,
 
+    /// Don't count `Co-authored-by` trailers (count only each commit's author)
+    #[arg(long)]
+    no_co_authors: bool,
+
     /// Keep avatars as remote URLs instead of embedding data URIs
     #[arg(long)]
     no_embed_avatars: bool,
@@ -220,6 +224,7 @@ fn main() -> Result<()> {
         use_github: !args.no_github,
         detect_affiliation: !args.no_affiliation,
         merge_names: !args.no_name_merge,
+        count_coauthors: !args.no_co_authors,
         embed_avatars: !args.no_embed_avatars,
         avatar_size: 64,
         refresh: args.refresh,

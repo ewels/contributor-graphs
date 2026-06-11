@@ -65,6 +65,8 @@ pub struct Config {
     pub detect_affiliation: bool,
     /// Merge identities that share a normalised author name.
     pub merge_names: bool,
+    /// Count `Co-authored-by` trailers as commits for those contributors.
+    pub count_coauthors: bool,
     /// Download avatars and embed them as data URIs.
     pub embed_avatars: bool,
     /// Avatar pixel size to request when embedding.
@@ -90,6 +92,7 @@ impl Default for Config {
             use_github: true,
             detect_affiliation: true,
             merge_names: true,
+            count_coauthors: true,
             embed_avatars: true,
             avatar_size: 64,
             refresh: false,
@@ -327,7 +330,8 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         log!("→ applied {} identity overrides", cfg.identities.len());
     }
 
-    let mut contributors = identity::build_contributors(&clusters, &commits, &cfg.groups);
+    let mut contributors =
+        identity::build_contributors(&clusters, &commits, &cfg.groups, cfg.count_coauthors);
 
     let n_groups = canonicalize_groups(&mut contributors);
     if n_groups > 0 {
@@ -454,6 +458,7 @@ fn read_source(
                     ts: c.ts,
                     name: c.name,
                     email: c.email,
+                    coauthors: c.coauthors,
                     src: 0,
                 })
                 .collect();
@@ -481,6 +486,7 @@ fn read_source(
                 ts: c.ts,
                 name: c.name.clone(),
                 email: c.email.clone(),
+                coauthors: c.coauthors.clone(),
             })
             .collect();
         caches.put_commits(&key, &tip, filter, cached);

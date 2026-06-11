@@ -16,6 +16,8 @@ pub struct Commit {
     pub ts: i64,
     pub name: String,
     pub email: String,
+    /// `(name, email)` of each `Co-authored-by` trailer on the commit.
+    pub coauthors: Vec<(String, String)>,
     /// Index of the source this commit came from (see `analyze_many`). 0 for a
     /// single-source run.
     pub src: u32,
@@ -43,7 +45,19 @@ pub struct Contributor {
     /// Month index (months since 1970-01) of the first entry in `months`.
     pub m0: i32,
     /// Commits per calendar month, from `m0` through the last active month.
+    /// Includes co-authored commits (full credit); `co_months` is the subset
+    /// so the interactive page can subtract it when co-authors are toggled off.
     pub months: Vec<u32>,
+    /// Co-authored commits per month, aligned to `m0` (a subset of `months`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub co_months: Vec<u32>,
+    /// Of `commits`, how many the person was a co-author on (not the author).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub co_commits: u32,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 /// Collapse contributors into one row per affiliation. People without a
@@ -53,9 +67,11 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
 
     struct Agg {
         commits: u32,
+        co_commits: u32,
         first: i64,
         last: i64,
         months: HashMap<i32, u32>,
+        co_months: HashMap<i32, u32>,
         members: Vec<(String, u32)>,
     }
     let mut order: Vec<String> = Vec::new();
@@ -67,19 +83,27 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
             order.push(key.clone());
             Agg {
                 commits: 0,
+                co_commits: 0,
                 first: i64::MAX,
                 last: i64::MIN,
                 months: HashMap::new(),
+                co_months: HashMap::new(),
                 members: Vec::new(),
             }
         });
         agg.commits += c.commits;
+        agg.co_commits += c.co_commits;
         agg.first = agg.first.min(c.first);
         agg.last = agg.last.max(c.last);
         agg.members.push((c.name.clone(), c.commits));
         for (i, &v) in c.months.iter().enumerate() {
             if v > 0 {
                 *agg.months.entry(c.m0 + i as i32).or_insert(0) += v;
+            }
+        }
+        for (i, &v) in c.co_months.iter().enumerate() {
+            if v > 0 {
+                *agg.co_months.entry(c.m0 + i as i32).or_insert(0) += v;
             }
         }
     }
@@ -94,6 +118,12 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
             let mut months = vec![0u32; len];
             for (&m, &v) in &agg.months {
                 if let Some(slot) = months.get_mut((m - m0) as usize) {
+                    *slot += v;
+                }
+            }
+            let mut co_months = vec![0u32; if agg.co_months.is_empty() { 0 } else { len }];
+            for (&m, &v) in &agg.co_months {
+                if let Some(slot) = co_months.get_mut((m - m0) as usize) {
                     *slot += v;
                 }
             }
@@ -115,6 +145,8 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
                 member_names,
                 m0,
                 months,
+                co_months,
+                co_commits: agg.co_commits,
             }
         })
         .collect()
