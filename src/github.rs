@@ -132,15 +132,19 @@ impl GhClient {
 
 /// Fill in `login` / `avatar_url` on clusters. Noreply emails resolve
 /// offline; the rest are looked up via the commits API (one representative
-/// commit per cluster), in parallel.
+/// commit per cluster), in parallel. `source_slugs` maps a commit's `src`
+/// index to the `owner/repo` slug to query (or `None` for non-GitHub sources).
 pub fn enrich_clusters(
     clusters: &mut [Cluster],
     commits: &[Commit],
-    slug: &str,
+    source_slugs: &[Option<String>],
     client: &GhClient,
     verbose: bool,
 ) {
-    let mut need_api: Vec<(usize, String)> = Vec::new();
+    let slug_of = |c: &Commit| -> Option<&str> {
+        source_slugs.get(c.src as usize).and_then(|s| s.as_deref())
+    };
+    let mut need_api: Vec<(usize, String, String)> = Vec::new();
     for (i, cl) in clusters.iter_mut().enumerate() {
         for email in &cl.emails {
             if let Some((id, login)) = parse_noreply(email) {
@@ -153,10 +157,16 @@ pub fn enrich_clusters(
             }
         }
         if cl.login.is_none() {
-            // Use the most recent commit: old commits are more likely to have
-            // stale email → account mappings.
-            if let Some(&idx) = cl.commit_idxs.iter().max_by_key(|&&i| commits[i].ts) {
-                need_api.push((i, commits[idx].sha.clone()));
+            // Use the most recent commit that came from a GitHub source: old
+            // commits are more likely to have stale email → account mappings.
+            let rep = cl
+                .commit_idxs
+                .iter()
+                .filter(|&&i| slug_of(&commits[i]).is_some())
+                .max_by_key(|&&i| commits[i].ts);
+            if let Some(&idx) = rep {
+                let slug = slug_of(&commits[idx]).unwrap().to_string();
+                need_api.push((i, slug, commits[idx].sha.clone()));
             }
         }
     }
@@ -177,7 +187,7 @@ pub fn enrich_clusters(
         for _ in 0..THREADS.min(need_api.len()) {
             s.spawn(|| loop {
                 let i = cursor.fetch_add(1, Ordering::Relaxed);
-                let Some((cluster_idx, sha)) = need_api.get(i) else {
+                let Some((cluster_idx, slug, sha)) = need_api.get(i) else {
                     break;
                 };
                 if let Some(found) = client.commit_author(slug, sha) {

@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Accept multiple git sources in one run: commits are pooled into a single
+  timeline, identities are resolved across all sources, and commits shared by
+  overlapping histories are de-duplicated by SHA. New `analyze_many` library API.
+
 ## [1.0.0] - 2026-06-11
 
 First public release.

@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
-use contributor_graphs::{analyze, html, model, svg, Analysis, Config, Contributor, Sort};
+use contributor_graphs::{analyze_many, html, model, svg, Analysis, Config, Contributor, Sort};
 use model::{format_month_year, thousands};
 use std::path::PathBuf;
 
@@ -9,8 +9,11 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(version, about, arg_required_else_help = true)]
 struct Args {
-    /// Local path, GitHub `owner/repo` slug, or git URL
-    repo: String,
+    /// One or more sources: local path, GitHub `owner/repo` slug, or git URL.
+    /// Multiple sources are pooled into a single timeline (duplicate commits
+    /// shared across overlapping histories are dropped by SHA).
+    #[arg(required = true, num_args = 1..)]
+    repos: Vec<String>,
 
     /// Directory to write outputs into
     #[arg(short, long, default_value = ".")]
@@ -210,13 +213,13 @@ fn main() -> Result<()> {
         verbose: true,
     };
 
-    let Analysis { contributors, meta } = analyze(&args.repo, &cfg)?;
+    let sources: Vec<&str> = args.repos.iter().map(String::as_str).collect();
+    let Analysis { contributors, meta } = analyze_many(&sources, &cfg)?;
 
     std::fs::create_dir_all(&args.output_dir)?;
-    let basename = args
-        .basename
-        .clone()
-        .unwrap_or_else(|| contributor_graphs::repo::sanitize(&meta.name));
+    let basename = args.basename.clone().unwrap_or_else(|| {
+        contributor_graphs::repo::sanitize(meta.slug.as_deref().unwrap_or(&meta.name))
+    });
 
     // ---- static SVG ----
     if matches!(args.format, Format::Svg | Format::Both) {

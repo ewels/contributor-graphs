@@ -120,35 +120,75 @@ pub fn sort(rows: &mut [Contributor], key: Sort) {
     }
 }
 
-/// Resolve a repository (local path, `owner/repo` slug, or git URL) into
-/// contributor data and metadata.
+/// Resolve a single repository (local path, `owner/repo` slug, or git URL)
+/// into contributor data and metadata. Shorthand for [`analyze_many`] with one
+/// source.
 pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
+    analyze_many(std::slice::from_ref(&input), cfg)
+}
+
+/// Resolve one or more repositories into a single combined timeline. Commits
+/// from every source are pooled, author identities are clustered across the
+/// whole pool, and commits that appear in more than one source (overlapping
+/// histories) are de-duplicated by commit SHA. Disjoint sources contribute
+/// distinct SHAs and so are simply concatenated.
+pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     macro_rules! log {
         ($($arg:tt)*) => { if cfg.verbose { eprintln!($($arg)*); } };
     }
+    if inputs.is_empty() {
+        bail!("no repository sources given");
+    }
 
-    let prepared = repo::prepare(input, cfg.branch.as_deref())?;
-    log!(
-        "→ repository: {} (branch {})",
-        prepared.display_name,
-        prepared.branch
-    );
+    let prepared: Vec<repo::PreparedRepo> = inputs
+        .iter()
+        .map(|input| repo::prepare(input, cfg.branch.as_deref()))
+        .collect::<Result<_>>()?;
+    let source_slugs: Vec<Option<String>> = prepared.iter().map(|p| p.slug.clone()).collect();
+    for p in &prepared {
+        log!("→ source: {} (branch {})", p.display_name, p.branch);
+    }
 
-    let commits = repo::read_commits(
-        &prepared,
-        cfg.branch.as_deref(),
-        cfg.since.as_deref(),
-        cfg.until.as_deref(),
-        cfg.no_merges,
-    )?;
+    // Read every source, tagging each commit with its source index, then merge
+    // the pools and drop commits whose SHA we have already seen.
+    let mut commits: Vec<model::Commit> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut duplicates = 0u64;
+    for (i, p) in prepared.iter().enumerate() {
+        let src_commits = repo::read_commits(
+            p,
+            cfg.branch.as_deref(),
+            cfg.since.as_deref(),
+            cfg.until.as_deref(),
+            cfg.no_merges,
+        )?;
+        for mut c in src_commits {
+            if !seen.insert(c.sha.clone()) {
+                duplicates += 1;
+                continue;
+            }
+            c.src = i as u32;
+            commits.push(c);
+        }
+    }
     if commits.is_empty() {
         bail!("no commits found");
     }
-    log!(
-        "→ {} commits from {} distinct author emails",
-        model::thousands(commits.len() as u64),
-        distinct_emails(&commits)
-    );
+    if inputs.len() > 1 {
+        log!(
+            "→ {} commits from {} sources ({} duplicate commits dropped), {} distinct author emails",
+            model::thousands(commits.len() as u64),
+            inputs.len(),
+            model::thousands(duplicates),
+            distinct_emails(&commits)
+        );
+    } else {
+        log!(
+            "→ {} commits from {} distinct author emails",
+            model::thousands(commits.len() as u64),
+            distinct_emails(&commits)
+        );
+    }
 
     let mut clusters = identity::cluster_commits(&commits, cfg.merge_names);
 
@@ -157,10 +197,11 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
     } else {
         None
     });
+    let any_slug = source_slugs.iter().any(|s| s.is_some());
     if cfg.use_github {
-        if let Some(slug) = &prepared.slug {
-            log!("→ enriching from GitHub ({slug})");
-            github::enrich_clusters(&mut clusters, &commits, slug, &client, cfg.verbose);
+        if any_slug {
+            log!("→ enriching from GitHub");
+            github::enrich_clusters(&mut clusters, &commits, &source_slugs, &client, cfg.verbose);
             clusters = identity::merge_by_login(clusters);
             github::fetch_profiles(&mut clusters, &client, cfg.verbose);
             if !cfg.detect_affiliation {
@@ -169,7 +210,7 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
                 }
             }
         } else {
-            log!("→ not a GitHub repo, skipping enrichment");
+            log!("→ no GitHub sources, skipping enrichment");
         }
     }
 
@@ -207,27 +248,40 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
         github::embed_avatars(&mut contributors, &client, cfg.avatar_size, cfg.verbose);
     }
 
-    // Owner/org avatar for the interactive page header.
+    // A single source keeps its slug/url/branch; multiple sources collapse to a
+    // combined label with no single canonical URL.
+    let single = if prepared.len() == 1 {
+        Some(&prepared[0])
+    } else {
+        None
+    };
+
+    // Owner/org avatar for the interactive page header (single GitHub source).
     let owner_avatar = if cfg.use_github && cfg.embed_avatars {
-        prepared
-            .slug
-            .as_deref()
+        single
+            .and_then(|p| p.slug.as_deref())
             .and_then(|s| s.split('/').next())
             .and_then(|owner| github::fetch_avatar(&client, owner, 48))
     } else {
         None
     };
 
+    let default_name = match single {
+        Some(p) => p.display_name.clone(),
+        None => combined_name(&prepared),
+    };
+    let branch = match single {
+        Some(p) => p.branch.clone(),
+        None => "combined".to_string(),
+    };
+
     let first = contributors.iter().map(|c| c.first).min().unwrap_or(0);
     let last = contributors.iter().map(|c| c.last).max().unwrap_or(0);
     let meta = RepoMeta {
-        name: cfg
-            .title
-            .clone()
-            .unwrap_or_else(|| prepared.display_name.clone()),
-        url: prepared.url.clone(),
-        slug: prepared.slug.clone(),
-        branch: prepared.branch.clone(),
+        name: cfg.title.clone().unwrap_or(default_name),
+        url: single.and_then(|p| p.url.clone()),
+        slug: single.and_then(|p| p.slug.clone()),
+        branch,
         first,
         last,
         total_commits: commits.len() as u64,
@@ -237,6 +291,17 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
     };
 
     Ok(Analysis { contributors, meta })
+}
+
+/// Build a chart title for a multi-source run: join up to three source names
+/// with " + ", and summarise the rest as "+N more".
+fn combined_name(prepared: &[repo::PreparedRepo]) -> String {
+    let names: Vec<&str> = prepared.iter().map(|p| p.display_name.as_str()).collect();
+    match names.len() {
+        0 => "repositories".to_string(),
+        1..=3 => names.join(" + "),
+        n => format!("{} + {} more", names[..2].join(" + "), n - 2),
+    }
 }
 
 fn distinct_emails(commits: &[model::Commit]) -> usize {

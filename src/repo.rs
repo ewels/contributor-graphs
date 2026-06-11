@@ -184,6 +184,7 @@ pub fn read_commits(
             ts,
             name: name.trim().to_string(),
             email: email.trim().to_lowercase(),
+            src: 0,
         });
     }
     Ok(commits)

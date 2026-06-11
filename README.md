@@ -88,9 +88,21 @@ contributor-graphs . -o docs/
 
 # A full git URL
 contributor-graphs https://github.com/MultiQC/MultiQC
+
+# Several sources pooled into one timeline (any mix of slugs, paths, URLs)
+contributor-graphs nf-core/rnaseq nf-core/sarek MultiQC/MultiQC --title "nf-core + MultiQC"
 ```
 
 This writes `<repo>.svg` and `<repo>.html` into the output directory.
+
+### Multiple sources
+
+Pass more than one source to pool every commit into a single timeline. Author
+identities are resolved across the whole pool, so someone who appears in several
+repositories shows up as one row. Commits that appear in more than one source
+(overlapping histories — e.g. a repo and a fork, or a branch grafted onto a
+rewrite) are de-duplicated by commit SHA; disjoint sources (separate repos for
+an org-wide view) simply concatenate. Use `--title` to name the combined chart.
 
 ### Authentication
 

@@ -7,6 +7,9 @@ pub struct Commit {
     pub ts: i64,
     pub name: String,
     pub email: String,
+    /// Index of the source this commit came from (see `analyze_many`). 0 for a
+    /// single-source run.
+    pub src: u32,
 }
 
 /// One merged contributor identity, ready for rendering. Also reused for
