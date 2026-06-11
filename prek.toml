@@ -2,10 +2,12 @@
 #   prek install        # set up the git hook
 #   prek run --all-files
 
-# Generated showcase assets and lockfiles: never reformat or whitespace-fix.
+# Generated showcase assets and lockfiles: never reformat or whitespace-fix
+# (they are produced verbatim by the binary, including by CI, which does not run
+# these hooks — fixing them here would cause churn).
 exclude = '''(?x)(
-  ^docs/(rnaseq|multiqc)\.html$ |
-  ^docs/example-.*\.svg$ |
+  ^docs/(rnaseq|rnaseq-wikipedia|nf-core|sarek)\.html$ |
+  ^docs/(example-[^/]*|nf-core|sarek)\.svg$ |
   ^Cargo\.lock$
 )'''
 

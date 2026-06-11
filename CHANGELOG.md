@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - Accept multiple git sources in one run: commits are pooled into a single
   timeline, identities are resolved across all sources, and commits shared by
   overlapping histories are de-duplicated by SHA. New `analyze_many` library API.
+  With several sources, a repo that fails to clone or has no commits is skipped
+  with a warning instead of aborting the whole run (so org-wide views survive an
+  empty or unreadable repo).
 - Expandable rows in the interactive page: click a row (or its chevron) to grow
   it into a detail card — the hover info (username, affiliation, commits, dates,
   active span) pinned on the left and a full-width monthly line plot on the

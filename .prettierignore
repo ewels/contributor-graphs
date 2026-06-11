@@ -6,6 +6,10 @@ docs/rnaseq.html
 docs/rnaseq-wikipedia.html
 docs/example-rnaseq.svg
 docs/example-rnaseq-wikipedia.svg
+docs/nf-core.html
+docs/nf-core.svg
+docs/sarek.html
+docs/sarek.svg
 
 # Lockfile and license are managed elsewhere
 Cargo.lock

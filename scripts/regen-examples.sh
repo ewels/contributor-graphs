@@ -34,4 +34,12 @@ gen --basename example-rnaseq --format svg --width "$WIDTH"
 gen --basename rnaseq-wikipedia --format html --theme wikipedia
 gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --theme wikipedia
 
+# Multi-source example: nf-core/sarek lost its pre-migration history in the move
+# from SciLifeLab, so combining the two repos recovers the full timeline.
+echo "==> contributor-graphs nf-core/sarek SciLifeLab/Sarek"
+"$BIN" nf-core/sarek SciLifeLab/Sarek --title "Sarek" --basename sarek \
+  --format both --width "$WIDTH" -o docs
+
 echo "==> done; regenerated SVG + HTML in docs/"
+echo "    (the whole-org docs/nf-core.* example is heavy; regenerate it with"
+echo "     scripts/regen-org-example.sh when needed — it is not run in CI.)"

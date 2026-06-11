@@ -141,10 +141,20 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         bail!("no repository sources given");
     }
 
-    let prepared: Vec<repo::PreparedRepo> = inputs
-        .iter()
-        .map(|input| repo::prepare(input, cfg.branch.as_deref()))
-        .collect::<Result<_>>()?;
+    // Prepare each source. With several sources, a single repo that fails to
+    // clone or has no commits shouldn't abort the whole pool — skip it with a
+    // warning. A single-source run still surfaces the error.
+    let mut prepared: Vec<repo::PreparedRepo> = Vec::new();
+    for input in inputs {
+        match repo::prepare(input, cfg.branch.as_deref()) {
+            Ok(p) => prepared.push(p),
+            Err(e) if inputs.len() > 1 => log!("  warning: skipping source '{input}' ({e})"),
+            Err(e) => return Err(e),
+        }
+    }
+    if prepared.is_empty() {
+        bail!("no usable repository sources");
+    }
     let source_slugs: Vec<Option<String>> = prepared.iter().map(|p| p.slug.clone()).collect();
     for p in &prepared {
         log!("→ source: {} (branch {})", p.display_name, p.branch);
@@ -156,13 +166,20 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut duplicates = 0u64;
     for (i, p) in prepared.iter().enumerate() {
-        let src_commits = repo::read_commits(
+        let src_commits = match repo::read_commits(
             p,
             cfg.branch.as_deref(),
             cfg.since.as_deref(),
             cfg.until.as_deref(),
             cfg.no_merges,
-        )?;
+        ) {
+            Ok(c) => c,
+            Err(e) if prepared.len() > 1 => {
+                log!("  warning: skipping {} ({e})", p.display_name);
+                continue;
+            }
+            Err(e) => return Err(e),
+        };
         for mut c in src_commits {
             if !seen.insert(c.sha.clone()) {
                 duplicates += 1;
