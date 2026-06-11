@@ -1,4 +1,4 @@
-use crate::model::{month_index, Commit, Contributor};
+use crate::model::{month_index, month_start_ts, Commit, Contributor, GroupRule};
 use std::collections::HashMap;
 
 /// A cluster of commit identities believed to be one person.
@@ -337,7 +337,7 @@ fn display_name(cl: &Cluster, commits: &[Commit]) -> String {
 pub fn build_contributors(
     clusters: &[Cluster],
     commits: &[Commit],
-    groups: &[(String, String)],
+    groups: &[GroupRule],
     count_coauthors: bool,
 ) -> Vec<Contributor> {
     let mut out = Vec::with_capacity(clusters.len());
@@ -383,12 +383,36 @@ pub fn build_contributors(
             .clone()
             .filter(|n| !n.trim().is_empty())
             .unwrap_or_else(|| display_name(cl, commits));
-        // Manual group mapping wins over auto-detected affiliation.
-        let group = groups
+        // Manual group rules win over the auto-detected affiliation. With
+        // dated rules, the person's months are coloured by the org active at
+        // the time (later `since` wins overlaps); the primary `group` is their
+        // most recent affiliation.
+        let matching: Vec<&GroupRule> = groups
             .iter()
-            .find(|(matcher, _)| cluster_matches(cl, matcher))
-            .map(|(_, g)| g.clone())
-            .or_else(|| cl.affiliation.clone());
+            .filter(|r| cluster_matches(cl, &r.matcher))
+            .collect();
+        let (group, month_groups) = if matching.is_empty() {
+            (cl.affiliation.clone(), None)
+        } else if !matching.iter().any(|r| r.dated()) {
+            (Some(matching[0].group.clone()), None)
+        } else {
+            let active_at = |ts: i64| -> Option<&str> {
+                matching
+                    .iter()
+                    .filter(|r| r.covers(ts))
+                    .max_by_key(|r| r.since.unwrap_or(i64::MIN))
+                    .map(|r| r.group.as_str())
+            };
+            let mg: Vec<Option<String>> = (0..len)
+                .map(|mi| active_at(month_start_ts(m0 + mi as i32)).map(str::to_string))
+                .collect();
+            let primary = matching
+                .iter()
+                .max_by_key(|r| r.since.unwrap_or(i64::MIN))
+                .map(|r| r.group.clone());
+            let month_groups = mg.iter().any(|g| g.is_some()).then_some(mg);
+            (primary, month_groups)
+        };
         let url = cl.login.as_ref().map(|l| format!("https://github.com/{l}"));
         out.push(Contributor {
             name,
@@ -406,6 +430,7 @@ pub fn build_contributors(
             months,
             co_months,
             co_commits: coauthored.len() as u32,
+            month_groups,
         });
     }
     out

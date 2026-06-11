@@ -66,14 +66,10 @@ struct Args {
     #[arg(long)]
     exclude: Vec<String>,
 
-    /// TSV file mapping contributors to groups: `matcher<TAB>group`
-    /// (matcher = name, email, or login)
+    /// YAML curation file with manual `identities`, group-name `aliases`, and
+    /// time-bounded `affiliations`. See the docs for the schema.
     #[arg(long)]
-    groups: Option<PathBuf>,
-
-    /// TSV file merging identities: each row is `Canonical Name<TAB>alias…`
-    #[arg(long)]
-    identities: Option<PathBuf>,
+    config: Option<PathBuf>,
 
     /// Skip all GitHub API enrichment (usernames, avatars)
     #[arg(long)]
@@ -177,15 +173,88 @@ enum Format {
     Both,
 }
 
-fn read_tsv(path: &PathBuf) -> Result<Vec<Vec<String>>> {
+/// The YAML curation file: manual identities, group-name aliases, and
+/// time-bounded affiliations. Every section is optional.
+#[derive(serde::Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+struct CurationConfig {
+    /// Each entry is `[canonical name, alias, …]`.
+    #[serde(default)]
+    identities: Vec<Vec<String>>,
+    /// `canonical group: [variant, …]`.
+    #[serde(default)]
+    aliases: std::collections::BTreeMap<String, Vec<String>>,
+    /// `matcher: [{group, since?, until?}, …]`.
+    #[serde(default)]
+    affiliations: std::collections::BTreeMap<String, Vec<AffiliationPeriod>>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AffiliationPeriod {
+    group: String,
+    #[serde(default)]
+    since: Option<serde_yaml::Value>,
+    #[serde(default)]
+    until: Option<serde_yaml::Value>,
+}
+
+/// Parse a date string into a unix timestamp. Accepts `YYYY`, `YYYY-MM`, or
+/// `YYYY-MM-DD` (start of the period).
+fn parse_date(s: &str) -> Result<i64> {
+    use chrono::{NaiveDate, TimeZone, Utc};
+    let bad = || anyhow::anyhow!("invalid date {s:?} (use YYYY, YYYY-MM, or YYYY-MM-DD)");
+    let p: Vec<&str> = s.trim().split('-').collect();
+    let year: i32 = p[0].parse().map_err(|_| bad())?;
+    let month: u32 = p.get(1).map_or(Ok(1), |m| m.parse()).map_err(|_| bad())?;
+    let day: u32 = p.get(2).map_or(Ok(1), |d| d.parse()).map_err(|_| bad())?;
+    let dt = NaiveDate::from_ymd_opt(year, month, day)
+        .and_then(|d| d.and_hms_opt(0, 0, 0))
+        .ok_or_else(bad)?;
+    Ok(Utc.from_utc_datetime(&dt).timestamp())
+}
+
+/// A YAML date value, tolerating an unquoted year (`2022`, a number) or a
+/// quoted/dash date (`"2022-05"`); `None`/null means open-ended.
+fn date_value(v: &Option<serde_yaml::Value>) -> Result<Option<i64>> {
+    let s = match v {
+        None | Some(serde_yaml::Value::Null) => return Ok(None),
+        Some(serde_yaml::Value::String(s)) => s.clone(),
+        Some(serde_yaml::Value::Number(n)) => n.to_string(),
+        Some(other) => anyhow::bail!("invalid date value: {other:?}"),
+    };
+    parse_date(&s).map(Some)
+}
+
+struct Curation {
+    identities: Vec<Vec<String>>,
+    groups: Vec<contributor_graphs::model::GroupRule>,
+    group_aliases: Vec<(String, Vec<String>)>,
+}
+
+/// Load and validate the YAML curation file into the pieces `analyze_many` needs.
+fn load_curation(path: &PathBuf) -> Result<Curation> {
+    use contributor_graphs::model::GroupRule;
     let text =
         std::fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))?;
-    Ok(text
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty() && !l.starts_with('#'))
-        .map(|l| l.split('\t').map(|f| f.trim().to_string()).collect())
-        .collect())
+    let cfg: CurationConfig = serde_yaml::from_str(&text)
+        .with_context(|| format!("invalid curation YAML in {}", path.display()))?;
+    let mut groups = Vec::new();
+    for (matcher, periods) in &cfg.affiliations {
+        for p in periods {
+            groups.push(GroupRule {
+                matcher: matcher.clone(),
+                group: p.group.clone(),
+                since: date_value(&p.since)?,
+                until: date_value(&p.until)?,
+            });
+        }
+    }
+    Ok(Curation {
+        identities: cfg.identities,
+        groups,
+        group_aliases: cfg.aliases.into_iter().collect(),
+    })
 }
 
 fn main() -> Result<()> {
@@ -199,17 +268,13 @@ fn main() -> Result<()> {
         anyhow::bail!("invalid --accent colour: {:?}", args.accent);
     }
 
-    let groups = match &args.groups {
-        Some(path) => read_tsv(path)?
-            .into_iter()
-            .filter(|r| r.len() >= 2)
-            .map(|r| (r[0].clone(), r[1].clone()))
-            .collect(),
-        None => Vec::new(),
-    };
-    let identities = match &args.identities {
-        Some(path) => read_tsv(path)?,
-        None => Vec::new(),
+    let curation = match &args.config {
+        Some(path) => load_curation(path)?,
+        None => Curation {
+            identities: Vec::new(),
+            groups: Vec::new(),
+            group_aliases: Vec::new(),
+        },
     };
 
     let cfg = Config {
@@ -219,8 +284,9 @@ fn main() -> Result<()> {
         no_merges: args.no_merges,
         title: args.title.clone(),
         exclude: args.exclude.clone(),
-        groups,
-        identities,
+        groups: curation.groups,
+        group_aliases: curation.group_aliases,
+        identities: curation.identities,
         use_github: !args.no_github,
         detect_affiliation: !args.no_affiliation,
         merge_names: !args.no_name_merge,

@@ -113,6 +113,9 @@
         margin: 0 auto;
         padding: 28px 24px 60px;
       }
+      .wrap.wide {
+        max-width: none;
+      }
 
       /* ---------- header ---------- */
       header {
@@ -196,12 +199,25 @@
       .btn:hover {
         border-color: var(--border-strong);
       }
+      .btn[aria-pressed="true"] {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
       .btn svg {
         width: 15px;
         height: 15px;
       }
       .btn.icon {
         padding: 7px 9px;
+      }
+      /* The theme picker is a <select class="btn">; .btn's background wins over
+         the generic select rule, so re-apply the chevron and right padding. */
+      select.btn {
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="%23888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5 6 7.5 9 4.5"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 9px center;
+        padding-right: 26px;
       }
 
       /* ---------- toolbar ---------- */
@@ -219,6 +235,7 @@
         flex-wrap: wrap;
         gap: 14px 22px;
         align-items: center;
+        justify-content: space-between;
       }
       .ctl {
         display: flex;
@@ -251,6 +268,15 @@
         transition:
           border-color 0.12s,
           box-shadow 0.12s;
+      }
+      /* Custom dropdown chevron, inset from the edge (only on selects). */
+      select {
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="%23888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5 6 7.5 9 4.5"/></svg>');
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 28px;
       }
       input[type="search"]:focus,
       input[type="number"]:focus,
@@ -345,7 +371,7 @@
         color: var(--muted);
       }
       .toolbar .spacer {
-        flex: 1;
+        display: none;
       }
       .showing {
         font-size: 13px;
@@ -411,6 +437,14 @@
       }
       .legend.has-sel .chip:not(.on) {
         opacity: 0.55;
+      }
+      .legend .chip.more {
+        font-weight: 600;
+        color: var(--accent);
+        padding: 4px 12px;
+      }
+      .legend.has-sel .chip.more {
+        opacity: 1;
       }
 
       /* ---------- context strip ---------- */
@@ -586,6 +620,27 @@
         color: var(--muted);
         line-height: 1.5;
       }
+      #tooltip .tt-affil {
+        margin: 8px 0;
+        padding: 8px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 12.5px;
+      }
+      #tooltip .tt-affil-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      #tooltip .tt-affil-row .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
+        flex: none;
+      }
       #tooltip .tt-spark {
         margin-top: 8px;
       }
@@ -646,6 +701,25 @@
           <p class="repo-desc" id="repo-desc" hidden></p>
         </div>
         <div class="header-actions">
+          <button
+            class="btn"
+            id="wide-toggle"
+            type="button"
+            aria-pressed="false"
+            title="Toggle full window width"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M1.5 8h13M4 5 1.5 8 4 11M12 5l2.5 3-2.5 3" />
+            </svg>
+            Full width
+          </button>
           <button class="btn" id="dl-svg" title="Download current view as SVG">
             <svg
               viewBox="0 0 16 16"
@@ -887,8 +961,21 @@
       const OTHER_COLOR = "#9aa3ad";
       const GROUP_COUNTS = (() => {
         const m = new Map();
-        for (const c of ALL)
-          if (c.group && !c.bot) m.set(c.group, (m.get(c.group) || 0) + 1);
+        const bump = (g) => g && m.set(g, (m.get(g) || 0) + 1);
+        for (const c of ALL) {
+          if (c.bot) continue;
+          bump(c.group);
+          // Time-bounded affiliations contribute their other orgs too, so each
+          // gets a legend entry and a colour even if it's nobody's current org.
+          if (c.month_groups) {
+            const seen = new Set();
+            for (const g of c.month_groups)
+              if (g && g !== c.group && !seen.has(g)) {
+                seen.add(g);
+                bump(g);
+              }
+          }
+        }
         return [...m.entries()].sort((a, b) => b[1] - a[1]);
       })();
       const GROUPS = GROUP_COUNTS.map(([g]) => g);
@@ -1124,19 +1211,22 @@
         bots: false,
         coauthors: true, // count Co-authored-by trailers (full credit each)
         align: false, // align the activity strip with the rows (default: full width)
+        wide: false, // stretch the page to the full window width (default: 1200px)
         t0: null,
         t1: null,
         gsel: new Set(),
         expanded: new Set(), // row keys (see rowKey) drawn with an inline plot
+        legendExpanded: false, // show every affiliation chip, not just the top
       };
       if (HAS_GROUPS) $("#ctl-rows").hidden = false;
       if (HAS_COAUTHORS) $("#ctl-coauthors").hidden = false;
 
-      /* Collapse contributors into one row per affiliation. */
+      /* Collapse contributors into one row per affiliation. People with
+         time-bounded affiliations have their months split across the orgs that
+         were active at the time, so one person can feed several rows. */
       function aggregateByGroup(rows) {
         const map = new Map();
-        for (const c of rows) {
-          const g = c.group || UNAFFILIATED;
+        const aggFor = (g) => {
           let a = map.get(g);
           if (!a) {
             a = {
@@ -1153,20 +1243,48 @@
               bot: false,
               _m: new Map(),
               _names: [],
+              _seen: new Set(),
             };
             map.set(g, a);
           }
-          a.commits += c.commits;
-          a.first = Math.min(a.first, c.first);
-          a.last = Math.max(a.last, c.last);
-          a.members++;
-          a._names.push([c.name, c.commits]);
-          c.months.forEach((v, i) => {
-            if (v) {
+          return a;
+        };
+        const join = (a, name, n) => {
+          if (!a._seen.has(name)) {
+            a._seen.add(name);
+            a.members++;
+          }
+          a._names.push([name, n]);
+        };
+        for (const c of rows) {
+          const dft = c.group || UNAFFILIATED;
+          if (!c.month_groups) {
+            const a = aggFor(dft);
+            a.commits += c.commits;
+            a.first = Math.min(a.first, c.first);
+            a.last = Math.max(a.last, c.last);
+            join(a, c.name, c.commits);
+            c.months.forEach((v, i) => {
+              if (v) {
+                const m = c.m0 + i;
+                a._m.set(m, (a._m.get(m) || 0) + v);
+              }
+            });
+          } else {
+            const per = new Map();
+            c.months.forEach((v, i) => {
+              if (!v) return;
+              const g = c.month_groups[i] || dft;
+              const a = aggFor(g);
               const m = c.m0 + i;
               a._m.set(m, (a._m.get(m) || 0) + v);
-            }
-          });
+              a.commits += v;
+              a.first = Math.min(a.first, monthStartTs(m));
+              a.last = Math.max(a.last, monthStartTs(m));
+              per.set(g, (per.get(g) || 0) + v);
+            });
+            for (const [g, n] of per) join(aggFor(g), c.name, n);
+          }
         }
         const out = [];
         for (const a of map.values()) {
@@ -1181,6 +1299,7 @@
           a.member_names = a._names.slice(0, 8).map((x) => x[0]);
           delete a._m;
           delete a._names;
+          delete a._seen;
           out.push(a);
         }
         return out;
@@ -1199,6 +1318,7 @@
           if (p.has("bots")) state.bots = p.get("bots") === "1";
           if (p.has("co")) state.coauthors = p.get("co") !== "0";
           if (p.has("align")) state.align = p.get("align") === "1";
+          if (p.has("wide")) state.wide = p.get("wide") === "1";
           if (p.has("t0")) state.t0 = +p.get("t0");
           if (p.has("t1")) state.t1 = +p.get("t1");
           if (p.has("g"))
@@ -1228,6 +1348,7 @@
           if (state.bots) p.set("bots", "1");
           if (HAS_COAUTHORS && !state.coauthors) p.set("co", "0");
           if (state.align) p.set("align", "1");
+          if (state.wide) p.set("wide", "1");
           if (state.t0 != null) {
             p.set("t0", Math.round(state.t0));
             p.set("t1", Math.round(state.t1));
@@ -1277,7 +1398,7 @@
             c.commits >= state.min &&
             c.last >= t0 &&
             c.first <= t1 &&
-            (aff || !state.gsel.size || (c.group && state.gsel.has(c.group))) &&
+            (aff || matchesGroupFilter(c)) &&
             (!q ||
               c.name.toLowerCase().includes(q) ||
               (c.login || "").toLowerCase().includes(q) ||
@@ -1347,6 +1468,104 @@
         if (state.color === "group")
           return (c.group && GROUP_COLOR[c.group]) || OTHER_COLOR;
         return ACCENT; // activity heat (shaded on top) or solid
+      }
+      // The colour for one month bin: the affiliation active that month when the
+      // person has time-bounded affiliations and we're colouring by group;
+      // otherwise the row colour. Time colouring only makes sense by group.
+      function monthColor(c, mi, fallback) {
+        if (!c.month_groups) return fallback;
+        const g = c.month_groups[mi];
+        return (g && GROUP_COLOR[g]) || fallback;
+      }
+      // A person's affiliations as chronological periods. For time-bounded
+      // affiliations these come from month_groups (consecutive months sharing
+      // an org); otherwise it's the single group across the active span.
+      function affiliationSegments(c) {
+        if (!c.month_groups)
+          return c.group
+            ? [{ group: c.group, first: c.first, last: c.last }]
+            : [];
+        const segs = [];
+        let cur = null;
+        c.month_groups.forEach((g, i) => {
+          if (!g) {
+            cur = null;
+            return;
+          }
+          const ts = monthStartTs(c.m0 + i);
+          if (cur && cur.group === g) cur.last = ts;
+          else segs.push((cur = { group: g, first: ts, last: ts }));
+        });
+        return segs;
+      }
+      function segYears(s) {
+        const y0 = tsToDate(s.first).getUTCFullYear(),
+          y1 = tsToDate(s.last).getUTCFullYear();
+        return y0 === y1 ? `${y0}` : `${y0}–${y1}`;
+      }
+      // The bars to draw for a row. With time-bounded affiliations (and group
+      // colouring), each contiguous affiliation period that passes the group
+      // filter becomes its own bar, clipped to the months it actually has
+      // commits in — so a change of affiliation ends one bar and starts the
+      // next, with a gap where there were no commits. Otherwise it's a single
+      // bar across the active span. `a`/`b` are month-bin indices into months.
+      function rowBars(c) {
+        const months = c.months,
+          n = months.length;
+        const sel = state.gsel;
+        // Time-bounded affiliations always split into one bar per period
+        // (every theme and colour mode); a single affiliation is one bar.
+        const split = !!c.month_groups;
+        const groupAt = (i) => (split ? c.month_groups[i] : c.group) || null;
+        const bars = [];
+        let i = 0;
+        while (i < n) {
+          const g = groupAt(i);
+          // A non-split row is one bar; split rows skip filtered-out orgs.
+          if (split && sel.size && !(g && sel.has(g))) {
+            i++;
+            continue;
+          }
+          let j = split ? i : n - 1;
+          if (split) while (j + 1 < n && groupAt(j + 1) === g) j++;
+          let a = -1,
+            b = -1;
+          for (let k = i; k <= j; k++)
+            if (months[k] > 0) {
+              if (a < 0) a = k;
+              b = k;
+            }
+          if (a >= 0)
+            bars.push({
+              a,
+              b,
+              group: g,
+              color: split ? GROUP_COLOR[g] || OTHER_COLOR : rowColor(c),
+            });
+          i = j + 1;
+        }
+        return bars;
+      }
+      // Does a row match the current affiliation filter? Includes people whose
+      // current group is selected and those who held a selected affiliation at
+      // any point in time.
+      function matchesGroupFilter(c) {
+        if (!state.gsel.size) return true;
+        if (c.group && state.gsel.has(c.group)) return true;
+        return c.month_groups
+          ? c.month_groups.some((g) => g && state.gsel.has(g))
+          : false;
+      }
+      // Commits shown for a row: the whole total, or just the selected
+      // affiliations' share when filtering a multi-affiliation person.
+      function shownCommits(c) {
+        if (!state.gsel.size || !c.month_groups) return c.commits;
+        let t = 0;
+        for (let i = 0; i < c.months.length; i++) {
+          const g = c.month_groups[i];
+          if (g && state.gsel.has(g)) t += c.months[i];
+        }
+        return t;
       }
 
       /* ---------- time ticks ---------- */
@@ -1516,11 +1735,6 @@
         rows.forEach((c, i) => {
           const y = rowLayout[i].y,
             cy = y + ROW_H / 2;
-          const bx = sx(Math.max(c.first, t0)),
-            bw = Math.max(sx(Math.min(c.last, t1)) - bx, 3);
-          defs.push(
-            `<clipPath id="bar${i}"><rect x="${bx}" y="${(y + (ROW_H - BAR_H) / 2).toFixed(1)}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}"/></clipPath>`,
-          );
           if (c.avatar)
             defs.push(
               `<clipPath id="av${i}"><circle cx="${labelW - 16 - AVATAR / 2}" cy="${cy}" r="${AVATAR / 2}"/></clipPath>`,
@@ -1597,46 +1811,65 @@
           // a full-height line plot plus the pinned detail panel.
           if (!expanded) {
             if (th.flat) {
-              // Wikipedia band block: one solid bar across the active span.
-              const w = Math.max(bw, 6),
-                x = bw < 6 ? bx + bw / 2 - 3 : bx;
-              r.push(
-                `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${color}" opacity="0.92"/>`,
-              );
+              // Wikipedia band: a solid block per affiliation period (or one
+              // band when there's a single affiliation).
+              rowBars(c).forEach((bar) => {
+                const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
+                const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
+                const w = Math.max(x1 - x0, 6);
+                const x = x1 - x0 < 6 ? x0 + (x1 - x0) / 2 - 3 : x0;
+                r.push(
+                  `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${bar.color}" opacity="0.92"/>`,
+                );
+              });
             } else {
-              r.push(
-                `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.16"/>`,
-              );
-              if (state.color === "solid") {
+              // One bar per contiguous affiliation period (or a single bar when
+              // there's just one), each clipped to its committed months.
+              const sm =
+                state.color === "solid" ? null : smoothMonths(c.months);
+              const smax = sm ? maxOf(sm, 1e-9) : 1;
+              rowBars(c).forEach((bar, bi) => {
+                const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
+                const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
+                const w = Math.max(x1 - x0, 3);
+                const rx = Math.min(BAR_H / 2, w / 2);
                 r.push(
-                  `<rect x="${bx.toFixed(1)}" y="${by}" width="${bw.toFixed(1)}" height="${BAR_H}" rx="${Math.min(BAR_H / 2, bw / 2)}" fill="${color}" opacity="0.85"/>`,
+                  `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}" fill="${bar.color}" opacity="0.16"/>`,
                 );
-              } else if (bw > 6) {
-                const sm = smoothMonths(c.months);
-                const smax = maxOf(sm, 1e-9);
-                const seg = [`<g clip-path="url(#bar${i})">`];
-                sm.forEach((sval, mi) => {
-                  if (sval <= 0) return;
-                  const m = c.m0 + mi;
-                  const x0 = sx(Math.max(monthStartTs(m), first)),
-                    x1 = sx(Math.min(monthStartTs(m + 1), last));
-                  if (x1 < chartX || x0 > chartX + chartW) return;
-                  const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
-                  seg.push(
-                    `<rect x="${x0.toFixed(1)}" y="${by}" width="${Math.max(x1 - x0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
+                if (state.color === "solid") {
+                  r.push(
+                    `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}" fill="${bar.color}" opacity="0.85"/>`,
                   );
-                });
-                seg.push("</g>");
-                r.push(seg.join(""));
-              } else {
-                r.push(
-                  `<circle cx="${bx + bw / 2}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${color}" opacity="0.9"/>`,
-                );
-              }
+                } else if (w > 6) {
+                  const cid = `b${i}_${bi}`;
+                  r.push(
+                    `<clipPath id="${cid}"><rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}"/></clipPath>`,
+                  );
+                  const seg = [`<g clip-path="url(#${cid})">`];
+                  for (let mi = bar.a; mi <= bar.b; mi++) {
+                    const sval = sm[mi];
+                    if (sval <= 0) continue;
+                    const m = c.m0 + mi;
+                    const mx0 = sx(Math.max(monthStartTs(m), t0)),
+                      mx1 = sx(Math.min(monthStartTs(m + 1), t1));
+                    if (mx1 < chartX || mx0 > chartX + chartW) continue;
+                    const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
+                    seg.push(
+                      `<rect x="${mx0.toFixed(1)}" y="${by}" width="${Math.max(mx1 - mx0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${bar.color}" opacity="${op.toFixed(2)}"/>`,
+                    );
+                  }
+                  seg.push("</g>");
+                  r.push(seg.join(""));
+                } else {
+                  r.push(
+                    `<circle cx="${(x0 + w / 2).toFixed(1)}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${bar.color}" opacity="0.9"/>`,
+                  );
+                }
+              });
             }
           }
           r.push(
-            `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`,
+            `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(shownCommits(c))}</text>`,
           );
 
           // Expanded view: pinned hover detail on the left, a full-height
@@ -1682,7 +1915,23 @@
                 info(esc(fitLeft(list, 11.5)), th.muted, { size: 11.5 });
             } else {
               if (c.login) info("@" + esc(c.login), th.muted);
-              if (c.group)
+              const segs = affiliationSegments(c);
+              if (segs.length > 1) {
+                // One line per affiliation period: org name in its colour, the
+                // years faint after it (fitting the name to leave room).
+                for (const s of segs) {
+                  const col = GROUP_COLOR[s.group] || OTHER_COLOR;
+                  const yr = segYears(s);
+                  const yrW = textWidth(yr, 11, 400) + 8;
+                  let g = s.group;
+                  while (g.length > 1 && textWidth(g, 12.5, 600) > ix - yrW - 6)
+                    g = g.slice(0, -2) + "…";
+                  r.push(
+                    `<text x="${ix}" y="${iy}" font-size="12.5" font-weight="600" fill="${col}" text-anchor="end">${esc(g)} <tspan fill="${th.faint}" font-weight="400">${yr}</tspan></text>`,
+                  );
+                  iy += 17;
+                }
+              } else if (c.group) {
                 info(
                   esc(fitLeft(c.group, 12.5)),
                   GROUP_COLOR[c.group] || OTHER_COLOR,
@@ -1690,6 +1939,7 @@
                     weight: 600,
                   },
                 );
+              }
             }
             info(`${fmtNum(c.commits)} commits`, th.text, { weight: 600 });
             info(`${fmtDate(c.first)} – ${fmtDate(c.last)}`, th.muted, {
@@ -1720,13 +1970,29 @@
             if (n >= 2) {
               const x0 = sx(monthStartTs(c.m0)),
                 x1 = sx(monthStartTs(c.m0 + n - 1));
+              // When filtering affiliations, show only the selected periods.
+              const filt = state.gsel.size > 0 && !!c.month_groups;
+              const inSel = (mi) =>
+                !filt ||
+                (c.month_groups[mi] && state.gsel.has(c.month_groups[mi]));
               r.push(`<g clip-path="url(#exp${i})">`);
-              r.push(
-                `<polyline points="${x0.toFixed(1)},${yBot} ${pts.join(" ")} ${x1.toFixed(1)},${yBot}" fill="${color}" fill-opacity="0.18" stroke="none"/>`,
-              );
-              r.push(
-                `<polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>`,
-              );
+              if (!filt)
+                r.push(
+                  `<polyline points="${x0.toFixed(1)},${yBot} ${pts.join(" ")} ${x1.toFixed(1)},${yBot}" fill="${color}" fill-opacity="0.18" stroke="none"/>`,
+                );
+              if (c.month_groups) {
+                // Colour each segment by the affiliation active that month, and
+                // break the line across non-selected periods when filtering.
+                for (let mi = 1; mi < n; mi++)
+                  if (inSel(mi) && inSel(mi - 1))
+                    r.push(
+                      `<polyline points="${pts[mi - 1]} ${pts[mi]}" fill="none" stroke="${monthColor(c, mi, color)}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`,
+                    );
+              } else {
+                r.push(
+                  `<polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>`,
+                );
+              }
               r.push("</g>");
             } else if (n === 1) {
               const [px, py] = pts[0].split(",");
@@ -1846,10 +2112,24 @@
         const av = c.avatar
           ? `<img src="${esc(c.avatar)}" alt="">`
           : `<span class="ph" style="background:hsl(${hashHue(c.name)},42%,55%)">${esc(initials(c.name))}</span>`;
-        const badge = c.group
-          ? `<span class="badge" style="background:${GROUP_COLOR[c.group] || OTHER_COLOR}22;color:${GROUP_COLOR[c.group] || OTHER_COLOR}">${esc(c.group)}</span>`
-          : "";
+        const segs = affiliationSegments(c);
+        // A single affiliation rides as a badge by the name; several are listed
+        // as a labelled block right under the head, each org in its colour.
+        const badge =
+          c.group && segs.length <= 1
+            ? `<span class="badge" style="background:${GROUP_COLOR[c.group] || OTHER_COLOR}22;color:${GROUP_COLOR[c.group] || OTHER_COLOR}">${esc(c.group)}</span>`
+            : "";
+        const affHtml =
+          segs.length > 1
+            ? `<div class="tt-affil">${segs
+                .map(
+                  (s) =>
+                    `<span class="tt-affil-row"><span class="dot" style="background:${GROUP_COLOR[s.group] || OTHER_COLOR}"></span><span style="color:${GROUP_COLOR[s.group] || OTHER_COLOR};font-weight:600">${esc(s.group)}</span> <span style="opacity:.6">${segYears(s)}</span></span>`,
+                )
+                .join("")}</div>`
+            : "";
         return `<div class="tt-head">${av}<div><div class="tt-name">${esc(c.name)}${badge}</div>${c.login ? `<div class="tt-login">@${esc(c.login)}</div>` : ""}</div></div>
+  ${affHtml}
   <dl class="tt-grid">
     <dt>Commits</dt><dd>${fmtNum(c.commits)}</dd>
     <dt>First commit</dt><dd>${fmtDate(c.first)}</dd>
@@ -2060,18 +2340,26 @@
         }
         el.hidden = false;
         el.classList.toggle("has-sel", state.gsel.size > 0);
-        const top = GROUP_COUNTS.slice(0, 18);
-        el.innerHTML =
-          top
-            .map(
-              ([g, n]) =>
-                `<span class="chip${state.gsel.has(g) ? " on" : ""}" data-g="${esc(g)}" role="button" tabindex="0" title="Click to filter">` +
-                `<span class="dot" style="background:${GROUP_COLOR[g]}"></span>${esc(g)} <span class="n">${n}</span></span>`,
-            )
-            .join("") +
-          (GROUP_COUNTS.length > top.length
-            ? `<span class="chip" style="cursor:default;opacity:.7"><span class="dot" style="background:${OTHER_COLOR}"></span>+${GROUP_COUNTS.length - top.length} more</span>`
-            : "");
+        const TOPN = 18;
+        const collapsed = !state.legendExpanded && GROUP_COUNTS.length > TOPN;
+        const shown = collapsed ? GROUP_COUNTS.slice(0, TOPN) : GROUP_COUNTS;
+        let html = shown
+          .map(
+            ([g, n]) =>
+              `<span class="chip${state.gsel.has(g) ? " on" : ""}" data-g="${esc(g)}" role="button" tabindex="0" title="Click to filter">` +
+              `<span class="dot" style="background:${GROUP_COLOR[g]}"></span>${esc(g)} <span class="n">${n}</span></span>`,
+          )
+          .join("");
+        // The overflow chip is a real button: expand to all affiliations (so any
+        // can be filtered), then collapse back.
+        if (GROUP_COUNTS.length > TOPN) {
+          html += `<span class="chip more" id="legend-more" role="button" tabindex="0">${
+            collapsed
+              ? "+" + (GROUP_COUNTS.length - TOPN) + " more"
+              : "Show fewer"
+          }</span>`;
+        }
+        el.innerHTML = html;
         el.querySelectorAll(".chip[data-g]").forEach((chip) => {
           chip.addEventListener("click", () => {
             const g = chip.dataset.g;
@@ -2082,6 +2370,12 @@
             writeHash();
           });
         });
+        const more = $("#legend-more");
+        if (more)
+          more.addEventListener("click", () => {
+            state.legendExpanded = !state.legendExpanded;
+            renderLegend();
+          });
       }
 
       /* ---------- header / footer ---------- */
@@ -2210,6 +2504,11 @@
           "aria-pressed",
           state.align ? "true" : "false",
         );
+        $("#wide-toggle").setAttribute(
+          "aria-pressed",
+          state.wide ? "true" : "false",
+        );
+        document.querySelector(".wrap").classList.toggle("wide", state.wide);
       }
       $("#align-ctx").addEventListener("click", () => {
         state.align = !state.align;
@@ -2218,6 +2517,16 @@
           state.align ? "true" : "false",
         );
         renderContext();
+        writeHash();
+      });
+      $("#wide-toggle").addEventListener("click", () => {
+        state.wide = !state.wide;
+        document.querySelector(".wrap").classList.toggle("wide", state.wide);
+        $("#wide-toggle").setAttribute(
+          "aria-pressed",
+          state.wide ? "true" : "false",
+        );
+        renderAll();
         writeHash();
       });
       $("#rows").addEventListener("change", (e) => {
@@ -2292,6 +2601,7 @@
         state.coauthors = true;
         applyCoauthors();
         state.align = false;
+        state.wide = false;
         state.t0 = state.t1 = null;
         state.gsel.clear();
         state.expanded.clear();

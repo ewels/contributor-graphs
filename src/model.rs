@@ -1,5 +1,28 @@
 use serde::Serialize;
 
+/// One manual `matcher -> group` rule, optionally limited to a date window.
+/// Several rules may share a matcher to give a contributor different
+/// affiliations over time; where windows overlap the later `since` wins.
+#[derive(Debug, Clone)]
+pub struct GroupRule {
+    pub matcher: String,
+    pub group: String,
+    /// Inclusive start (unix seconds); `None` means open at the start.
+    pub since: Option<i64>,
+    /// Exclusive end (unix seconds); `None` means open at the end.
+    pub until: Option<i64>,
+}
+
+impl GroupRule {
+    /// Whether this rule's window contains a commit at `ts`.
+    pub fn covers(&self, ts: i64) -> bool {
+        self.since.is_none_or(|s| ts >= s) && self.until.is_none_or(|u| ts < u)
+    }
+    pub fn dated(&self) -> bool {
+        self.since.is_some() || self.until.is_some()
+    }
+}
+
 /// The `git log` filters that affect which commits a source yields. Grouped so
 /// they travel together and form part of the history cache key.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -54,6 +77,11 @@ pub struct Contributor {
     /// Of `commits`, how many the person was a co-author on (not the author).
     #[serde(skip_serializing_if = "is_zero")]
     pub co_commits: u32,
+    /// Per-month affiliation, aligned to `m0`, when the person has time-bounded
+    /// manual affiliations (so their row is coloured by org over time). `None`
+    /// when a single affiliation applies throughout (the usual case).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub month_groups: Option<Vec<Option<String>>>,
 }
 
 fn is_zero(n: &u32) -> bool {
@@ -76,34 +104,80 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
     }
     let mut order: Vec<String> = Vec::new();
     let mut map: HashMap<String, Agg> = HashMap::new();
+    macro_rules! agg {
+        ($key:expr) => {
+            map.entry($key.clone()).or_insert_with(|| {
+                order.push($key.clone());
+                Agg {
+                    commits: 0,
+                    co_commits: 0,
+                    first: i64::MAX,
+                    last: i64::MIN,
+                    months: HashMap::new(),
+                    co_months: HashMap::new(),
+                    members: Vec::new(),
+                }
+            })
+        };
+    }
 
     for c in contributors {
-        let key = c.group.clone().unwrap_or_else(|| unaffiliated.to_string());
-        let agg = map.entry(key.clone()).or_insert_with(|| {
-            order.push(key.clone());
-            Agg {
-                commits: 0,
-                co_commits: 0,
-                first: i64::MAX,
-                last: i64::MIN,
-                months: HashMap::new(),
-                co_months: HashMap::new(),
-                members: Vec::new(),
+        let default_key = c.group.clone().unwrap_or_else(|| unaffiliated.to_string());
+        match &c.month_groups {
+            // Single affiliation throughout: the whole person joins one group.
+            None => {
+                let a = agg!(default_key);
+                a.commits += c.commits;
+                a.co_commits += c.co_commits;
+                a.first = a.first.min(c.first);
+                a.last = a.last.max(c.last);
+                a.members.push((c.name.clone(), c.commits));
+                for (i, &v) in c.months.iter().enumerate() {
+                    if v > 0 {
+                        *a.months.entry(c.m0 + i as i32).or_insert(0) += v;
+                    }
+                }
+                for (i, &v) in c.co_months.iter().enumerate() {
+                    if v > 0 {
+                        *a.co_months.entry(c.m0 + i as i32).or_insert(0) += v;
+                    }
+                }
             }
-        });
-        agg.commits += c.commits;
-        agg.co_commits += c.co_commits;
-        agg.first = agg.first.min(c.first);
-        agg.last = agg.last.max(c.last);
-        agg.members.push((c.name.clone(), c.commits));
-        for (i, &v) in c.months.iter().enumerate() {
-            if v > 0 {
-                *agg.months.entry(c.m0 + i as i32).or_insert(0) += v;
-            }
-        }
-        for (i, &v) in c.co_months.iter().enumerate() {
-            if v > 0 {
-                *agg.co_months.entry(c.m0 + i as i32).or_insert(0) += v;
+            // Time-bounded affiliations: split each month into its active org.
+            Some(mg) => {
+                let key_at = |i: usize| {
+                    mg.get(i)
+                        .cloned()
+                        .flatten()
+                        .unwrap_or_else(|| default_key.clone())
+                };
+                let mut per_group: HashMap<String, u32> = HashMap::new();
+                for (i, &v) in c.months.iter().enumerate() {
+                    if v == 0 {
+                        continue;
+                    }
+                    let key = key_at(i);
+                    let m = c.m0 + i as i32;
+                    let ts = month_start_ts(m);
+                    let a = agg!(key);
+                    *a.months.entry(m).or_insert(0) += v;
+                    a.commits += v;
+                    a.first = a.first.min(ts);
+                    a.last = a.last.max(ts);
+                    *per_group.entry(key).or_insert(0) += v;
+                }
+                for (i, &v) in c.co_months.iter().enumerate() {
+                    if v == 0 {
+                        continue;
+                    }
+                    let key = key_at(i);
+                    let a = agg!(key);
+                    *a.co_months.entry(c.m0 + i as i32).or_insert(0) += v;
+                    a.co_commits += v;
+                }
+                for (key, n) in per_group {
+                    agg!(key).members.push((c.name.clone(), n));
+                }
             }
         }
     }
@@ -147,6 +221,7 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
                 months,
                 co_months,
                 co_commits: agg.co_commits,
+                month_groups: None,
             }
         })
         .collect()

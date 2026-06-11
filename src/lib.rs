@@ -55,8 +55,12 @@ pub struct Config {
     pub title: Option<String>,
     /// Exclude contributors whose name or login contains any of these strings.
     pub exclude: Vec<String>,
-    /// Manual `matcher → group` mappings (matcher = name, email, or login).
-    pub groups: Vec<(String, String)>,
+    /// Manual `matcher → group` rules (matcher = name, email, or login),
+    /// optionally date-bounded for affiliations that change over time.
+    pub groups: Vec<model::GroupRule>,
+    /// Manual group-name aliases: `(canonical, [variants])`. Variants are
+    /// folded into the canonical name, which is then authoritative.
+    pub group_aliases: Vec<(String, Vec<String>)>,
     /// Manual identity merges: each row is `[canonical, alias, …]`.
     pub identities: Vec<Vec<String>>,
     /// Query the GitHub API for logins, avatars, and profiles.
@@ -88,6 +92,7 @@ impl Default for Config {
             title: None,
             exclude: Vec::new(),
             groups: Vec::new(),
+            group_aliases: Vec::new(),
             identities: Vec::new(),
             use_github: true,
             detect_affiliation: true,
@@ -333,7 +338,18 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     let mut contributors =
         identity::build_contributors(&clusters, &commits, &cfg.groups, cfg.count_coauthors);
 
-    let n_groups = canonicalize_groups(&mut contributors);
+    // Apply manual group-name aliases: fold each variant into its canonical
+    // name (case-insensitively), on both the primary group and the per-month
+    // affiliations.
+    apply_group_aliases(&mut contributors, &cfg.group_aliases);
+
+    // Names the user supplied (manual affiliations and alias canonicals) are
+    // authoritative; canonicalisation only folds auto-detected variants and
+    // leaves these exactly as written.
+    let mut manual_groups: std::collections::HashSet<String> =
+        cfg.groups.iter().map(|r| r.group.clone()).collect();
+    manual_groups.extend(cfg.group_aliases.iter().map(|(canon, _)| canon.clone()));
+    let n_groups = canonicalize_groups(&mut contributors, &manual_groups);
     if n_groups > 0 {
         log!("→ {n_groups} distinct affiliations/groups");
     }
@@ -540,7 +556,40 @@ fn distinct_emails(commits: &[model::Commit]) -> usize {
 /// case/punctuation differences ("Seqera Labs" vs "seqeralabs"), a leading
 /// "The", and prefix forms ("Seqera" vs "Seqera Labs"). Returns the final
 /// group count.
-fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
+/// Rewrite group names that match a manual alias to their canonical form, on
+/// both the primary `group` and per-month affiliations (matched case-insensitively).
+fn apply_group_aliases(contributors: &mut [Contributor], aliases: &[(String, Vec<String>)]) {
+    if aliases.is_empty() {
+        return;
+    }
+    let mut map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    for (canon, variants) in aliases {
+        map.insert(canon.to_lowercase(), canon.clone());
+        for v in variants {
+            map.insert(v.to_lowercase(), canon.clone());
+        }
+    }
+    let canon = |g: &str| map.get(&g.to_lowercase()).cloned();
+    for c in contributors.iter_mut() {
+        if let Some(g) = &c.group {
+            if let Some(cn) = canon(g) {
+                c.group = Some(cn);
+            }
+        }
+        if let Some(mg) = &mut c.month_groups {
+            for slot in mg.iter_mut().flatten() {
+                if let Some(cn) = canon(slot) {
+                    *slot = cn;
+                }
+            }
+        }
+    }
+}
+
+fn canonicalize_groups(
+    contributors: &mut [Contributor],
+    manual: &std::collections::HashSet<String>,
+) -> usize {
     use std::collections::HashMap;
     let alnum_key = |g: &str| -> String {
         let lower = g.to_lowercase();
@@ -555,7 +604,14 @@ fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
         }
     }
 
-    let mut keys: Vec<String> = variants.keys().map(|g| alnum_key(g)).collect();
+    // Prefix-merge keys come only from auto-detected names: a name the user
+    // wrote in --groups is authoritative, gets its own cluster, and is never
+    // folded into (or renamed by) a detected variant.
+    let mut keys: Vec<String> = variants
+        .keys()
+        .filter(|g| !manual.contains(*g))
+        .map(|g| alnum_key(g))
+        .collect();
     keys.sort();
     keys.dedup();
     let resolve = |key: &str| -> String {
@@ -565,10 +621,17 @@ fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
             .map(|k| k.to_string())
             .unwrap_or_else(|| key.to_string())
     };
+    let cluster_of = |g: &str| -> String {
+        if manual.contains(g) {
+            format!("\u{0}{g}")
+        } else {
+            resolve(&alnum_key(g))
+        }
+    };
 
     let mut best: HashMap<String, (&String, usize)> = HashMap::new();
     for (g, n) in &variants {
-        let cluster = resolve(&alnum_key(g));
+        let cluster = cluster_of(g);
         let score = |g: &str, n: usize| {
             n * 4
                 + usize::from(g.contains(' ')) * 2
@@ -586,10 +649,7 @@ fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
         .collect();
     for c in contributors.iter_mut() {
         if let Some(g) = &c.group {
-            c.group = display
-                .get(&resolve(&alnum_key(g)))
-                .cloned()
-                .or(c.group.clone());
+            c.group = display.get(&cluster_of(g)).cloned().or(c.group.clone());
         }
     }
     display.len()

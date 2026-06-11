@@ -1,6 +1,6 @@
 [package]
 name = "contributor-graphs"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 rust-version = "1.87"
 description = "Generate contributor timeline graphs (static SVG + interactive HTML) for any git or GitHub repository"
@@ -24,6 +24,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 clap = { version = "4", features = ["derive", "wrap_help"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.9"
 ureq = { version = "2", features = ["json"] }
 
 [profile.release]

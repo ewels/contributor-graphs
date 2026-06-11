@@ -194,16 +194,25 @@ const MAX_GROUP_COLORS: usize = 10;
 /// Assign palette colours to the most common groups; the long tail shares a
 /// neutral grey. Returns (group → colour, legend entries in rank order).
 pub fn group_colors(rows: &[Contributor]) -> (HashMap<String, String>, Vec<(String, String)>) {
-    let mut counts: Vec<(String, usize)> = Vec::new();
+    let mut counts_map: HashMap<String, usize> = HashMap::new();
     for c in rows {
         if let Some(g) = &c.group {
-            match counts.iter_mut().find(|(name, _)| name == g) {
-                Some((_, n)) => *n += 1,
-                None => counts.push((g.clone(), 1)),
+            *counts_map.entry(g.clone()).or_insert(0) += 1;
+        }
+        // Time-bounded affiliations contribute their other orgs too, so each
+        // earns a colour and a legend entry even if it's nobody's current org.
+        if let Some(mg) = &c.month_groups {
+            let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
+            for g in mg.iter().flatten() {
+                if Some(g.as_str()) != c.group.as_deref() && seen.insert(g.as_str()) {
+                    *counts_map.entry(g.clone()).or_insert(0) += 1;
+                }
             }
         }
     }
-    counts.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+    // Rank by frequency, breaking ties by name so the palette is deterministic.
+    let mut counts: Vec<(String, usize)> = counts_map.into_iter().collect();
+    counts.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     let mut map = HashMap::new();
     let mut legend = Vec::new();
     for (i, (g, _)) in counts.iter().enumerate() {
@@ -232,6 +241,43 @@ pub fn smooth_months(months: &[u32]) -> Vec<f64> {
             (2.0 * months[i] as f64 + prev + next) / 4.0
         })
         .collect()
+}
+
+/// A contributor's bars: each contiguous affiliation period (when they have
+/// time-bounded affiliations) or the single active span, as
+/// `(group, first active month, last active month)` indices into `months`.
+fn affiliation_runs(c: &Contributor) -> Vec<(Option<String>, usize, usize)> {
+    let nm = c.months.len();
+    let split = c.month_groups.is_some();
+    let group_at = |k: usize| -> Option<String> {
+        match &c.month_groups {
+            Some(mg) => mg.get(k).and_then(|o| o.clone()),
+            None => c.group.clone(),
+        }
+    };
+    let mut runs = Vec::new();
+    let mut i = 0;
+    while i < nm {
+        let g = group_at(i);
+        let mut j = if split { i } else { nm.saturating_sub(1) };
+        if split {
+            while j + 1 < nm && group_at(j + 1) == g {
+                j += 1;
+            }
+        }
+        let (mut start, mut end) = (None, 0usize);
+        for (k, &v) in c.months.iter().enumerate().take(j + 1).skip(i) {
+            if v > 0 {
+                start.get_or_insert(k);
+                end = k;
+            }
+        }
+        if let Some(a) = start {
+            runs.push((g, a, end));
+        }
+        i = j + 1;
+    }
+    runs
 }
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
@@ -420,18 +466,6 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                 r = n(AVATAR / 2.0)
             );
         }
-        // Rounded clip for the activity bar.
-        let bx = sx(c.first);
-        let bw = (sx(c.last) - bx).max(3.0);
-        let _ = write!(
-            s,
-            r#"<clipPath id="bar{i}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath>"#,
-            x = n(bx),
-            y = n(y + (ROW_H - BAR_H) / 2.0),
-            w = n(bw),
-            h = n(BAR_H),
-            r = n((BAR_H / 2.0).min(bw / 2.0))
-        );
     }
     let _ = write!(s, "</defs>");
 
@@ -554,63 +588,94 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
             None => s.push_str(&name_text),
         }
 
-        // Bar: a flat band block (Wikipedia skin) or a faint base span with
-        // monthly activity-heat segments (default skin).
-        let bx = sx(c.first);
-        let bw = (sx(c.last) - bx).max(3.0);
+        // Bar: a flat band per affiliation period (Wikipedia skin) or a faint
+        // base span with monthly activity-heat segments (default skin). A change
+        // of affiliation ends one bar and starts the next.
         let by = y + (ROW_H - BAR_H) / 2.0;
-        if th.flat {
-            let w = bw.max(6.0);
-            let x = if bw < 6.0 { bx + bw / 2.0 - 3.0 } else { bx };
+        let runs = affiliation_runs(c);
+        let split = c.month_groups.is_some();
+        let smoothed = (!th.flat).then(|| smooth_months(&c.months));
+        let smax = smoothed.as_ref().map_or(1.0, |sm| {
+            sm.iter().fold(0.0_f64, |a, &b| a.max(b)).max(1e-9)
+        });
+        for (bk, (g, a, end)) in runs.iter().enumerate() {
+            let bar_color = if split {
+                g.as_deref()
+                    .and_then(|g| gcolors.get(g))
+                    .map_or(color.as_str(), String::as_str)
+            } else {
+                color.as_str()
+            };
+            let x0 = sx(month_start_ts(c.m0 + *a as i32));
+            let x1 = sx(month_start_ts(c.m0 + *end as i32 + 1));
+            if th.flat {
+                let w = (x1 - x0).max(6.0);
+                let x = if x1 - x0 < 6.0 {
+                    x0 + (x1 - x0) / 2.0 - 3.0
+                } else {
+                    x0
+                };
+                let _ = write!(
+                    s,
+                    r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="1.5" fill="{c}" opacity="0.92"/>"#,
+                    x = n(x),
+                    y = n(by),
+                    w = n(w),
+                    h = n(BAR_H),
+                    c = bar_color,
+                );
+                continue;
+            }
+            let w = (x1 - x0).max(3.0);
+            let rx = (BAR_H / 2.0).min(w / 2.0);
             let _ = write!(
                 s,
-                r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="1.5" fill="{color}" opacity="0.92"/>"#,
-                x = n(x),
+                r#"<rect class="bar-base" x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" fill="{c}" opacity="0.16"/>"#,
+                x = n(x0),
                 y = n(by),
                 w = n(w),
                 h = n(BAR_H),
+                r = n(rx),
+                c = bar_color,
             );
-        } else {
-            let _ = write!(
-                s,
-                r#"<rect class="bar-base" x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" fill="{color}" opacity="0.16"/>"#,
-                x = n(bx),
-                y = n(by),
-                w = n(bw),
-                h = n(BAR_H),
-                r = n((BAR_H / 2.0).min(bw / 2.0))
-            );
-            let smoothed = smooth_months(&c.months);
-            let smax = smoothed.iter().fold(0.0_f64, |a, &b| a.max(b)).max(1e-9);
-            if bw > 6.0 {
-                let _ = write!(s, r#"<g clip-path="url(#bar{i})">"#);
-                for (mi, &sval) in smoothed.iter().enumerate() {
+            let sm = smoothed.as_ref().unwrap();
+            if w > 6.0 {
+                let _ = write!(
+                    s,
+                    r#"<clipPath id="bar{i}_{bk}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}"/></clipPath><g clip-path="url(#bar{i}_{bk})">"#,
+                    x = n(x0),
+                    y = n(by),
+                    w = n(w),
+                    h = n(BAR_H),
+                    r = n(rx),
+                );
+                for (k, &sval) in sm.iter().enumerate().take(end + 1).skip(*a) {
                     if sval <= 0.0 {
                         continue;
                     }
-                    let m = c.m0 + mi as i32;
-                    let mx0 = sx(month_start_ts(m).max(c.first));
-                    let mx1 = sx(month_start_ts(m + 1).min(c.last));
-                    let w = (mx1 - mx0).max(1.2);
+                    let m = c.m0 + k as i32;
+                    let mx0 = sx(month_start_ts(m));
+                    let mx1 = sx(month_start_ts(m + 1));
                     let op = 0.28 + 0.72 * (sval / smax).sqrt();
                     let _ = write!(
                         s,
-                        r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{color}" opacity="{op:.2}"/>"#,
+                        r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c}" opacity="{op:.2}"/>"#,
                         x = n(mx0),
                         y = n(by),
-                        w = n(w),
+                        w = n((mx1 - mx0).max(1.2)),
                         h = n(BAR_H),
+                        c = bar_color,
                     );
                 }
                 let _ = write!(s, "</g>");
             } else {
-                // Single-burst contributor: solid pill.
                 let _ = write!(
                     s,
-                    r#"<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}" opacity="0.9"/>"#,
-                    cx = n(bx + bw / 2.0),
+                    r#"<circle cx="{cx}" cy="{cy}" r="{r}" fill="{c}" opacity="0.9"/>"#,
+                    cx = n(x0 + w / 2.0),
                     cy = n(cy),
-                    r = n(BAR_H / 2.0 - 1.0)
+                    r = n(BAR_H / 2.0 - 1.0),
+                    c = bar_color,
                 );
             }
         }
