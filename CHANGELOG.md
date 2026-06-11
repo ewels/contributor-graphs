@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - Accept multiple git sources in one run: commits are pooled into a single
   timeline, identities are resolved across all sources, and commits shared by
   overlapping histories are de-duplicated by SHA. New `analyze_many` library API.
+- Expandable rows in the interactive page: click a row (or its chevron) to grow
+  it and reveal a time-aligned line plot of that contributor's monthly activity.
+  An "Expand all / Collapse all" control toggles every visible row at once.
 
 ### Changed
 

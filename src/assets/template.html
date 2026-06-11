@@ -442,11 +442,20 @@
       #chart a {
         cursor: pointer;
       }
+      #chart g.crow {
+        cursor: pointer;
+      }
       #chart .row-hit {
         fill: transparent;
       }
       #chart g.crow:hover .row-hit {
         fill: var(--accent-soft);
+      }
+      #chart g.crow.on .row-hit {
+        fill: var(--accent-soft);
+      }
+      #chart g.crow:hover .chev {
+        stroke: var(--accent);
       }
       .empty {
         text-align: center;
@@ -725,6 +734,13 @@
         </div>
         <div class="spacer"></div>
         <div class="showing" id="showing"></div>
+        <button
+          class="btn subtle"
+          id="expand-all"
+          title="Expand or collapse every visible row"
+        >
+          Expand all
+        </button>
         <button class="btn subtle" id="reset" title="Reset all filters">
           Reset
         </button>
@@ -982,6 +998,7 @@
         t0: null,
         t1: null,
         gsel: new Set(),
+        expanded: new Set(), // row keys (see rowKey) drawn with an inline plot
       };
       if (HAS_GROUPS) $("#ctl-rows").hidden = false;
 
@@ -1225,7 +1242,27 @@
       const NAME_SIZE = 12.5,
         COUNT_W = 62,
         MARGIN_R = 14;
+      const EXP_H = 84; // extra height added to an expanded row for its plot
       let currentRows = [];
+      // Per-visible-row vertical layout ({ y, h }), rebuilt every renderChart so
+      // the tooltip and click handlers can map a pixel y back to a row.
+      let rowLayout = [];
+
+      // A stable key for a row across re-renders: contributors by id, affiliation
+      // aggregates by group name (they have no id).
+      function rowKey(c) {
+        return c.isGroup ? "g:" + c.group : "c:" + c._id;
+      }
+      function isExpanded(c) {
+        return state.expanded.has(rowKey(c));
+      }
+      function rowAtY(yPix) {
+        for (let i = 0; i < rowLayout.length; i++) {
+          const l = rowLayout[i];
+          if (yPix >= l.y && yPix < l.y + l.h) return i;
+        }
+        return -1;
+      }
 
       /* Shared geometry for the chart and the context strip. labelW is measured
          over the whole candidate set for the current mode (not just the visible
@@ -1268,7 +1305,9 @@
         if (!rows.length) {
           svg.innerHTML = "";
           svg.setAttribute("height", 0);
+          rowLayout = [];
           updateShowing(rows, eligible, total);
+          updateExpandBtn();
           return;
         }
 
@@ -1280,7 +1319,16 @@
         const marginR = MARGIN_R;
         const topPad = 26,
           axisH = 30;
-        const height = topPad + rows.length * ROW_H + axisH;
+        // Variable row heights: expanded rows are taller to fit an inline plot.
+        rowLayout = [];
+        let yacc = topPad;
+        rows.forEach((c) => {
+          const h = ROW_H + (isExpanded(c) ? EXP_H : 0);
+          rowLayout.push({ y: yacc, h });
+          yacc += h;
+        });
+        const bodyBot = yacc;
+        const height = bodyBot + axisH;
         const sx = (ts) => chartX + ((ts - t0) / (t1 - t0)) * chartW;
 
         svg.setAttribute("width", width);
@@ -1293,7 +1341,7 @@
 
         const parts = [];
         const gridTop = topPad - 12,
-          gridBot = topPad + rows.length * ROW_H + 6;
+          gridBot = bodyBot + 6;
 
         const ticks = timeTicks(t0, t1);
         for (const ts of ticks.minor)
@@ -1314,7 +1362,7 @@
 
         const defs = [];
         rows.forEach((c, i) => {
-          const y = topPad + i * ROW_H,
+          const y = rowLayout[i].y,
             cy = y + ROW_H / 2;
           const bx = sx(Math.max(c.first, t0)),
             bw = Math.max(sx(Math.min(c.last, t1)) - bx, 3);
@@ -1325,21 +1373,36 @@
             defs.push(
               `<clipPath id="av${i}"><circle cx="${labelW - 16 - AVATAR / 2}" cy="${cy}" r="${AVATAR / 2}"/></clipPath>`,
             );
+          if (isExpanded(c))
+            defs.push(
+              `<clipPath id="exp${i}"><rect x="${chartX}" y="${y + ROW_H}" width="${chartW}" height="${EXP_H}"/></clipPath>`,
+            );
         });
         parts.push(`<defs>${defs.join("")}</defs>`);
 
         rows.forEach((c, i) => {
-          const y = topPad + i * ROW_H,
+          const y = rowLayout[i].y,
+            rh = rowLayout[i].h,
             cy = y + ROW_H / 2;
+          const expanded = isExpanded(c);
           const color = rowColor(c);
           const first = Math.max(c.first, t0),
             last = Math.min(c.last, t1);
           const bx = sx(first),
             bw = Math.max(sx(last) - bx, 3);
           const by = y + (ROW_H - BAR_H) / 2;
-          const r = [`<g class="crow" data-i="${i}">`];
+          const r = [`<g class="crow${expanded ? " on" : ""}" data-i="${i}">`];
           r.push(
-            `<rect class="row-hit" x="0" y="${y}" width="${width}" height="${ROW_H}" rx="6"/>`,
+            `<rect class="row-hit" x="0" y="${y}" width="${width}" height="${rh}" rx="6"/>`,
+          );
+
+          // Expand/collapse chevron in the left gutter.
+          const chx = 7,
+            chev = expanded
+              ? `M${chx} ${cy - 1.5}l3 3.5 3-3.5`
+              : `M${chx + 1} ${cy - 3}l3.5 3-3.5 3`;
+          r.push(
+            `<path class="chev" d="${chev}" fill="none" stroke="${th.faint}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
           );
 
           const acx = labelW - 16 - AVATAR / 2;
@@ -1410,13 +1473,65 @@
           r.push(
             `<text x="${width - marginR}" y="${cy + 3.8}" font-size="10.5" fill="${th.faint}" text-anchor="end">${fmtNum(c.commits)}</text>`,
           );
+
+          // Expanded detail: a time-aligned line plot of monthly activity.
+          if (expanded) {
+            const captionY = y + ROW_H + 13;
+            const yTop = y + ROW_H + 20,
+              yBot = y + rh - 12,
+              ph = yBot - yTop;
+            const months = c.months,
+              n = months.length,
+              mmax = maxOf(months, 1);
+            const active = months.filter(Boolean).length;
+            r.push(
+              `<line x1="${chartX}" y1="${yBot}" x2="${chartX + chartW}" y2="${yBot}" stroke="${th.gridMonth}"/>`,
+            );
+            const pts = [];
+            for (let mi = 0; mi < n; mi++) {
+              const px = sx(monthStartTs(c.m0 + mi));
+              const py = yBot - (months[mi] / mmax) * ph;
+              pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+            }
+            if (n >= 2) {
+              const x0 = sx(monthStartTs(c.m0)),
+                x1 = sx(monthStartTs(c.m0 + n - 1));
+              r.push(`<g clip-path="url(#exp${i})">`);
+              r.push(
+                `<polyline points="${x0.toFixed(1)},${yBot} ${pts.join(" ")} ${x1.toFixed(1)},${yBot}" fill="${color}" fill-opacity="0.18" stroke="none"/>`,
+              );
+              r.push(
+                `<polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>`,
+              );
+              r.push("</g>");
+            } else if (n === 1) {
+              const [px, py] = pts[0].split(",");
+              r.push(`<circle cx="${px}" cy="${py}" r="3" fill="${color}"/>`);
+            }
+            r.push(
+              `<text x="${chartX}" y="${captionY}" font-size="10" fill="${th.faint}">Monthly commits · peak ${fmtNum(mmax)} · ${active} active month${active === 1 ? "" : "s"}</text>`,
+            );
+          }
+
           r.push("</g>");
           parts.push(r.join(""));
         });
 
         svg.innerHTML = parts.join("");
         updateShowing(rows, eligible, total);
+        updateExpandBtn();
       }
+
+      function updateExpandBtn() {
+        const anyVis = currentRows.some(isExpanded);
+        $("#expand-all").textContent = anyVis ? "Collapse all" : "Expand all";
+      }
+      $("#expand-all").addEventListener("click", () => {
+        if (currentRows.some(isExpanded)) state.expanded.clear();
+        else currentRows.forEach((c) => state.expanded.add(rowKey(c)));
+        hideTooltip();
+        renderChart();
+      });
 
       function updateShowing(rows, eligible, total) {
         const noun = affMode() ? "affiliations" : "contributors";
@@ -1433,12 +1548,17 @@
         const svg = $("#chart");
         const rect = svg.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        const i = Math.floor((y - 26) / ROW_H);
+        const i = rowAtY(y);
         if (i < 0 || i >= currentRows.length) {
           hideTooltip();
           return;
         }
         const c = currentRows[i];
+        // Expanded rows already show their detail inline.
+        if (isExpanded(c)) {
+          hideTooltip();
+          return;
+        }
         if (i !== ttRow) {
           ttRow = i;
           tooltip.innerHTML = tooltipHtml(c);
@@ -1458,6 +1578,19 @@
         tooltip.classList.remove("show");
         ttRow = -1;
       }
+
+      /* Click a row (anywhere but the name link) to expand/collapse it. */
+      $("#chart").addEventListener("click", (e) => {
+        if (e.target.closest("a")) return; // let profile links work
+        const rect = $("#chart").getBoundingClientRect();
+        const i = rowAtY(e.clientY - rect.top);
+        if (i < 0 || i >= currentRows.length) return;
+        const key = rowKey(currentRows[i]);
+        if (state.expanded.has(key)) state.expanded.delete(key);
+        else state.expanded.add(key);
+        hideTooltip();
+        renderChart();
+      });
 
       function tooltipHtml(c) {
         const months = Math.max(
@@ -1853,6 +1986,7 @@
       $("#rows").addEventListener("change", (e) => {
         state.mode = e.target.value;
         state.gsel.clear();
+        state.expanded.clear(); // row keys differ between modes
         syncControls();
         renderLegend();
         renderContext(); // label width (and so the shared margin) can change
@@ -1914,6 +2048,7 @@
         state.align = false;
         state.t0 = state.t1 = null;
         state.gsel.clear();
+        state.expanded.clear();
         syncControls();
         updateBrushVisual();
         renderAll();
