@@ -27,10 +27,13 @@ gen() {
 
 # Default skin: the live interactive page and the static example SVG. They keep
 # distinct basenames (rnaseq.html is the demo, example-rnaseq.svg the figure).
+# Each figure SVG is also rendered with the dark theme so the docs site can
+# swap the card thumbnail to match its light/dark mode.
 gen --basename rnaseq --format html
 gen --basename example-rnaseq --format svg --width "$WIDTH"
+gen --basename example-rnaseq-dark --format svg --width "$WIDTH" --theme dark
 
-# Wikipedia "band members over time" theme showcase.
+# Wikipedia "band members over time" theme showcase (light-only by design).
 gen --basename rnaseq-wikipedia --format html --theme wikipedia
 gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --theme wikipedia
 
@@ -39,6 +42,8 @@ gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --theme wi
 echo "==> contributor-graphs nf-core/sarek SciLifeLab/Sarek"
 "$BIN" nf-core/sarek SciLifeLab/Sarek --title "Sarek" --basename sarek \
   --format both --width "$WIDTH" -o docs
+"$BIN" nf-core/sarek SciLifeLab/Sarek --title "Sarek" --basename sarek-dark \
+  --format svg --width "$WIDTH" --theme dark -o docs
 
 echo "==> done; regenerated SVG + HTML in docs/"
 echo "    (the whole-org docs/nf-core.* example is heavy; regenerate it with"

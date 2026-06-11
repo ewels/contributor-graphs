@@ -618,7 +618,7 @@
       }
       .ex .thumb {
         height: 168px;
-        background: #fbfaf7;
+        background: var(--paper-2);
         border-bottom: 1px solid var(--rule);
         overflow: hidden;
       }
@@ -628,6 +628,13 @@
         object-fit: cover;
         object-position: top center;
         height: 100%;
+      }
+      /* Thumbnails ship a light and a dark render; show the one matching the
+         page theme. Cards with a single themed image (the Wikipedia demo) just
+         omit the classes and stay put. */
+      html[data-theme="dark"] .ex .thumb img.thumb-light,
+      html:not([data-theme="dark"]) .ex .thumb img.thumb-dark {
+        display: none;
       }
       .ex .exbody {
         padding: 15px 18px 17px;
@@ -1321,7 +1328,12 @@
             <a class="ex" href="rnaseq.html" target="_blank" rel="noopener">
               <span class="thumb"
                 ><img
+                  class="thumb-light"
                   src="example-rnaseq.svg"
+                  alt="Contributor timeline for nf-core/rnaseq"
+                  loading="lazy" /><img
+                  class="thumb-dark"
+                  src="example-rnaseq-dark.svg"
                   alt="Contributor timeline for nf-core/rnaseq"
                   loading="lazy"
               /></span>
@@ -1350,7 +1362,12 @@
             <a class="ex" href="nf-core.html" target="_blank" rel="noopener">
               <span class="thumb"
                 ><img
+                  class="thumb-light"
                   src="nf-core.svg"
+                  alt="Contributor timeline for the whole nf-core organisation"
+                  loading="lazy" /><img
+                  class="thumb-dark"
+                  src="nf-core-dark.svg"
                   alt="Contributor timeline for the whole nf-core organisation"
                   loading="lazy"
               /></span>
@@ -1385,7 +1402,12 @@
             >
               <span class="thumb"
                 ><img
+                  class="thumb-light"
                   src="nf-core-affiliation.svg"
+                  alt="nf-core contributors grouped by organisation"
+                  loading="lazy" /><img
+                  class="thumb-dark"
+                  src="nf-core-affiliation-dark.svg"
                   alt="nf-core contributors grouped by organisation"
                   loading="lazy"
               /></span>
@@ -1414,7 +1436,12 @@
             <a class="ex" href="sarek.html" target="_blank" rel="noopener">
               <span class="thumb"
                 ><img
+                  class="thumb-light"
                   src="sarek.svg"
+                  alt="Contributor timeline for Sarek, recovered across two repositories"
+                  loading="lazy" /><img
+                  class="thumb-dark"
+                  src="sarek-dark.svg"
                   alt="Contributor timeline for Sarek, recovered across two repositories"
                   loading="lazy"
               /></span>

@@ -8,10 +8,14 @@ docs/example-rnaseq.svg
 docs/example-rnaseq-wikipedia.svg
 docs/nf-core.html
 docs/nf-core.svg
+docs/nf-core-dark.svg
 docs/nf-core-affiliation.html
 docs/nf-core-affiliation.svg
+docs/nf-core-affiliation-dark.svg
 docs/sarek.html
 docs/sarek.svg
+docs/sarek-dark.svg
+docs/example-rnaseq-dark.svg
 
 # Lockfile and license are managed elsewhere
 Cargo.lock

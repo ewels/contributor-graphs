@@ -29,4 +29,12 @@ echo "==> contributor-graphs nf-core --by-affiliation"
 "$BIN" nf-core --by-affiliation --basename nf-core-affiliation \
   --format both --width "$WIDTH" -o docs
 
-echo "==> done; wrote docs/nf-core{,-affiliation}.{html,svg}"
+# Dark-theme figure SVGs so the docs site can swap card thumbnails to match its
+# light/dark mode. Warm reruns off the cache above, so just the render differs.
+echo "==> dark-theme SVG variants"
+"$BIN" nf-core --basename nf-core-dark \
+  --format svg --width "$WIDTH" --theme dark -o docs
+"$BIN" nf-core --by-affiliation --basename nf-core-affiliation-dark \
+  --format svg --width "$WIDTH" --theme dark -o docs
+
+echo "==> done; wrote docs/nf-core{,-affiliation}{,-dark}.{html,svg}"
