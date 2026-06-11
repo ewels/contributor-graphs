@@ -6,8 +6,8 @@
 # (they are produced verbatim by the binary, including by CI, which does not run
 # these hooks — fixing them here would cause churn).
 exclude = '''(?x)(
-  ^docs/(rnaseq|rnaseq-wikipedia|nf-core|sarek)\.html$ |
-  ^docs/(example-[^/]*|nf-core|sarek)\.svg$ |
+  ^docs/(rnaseq|rnaseq-wikipedia|nf-core|nf-core-affiliation|sarek)\.html$ |
+  ^docs/(example-[^/]*|nf-core|nf-core-affiliation|sarek)\.svg$ |
   ^Cargo\.lock$
 )'''
 
