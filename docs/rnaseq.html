@@ -1638,7 +1638,8 @@
               const names = c.member_names || [];
               const extra = c.members - names.length;
               let list = names.join(", ") + (extra > 0 ? ` +${extra}` : "");
-              if (list) info(esc(fitLeft(list, 11.5)), th.muted, { size: 11.5 });
+              if (list)
+                info(esc(fitLeft(list, 11.5)), th.muted, { size: 11.5 });
             } else {
               if (c.login) info("@" + esc(c.login), th.muted);
               if (c.group)
