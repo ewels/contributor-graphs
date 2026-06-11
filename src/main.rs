@@ -9,9 +9,11 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(version, about, arg_required_else_help = true)]
 struct Args {
-    /// One or more sources: local path, GitHub `owner/repo` slug, or git URL.
-    /// Multiple sources are pooled into a single timeline (duplicate commits
-    /// shared across overlapping histories are dropped by SHA).
+    /// One or more sources: a local path, a GitHub `owner/repo` slug, a git
+    /// URL, or a bare GitHub `owner` (org or user), which expands to all of
+    /// that owner's non-fork repositories. Multiple sources are pooled into a
+    /// single timeline (duplicate commits shared across overlapping histories
+    /// are dropped by SHA).
     #[arg(required = true, num_args = 1..)]
     repos: Vec<String>,
 
@@ -88,6 +90,11 @@ struct Args {
     /// Keep avatars as remote URLs instead of embedding data URIs
     #[arg(long)]
     no_embed_avatars: bool,
+
+    /// Ignore cached git history and GitHub lookups and pull everything fresh
+    /// (the cache is still updated with the new results)
+    #[arg(long)]
+    refresh: bool,
 
     /// Width of the static SVG in pixels
     #[arg(long, default_value_t = 1100.0)]
@@ -215,6 +222,7 @@ fn main() -> Result<()> {
         merge_names: !args.no_name_merge,
         embed_avatars: !args.no_embed_avatars,
         avatar_size: 64,
+        refresh: args.refresh,
         verbose: true,
     };
 

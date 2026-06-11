@@ -1,4 +1,4 @@
-use crate::model::Commit;
+use crate::model::{Commit, CommitFilter};
 use anyhow::{bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -11,6 +11,9 @@ pub struct PreparedRepo {
     pub url: Option<String>,
     pub display_name: String,
     pub branch: String,
+    /// True for a cloned remote (has an `origin` to fetch from); false for a
+    /// local checkout. Drives whether freshness is checked via `git ls-remote`.
+    pub is_remote: bool,
 }
 
 /// Resolve user input (local path, `owner/repo` slug, or git URL) into a local
@@ -65,7 +68,16 @@ fn prepare_local(path: &Path, branch: Option<&str>) -> Result<PreparedRepo> {
         url,
         display_name,
         branch,
+        is_remote: false,
     })
+}
+
+/// Where cached clones live: under the tool's XDG cache dir, falling back to a
+/// temp directory if no home/XDG dir is available.
+fn clones_dir() -> PathBuf {
+    crate::cache::root()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("clones")
 }
 
 fn prepare_remote(
@@ -74,28 +86,10 @@ fn prepare_remote(
     branch: Option<&str>,
 ) -> Result<PreparedRepo> {
     let cache_key = sanitize(slug.as_deref().unwrap_or(clone_url));
-    let cache_dir = std::env::temp_dir()
-        .join("contributor-graphs")
-        .join(cache_key);
+    let cache_dir = clones_dir().join(cache_key);
 
-    if cache_dir.join("HEAD").exists() {
-        eprintln!("  updating cached clone {}", cache_dir.display());
-        let fetched = git(
-            &cache_dir,
-            &[
-                "fetch",
-                "--quiet",
-                "--prune",
-                "origin",
-                "+refs/heads/*:refs/heads/*",
-            ],
-        )
-        .is_ok();
-        if !fetched {
-            eprintln!("  fetch failed, re-cloning");
-            let _ = std::fs::remove_dir_all(&cache_dir);
-        }
-    }
+    // Clone on first sight only. Updating an existing clone is deferred to
+    // fetch(), which the caller calls just for repos whose history changed.
     if !cache_dir.join("HEAD").exists() {
         std::fs::create_dir_all(cache_dir.parent().unwrap()).ok();
         eprintln!("  cloning {clone_url} (commit history only)");
@@ -127,7 +121,41 @@ fn prepare_remote(
         url,
         display_name,
         branch,
+        is_remote: true,
     })
+}
+
+/// The current tip SHA of `branch` on the remote, read with `git ls-remote`
+/// (refs only, no object transfer). Used as a cheap freshness token without
+/// fetching. `None` if the repo is local or the remote can't be reached.
+pub fn remote_tip(repo: &PreparedRepo) -> Option<String> {
+    if !repo.is_remote {
+        return None;
+    }
+    let out = git(&repo.git_dir, &["ls-remote", "origin", &repo.branch]).ok()?;
+    out.split_whitespace().next().map(str::to_string)
+}
+
+/// The tip SHA of `branch` in the local clone/checkout.
+pub fn local_tip(repo: &PreparedRepo) -> Option<String> {
+    git(&repo.git_dir, &["rev-parse", &repo.branch]).ok()
+}
+
+/// Update a cached clone from its origin. Called only when the history is known
+/// to have changed; returns whether the fetch succeeded.
+pub fn fetch(repo: &PreparedRepo) -> bool {
+    eprintln!("  updating cached clone {}", repo.git_dir.display());
+    git(
+        &repo.git_dir,
+        &[
+            "fetch",
+            "--quiet",
+            "--prune",
+            "origin",
+            "+refs/heads/*:refs/heads/*",
+        ],
+    )
+    .is_ok()
 }
 
 fn resolve_branch(dir: &Path, requested: Option<&str>) -> String {
@@ -141,9 +169,7 @@ fn resolve_branch(dir: &Path, requested: Option<&str>) -> String {
 pub fn read_commits(
     repo: &PreparedRepo,
     branch: Option<&str>,
-    since: Option<&str>,
-    until: Option<&str>,
-    no_merges: bool,
+    filter: &CommitFilter,
 ) -> Result<Vec<Commit>> {
     let mut cmd = Command::new("git");
     cmd.arg("-C").arg(&repo.git_dir).args([
@@ -151,13 +177,13 @@ pub fn read_commits(
         "--use-mailmap",
         "--pretty=format:%H%x09%at%x09%aN%x09%aE",
     ]);
-    if no_merges {
+    if filter.no_merges {
         cmd.arg("--no-merges");
     }
-    if let Some(s) = since {
+    if let Some(s) = &filter.since {
         cmd.arg(format!("--since={s}"));
     }
-    if let Some(u) = until {
+    if let Some(u) = &filter.until {
         cmd.arg(format!("--until={u}"));
     }
     cmd.arg(branch.unwrap_or("HEAD")).arg("--");
@@ -214,6 +240,20 @@ pub fn parse_github_url(url: &str) -> Option<String> {
         return None;
     }
     Some(format!("{owner}/{repo}"))
+}
+
+/// A bare GitHub owner name (org or user): a single token, not a local path,
+/// not a slug, not a URL. Used to decide whether to expand the input into all
+/// of that owner's repositories.
+pub fn looks_like_owner(input: &str) -> bool {
+    let s = input.trim();
+    if s.is_empty() || s.contains('/') || s.contains(':') || s.contains('.') {
+        return false;
+    }
+    if Path::new(s).exists() {
+        return false;
+    }
+    !s.starts_with('-') && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 fn looks_like_slug(s: &str) -> bool {

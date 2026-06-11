@@ -1,5 +1,14 @@
 use serde::Serialize;
 
+/// The `git log` filters that affect which commits a source yields. Grouped so
+/// they travel together and form part of the history cache key.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CommitFilter {
+    pub since: Option<String>,
+    pub until: Option<String>,
+    pub no_merges: bool,
+}
+
 /// A single commit as parsed from `git log`.
 #[derive(Debug, Clone)]
 pub struct Commit {

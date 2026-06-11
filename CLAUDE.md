@@ -22,8 +22,13 @@ in a browser.
 ## Layout
 
 - `src/main.rs`: CLI args (clap), pipeline orchestration, group canonicalisation.
-- `src/repo.rs`: input resolution (local path / `owner/repo` / git URL), bare
-  partial clone into a temp cache, `git log` parsing.
+- `src/repo.rs`: input resolution (local path / `owner/repo` / git URL / bare
+  `owner` org expansion), bare partial clone into the cache, `git ls-remote`
+  freshness checks, `git log` parsing.
+- `src/cache.rs`: the on-disk cache under `$XDG_CACHE_HOME/contributor-graphs`
+  (`~/.cache/...`). Holds the bare clones, per-repo parsed `git log` keyed by the
+  branch tip SHA, and the GitHub lookups (SHA→author, login→profile,
+  avatar→data URI). Makes re-runs fast; `--refresh` bypasses it.
 - `src/identity.rs`: clustering commit identities by email then name, manual
   identity/group files, bot detection, building `Contributor` rows.
 - `src/github.rs`: token discovery (`GITHUB_TOKEN` → `GH_TOKEN` → `gh auth

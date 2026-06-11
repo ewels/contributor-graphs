@@ -17,15 +17,16 @@ BIN="target/release/contributor-graphs"
 echo "==> building release binary"
 cargo build --release --locked
 
-echo "==> listing non-fork nf-core repositories"
-mapfile -t REPOS < <(
-  gh repo list nf-core --limit 1000 --no-archived=false \
-    --json nameWithOwner,isFork --jq '.[]|select(.isFork==false)|.nameWithOwner'
-)
-echo "    ${#REPOS[@]} repositories"
-
-echo "==> contributor-graphs <${#REPOS[@]} sources> --title nf-core"
-"$BIN" "${REPOS[@]}" --title "nf-core" --basename nf-core \
+# A bare owner name expands to all of that org's non-fork repositories inside
+# the binary, so there is no separate `gh repo list` step any more.
+echo "==> contributor-graphs nf-core (expands to every non-fork repo)"
+"$BIN" nf-core --basename nf-core \
   --format both --width "$WIDTH" -o docs
 
-echo "==> done; wrote docs/nf-core.html and docs/nf-core.svg"
+# The by-affiliation variant reuses the clones and GitHub data cached by the
+# run above, so it is a fast warm rerun rather than a second full pull.
+echo "==> contributor-graphs nf-core --by-affiliation"
+"$BIN" nf-core --by-affiliation --basename nf-core-affiliation \
+  --format both --width "$WIDTH" -o docs
+
+echo "==> done; wrote docs/nf-core{,-affiliation}.{html,svg}"

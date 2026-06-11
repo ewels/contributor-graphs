@@ -1,3 +1,4 @@
+use crate::cache::Caches;
 use crate::identity::Cluster;
 use crate::model::{Commit, Contributor};
 use base64::Engine;
@@ -117,6 +118,42 @@ impl GhClient {
         (name, company)
     }
 
+    /// List every repository under a GitHub org or user, returning `owner/repo`
+    /// slugs. Forks are skipped; archived repos are kept. Tries the org endpoint
+    /// first and falls back to the user endpoint, so it works for either kind of
+    /// account. Returns an empty vec if the owner can't be listed.
+    pub fn list_owner_repos(&self, owner: &str) -> Vec<String> {
+        for kind in ["orgs", "users"] {
+            let mut slugs = Vec::new();
+            let mut page = 1;
+            let mut reached = false;
+            loop {
+                let url =
+                    format!("https://api.github.com/{kind}/{owner}/repos?per_page=100&page={page}");
+                let Some(v) = self.get_json(&url) else { break };
+                reached = true;
+                let Some(arr) = v.as_array() else { break };
+                let count = arr.len();
+                for repo in arr {
+                    if repo.get("fork").and_then(|f| f.as_bool()).unwrap_or(false) {
+                        continue;
+                    }
+                    if let Some(full) = repo.get("full_name").and_then(|n| n.as_str()) {
+                        slugs.push(full.to_string());
+                    }
+                }
+                if count < 100 {
+                    break;
+                }
+                page += 1;
+            }
+            if reached && !slugs.is_empty() {
+                return slugs;
+            }
+        }
+        Vec::new()
+    }
+
     pub fn fetch_bytes(&self, url: &str) -> Option<(Vec<u8>, String)> {
         let resp = self.agent.get(url).call().ok()?;
         let ct = resp.content_type().to_string();
@@ -139,6 +176,7 @@ pub fn enrich_clusters(
     commits: &[Commit],
     source_slugs: &[Option<String>],
     client: &GhClient,
+    caches: &mut Caches,
     verbose: bool,
 ) {
     let slug_of = |c: &Commit| -> Option<&str> {
@@ -171,12 +209,27 @@ pub fn enrich_clusters(
         }
     }
 
+    // A commit's author never changes, so resolved SHAs are cached forever.
+    let mut from_cache = 0usize;
+    need_api.retain(|(idx, _, sha)| match caches.author(sha) {
+        Some(a) => {
+            clusters[*idx].login = Some(a.login);
+            clusters[*idx].avatar_url = Some(a.avatar_url);
+            from_cache += 1;
+            false
+        }
+        None => true,
+    });
+
     if need_api.is_empty() || !client.has_token() {
         if !need_api.is_empty() && verbose {
             eprintln!(
                 "  no GitHub token found ({} identities left unresolved) — run `gh auth login` to enable lookups",
                 need_api.len()
             );
+        }
+        if from_cache > 0 && verbose {
+            eprintln!("  resolved {from_cache} identities from cache");
         }
         return;
     }
@@ -199,14 +252,28 @@ pub fn enrich_clusters(
 
     let results = results.into_inner().unwrap();
     let resolved = results.len();
+    // Map cluster index back to its representative SHA so resolved authors can
+    // be cached against the (immutable) commit.
+    let sha_of: HashMap<usize, &str> = need_api
+        .iter()
+        .map(|(idx, _, sha)| (*idx, sha.as_str()))
+        .collect();
     for (idx, (login, avatar)) in results {
+        if let Some(sha) = sha_of.get(&idx) {
+            caches.put_author(sha.to_string(), login.clone(), avatar.clone());
+        }
         clusters[idx].login = Some(login);
         clusters[idx].avatar_url = Some(avatar);
     }
     if verbose {
         eprintln!(
-            "  resolved {resolved}/{} identities via GitHub API",
-            need_api.len()
+            "  resolved {resolved}/{} identities via GitHub API{}",
+            need_api.len(),
+            if from_cache > 0 {
+                format!(" ({from_cache} more from cache)")
+            } else {
+                String::new()
+            }
         );
     }
 }
@@ -221,8 +288,18 @@ pub fn fetch_repo_description(client: &GhClient, slug: &str) -> Option<String> {
         .map(String::from)
 }
 
-/// Fetch a GitHub avatar (e.g. an org/owner) and return it as a data URI.
-pub fn fetch_avatar(client: &GhClient, login: &str, size: u32) -> Option<String> {
+/// Fetch a GitHub avatar (e.g. an org/owner) and return it as a data URI,
+/// caching the result by login and size.
+pub fn fetch_avatar(
+    client: &GhClient,
+    caches: &mut Caches,
+    login: &str,
+    size: u32,
+) -> Option<String> {
+    let key = format!("owner:{login}:{size}");
+    if let Some(data) = caches.avatar(&key) {
+        return Some(data);
+    }
     let url = format!("https://avatars.githubusercontent.com/{login}?s={size}");
     let (bytes, ct) = client.fetch_bytes(&url)?;
     let ct = if ct.starts_with("image/") {
@@ -231,7 +308,9 @@ pub fn fetch_avatar(client: &GhClient, login: &str, size: u32) -> Option<String>
         "image/png".into()
     };
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    Some(format!("data:{ct};base64,{b64}"))
+    let data = format!("data:{ct};base64,{b64}");
+    caches.put_avatar(key, data.clone());
+    Some(data)
 }
 
 /// Clean up the free-text GitHub `company` field into a usable group name.
@@ -259,10 +338,12 @@ pub fn normalize_company(raw: &str) -> Option<String> {
 
 /// Fetch GitHub user profiles for every resolved login: improves display
 /// names ("phue" → "Patrick Hüther") and yields company affiliations.
-pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient, verbose: bool) {
-    if !client.has_token() {
-        return;
-    }
+pub fn fetch_profiles(
+    clusters: &mut [Cluster],
+    client: &GhClient,
+    caches: &mut Caches,
+    verbose: bool,
+) {
     let mut logins: Vec<String> = clusters.iter().filter_map(|c| c.login.clone()).collect();
     logins.sort();
     logins.dedup();
@@ -270,24 +351,42 @@ pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient, verbose: bool
         return;
     }
 
-    let cursor = AtomicUsize::new(0);
-    let results: Mutex<HashMap<String, Profile>> = Mutex::new(HashMap::new());
-    std::thread::scope(|s| {
-        for _ in 0..THREADS.min(logins.len()) {
-            s.spawn(|| loop {
-                let i = cursor.fetch_add(1, Ordering::Relaxed);
-                let Some(login) = logins.get(i) else { break };
-                let profile = client.user_profile(login);
-                results.lock().unwrap().insert(login.clone(), profile);
-            });
+    // Cached profiles skip the API; only the misses are fetched.
+    let mut profiles: HashMap<String, Profile> = HashMap::new();
+    let mut to_fetch: Vec<String> = Vec::new();
+    for login in logins {
+        match caches.profile(&login) {
+            Some(p) => {
+                profiles.insert(login, p);
+            }
+            None => to_fetch.push(login),
         }
-    });
+    }
+    let from_cache = profiles.len();
 
-    let results = results.into_inner().unwrap();
-    let with_company = results.values().filter(|(_, c)| c.is_some()).count();
+    if !to_fetch.is_empty() && client.has_token() {
+        let cursor = AtomicUsize::new(0);
+        let results: Mutex<HashMap<String, Profile>> = Mutex::new(HashMap::new());
+        std::thread::scope(|s| {
+            for _ in 0..THREADS.min(to_fetch.len()) {
+                s.spawn(|| loop {
+                    let i = cursor.fetch_add(1, Ordering::Relaxed);
+                    let Some(login) = to_fetch.get(i) else { break };
+                    let profile = client.user_profile(login);
+                    results.lock().unwrap().insert(login.clone(), profile);
+                });
+            }
+        });
+        for (login, (name, company)) in results.into_inner().unwrap() {
+            caches.put_profile(login.clone(), name.clone(), company.clone());
+            profiles.insert(login, (name, company));
+        }
+    }
+
+    let with_company = profiles.values().filter(|(_, c)| c.is_some()).count();
     for cl in clusters.iter_mut() {
         if let Some(login) = &cl.login {
-            if let Some((name, company)) = results.get(login) {
+            if let Some((name, company)) = profiles.get(login) {
                 cl.profile_name = name.clone();
                 cl.affiliation = company.clone();
             }
@@ -295,9 +394,9 @@ pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient, verbose: bool
     }
     if verbose {
         eprintln!(
-            "  fetched {} profiles ({} with an affiliation)",
-            results.len(),
-            with_company
+            "  fetched {} profiles ({} with an affiliation, {from_cache} from cache)",
+            profiles.len(),
+            with_company,
         );
     }
 }
@@ -307,6 +406,7 @@ pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient, verbose: bool
 pub fn embed_avatars(
     contributors: &mut [Contributor],
     client: &GhClient,
+    caches: &mut Caches,
     size: u32,
     verbose: bool,
 ) {
@@ -322,52 +422,70 @@ pub fn embed_avatars(
         return;
     }
 
-    let sized: Vec<String> = urls
-        .iter()
-        .map(|u| {
-            if u.contains('?') {
-                format!("{u}&s={size}")
-            } else {
-                format!("{u}?s={size}")
+    // Cache by avatar URL and size. Cached images skip the download.
+    let key_of = |u: &str| format!("{u}|{size}");
+    let mut embedded: HashMap<String, String> = HashMap::new();
+    let mut to_fetch: Vec<String> = Vec::new();
+    for u in urls {
+        match caches.avatar(&key_of(&u)) {
+            Some(data) => {
+                embedded.insert(u, data);
             }
-        })
-        .collect();
-
-    let cursor = AtomicUsize::new(0);
-    let results: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
-    std::thread::scope(|s| {
-        for _ in 0..THREADS.min(urls.len()) {
-            s.spawn(|| loop {
-                let i = cursor.fetch_add(1, Ordering::Relaxed);
-                let (Some(orig), Some(fetch_url)) = (urls.get(i), sized.get(i)) else {
-                    break;
-                };
-                if let Some((bytes, ct)) = client.fetch_bytes(fetch_url) {
-                    let ct = if ct.starts_with("image/") {
-                        ct
-                    } else {
-                        "image/png".into()
-                    };
-                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-                    results
-                        .lock()
-                        .unwrap()
-                        .insert(orig.clone(), format!("data:{ct};base64,{b64}"));
-                }
-            });
+            None => to_fetch.push(u),
         }
-    });
+    }
+    let from_cache = embedded.len();
 
-    let results = results.into_inner().unwrap();
-    let n = results.len();
+    if !to_fetch.is_empty() {
+        let sized: Vec<String> = to_fetch
+            .iter()
+            .map(|u| {
+                if u.contains('?') {
+                    format!("{u}&s={size}")
+                } else {
+                    format!("{u}?s={size}")
+                }
+            })
+            .collect();
+        let cursor = AtomicUsize::new(0);
+        let results: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
+        std::thread::scope(|s| {
+            for _ in 0..THREADS.min(to_fetch.len()) {
+                s.spawn(|| loop {
+                    let i = cursor.fetch_add(1, Ordering::Relaxed);
+                    let (Some(orig), Some(fetch_url)) = (to_fetch.get(i), sized.get(i)) else {
+                        break;
+                    };
+                    if let Some((bytes, ct)) = client.fetch_bytes(fetch_url) {
+                        let ct = if ct.starts_with("image/") {
+                            ct
+                        } else {
+                            "image/png".into()
+                        };
+                        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                        results
+                            .lock()
+                            .unwrap()
+                            .insert(orig.clone(), format!("data:{ct};base64,{b64}"));
+                    }
+                });
+            }
+        });
+        for (url, data) in results.into_inner().unwrap() {
+            caches.put_avatar(key_of(&url), data.clone());
+            embedded.insert(url, data);
+        }
+    }
+
+    let n = embedded.len();
     for c in contributors.iter_mut() {
         if let Some(u) = &c.avatar {
-            if let Some(data) = results.get(u) {
+            if let Some(data) = embedded.get(u) {
                 c.avatar = Some(data.clone());
             }
         }
     }
     if verbose {
-        eprintln!("  embedded {n} avatars as data URIs");
+        eprintln!("  embedded {n} avatars as data URIs ({from_cache} from cache)");
     }
 }
