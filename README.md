@@ -36,22 +36,28 @@ and how a project grew over the years.
 ## Features
 
 - **Works with anything:** a local path (`.`), a GitHub slug (`nf-core/rnaseq`),
-  or any git URL. Remote repos are cloned (history only) into a local cache.
+  any git URL, or a bare `owner` (org/user) that expands to all its repos.
+  Several sources pool into one timeline, deduplicated by commit SHA.
 - **GitHub enrichment:** resolves real names, `@usernames` and avatars via the
   GitHub API, using your `gh` CLI token automatically to avoid rate limits.
 - **Identity merging:** folds together the many name and email spellings a
-  single person accumulates over the years, with a manual override file for the
+  single person accumulates over the years, with a manual override for the
   stragglers.
+- **Co-authors:** counts `Co-authored-by` trailers as commits for each
+  co-author (full credit), on by default, with a live toggle in the page.
 - **Affiliation grouping:** auto-detects organisations from GitHub profile
   companies (e.g. _SciLifeLab_, _Seqera_) and colours by them. Optionally
-  **collapse the whole chart to one row per affiliation**, so each bar is an
-  organisation rather than a person. Supply your own grouping file for control.
+  **collapse the whole chart to one row per affiliation**. A curation file adds
+  **time-bounded affiliations** (so a person's row is coloured by the org active
+  at each point) and **group-name aliases**.
+- **Fast re-runs:** clones, parsed history, and GitHub lookups are cached under
+  `~/.cache`, so re-running an unchanged repo (or a whole org) takes seconds.
 - **Noise filters:** exclude bots, set a minimum-commit threshold, cap to the
   top _N_ contributors. In the HTML these are live controls.
-- **Interactive HTML:** search, sort, filter by group, switch between
+- **Interactive HTML:** search, sort, filter by affiliation, switch between
   per-contributor and per-affiliation rows, drag-to-zoom the timeline, hover
-  for detail + activity sparkline, dark mode, and SVG/PNG export. Everything is
-  embedded in one file; no server needed.
+  for detail + activity sparkline, full-width and dark mode toggles, and
+  SVG/PNG export. Everything is embedded in one file; no server needed.
 
 ## Install
 
@@ -141,10 +147,11 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--by-affiliation`                  | Collapse each row to a whole affiliation, not one person             |
 | `--unaffiliated-label <TEXT>`       | Bucket name for people with no affiliation (default: `Unaffiliated`) |
 | `--sort <KEY>`                      | `first` · `last` · `commits` · `duration` · `name`                   |
-| `--groups <FILE>`                   | Manual affiliation mapping (see below)                               |
-| `--identities <FILE>`               | Manual identity-merge file (see below)                               |
+| `--config <FILE.yml>`               | Curation file: identities, group aliases, affiliations (see below)   |
 | `--no-affiliation`                  | Disable auto group detection from profiles                           |
 | `--no-name-merge`                   | Don't merge identities that share an author name                     |
+| `--no-co-authors`                   | Don't credit `Co-authored-by` trailers (author only)                 |
+| `--refresh`                         | Ignore the cache and pull history + GitHub data fresh                |
 | `--accent <HEX>`                    | Bar accent colour (default: `#2f6feb`)                               |
 | `--theme <ID>`                      | Theme id: `auto`, `light`, `dark`, `wikipedia`, or a custom one      |
 | `--themes <FILE.json>`              | Define extra themes / configure the page's theme menu                |
@@ -208,23 +215,6 @@ contributor's GitHub profile. Variant spellings are merged, so `seqeralabs`,
 `Seqera Labs` and `Seqera` all count as one group. The most common groups get
 distinct colours; the long tail shares a neutral grey, and bots are dropped.
 
-For full control, supply a tab-separated file. Each row is `matcher<TAB>group`,
-where _matcher_ is a name, email, or GitHub login:
-
-```tsv
-# groups.tsv
-ewels	Seqera
-phil.ewels@seqera.io	Seqera
-Alexander Peltzer	Boehringer Ingelheim
-qbicsoftware	QBiC
-```
-
-```bash
-contributor-graphs nf-core/methylseq --groups groups.tsv
-```
-
-Manual mappings take precedence over auto-detected affiliations.
-
 To make the affiliations the _subject_ of the chart, pass `--by-affiliation`:
 one bar per organisation, with every member's commits merged into it. People
 with no detected affiliation are pooled into a single "Unaffiliated" row
@@ -235,35 +225,61 @@ with no detected affiliation are pooled into a single "Unaffiliated" row
 contributor-graphs nf-core/rnaseq --by-affiliation
 ```
 
-### Merging identities
+### Curation file (`--config`)
 
-Most duplicate identities (same email, or same name across emails) merge
-automatically. To force-merge the stragglers, supply a file where each row
-lists the canonical display name followed by any aliases (names, emails,
-logins):
+For manual control, pass a YAML curation file with any of three sections:
+**identities** (merge a person's names/emails/logins), **aliases** (group-name
+variants that mean the same org), and **affiliations** (who was where, and
+when). Manual values are authoritative: they're never renamed by the
+auto-merge.
 
-```tsv
-# identities.tsv
-Alexander Peltzer	apeltzer	a.peltzer@gmail.com	Alex Peltzer
-Patrick Hüther	phue	patrick.huether@example.org
+```yaml
+# curation.yml
+identities:
+  - [Alexander Peltzer, apeltzer, a.peltzer@gmail.com, Alex Peltzer]
+  - [Patrick Hüther, phue]
+
+aliases:
+  Seqera: [Seqera Labs, seqeralabs]
+  SciLifeLab: [Science for Life Laboratory]
+
+affiliations:
+  ewels:
+    - { group: SciLifeLab, until: "2022-05" }
+    - { group: Seqera, since: "2022-05" }
+  apeltzer:
+    - { group: QBiC, until: "2020-01" }
+    - { group: Boehringer Ingelheim, since: "2020-01" }
 ```
 
 ```bash
-contributor-graphs nf-core/methylseq --identities identities.tsv
+contributor-graphs nf-core/rnaseq --config curation.yml
 ```
+
+Each `affiliations` matcher is a name, email, or login; repeat periods to give
+one person several affiliations over time. Dates are `YYYY`, `YYYY-MM`, or
+`YYYY-MM-DD` (quote anything with a dash); `until` is exclusive, and overlaps
+resolve to the later `since`. A contributor's row is then drawn as one bar per
+period, coloured by the organisation active at the time, and the
+**by-affiliation** view splits their commits across those orgs by date.
 
 ## How it works
 
-1. `git log` extracts every commit's author name, email, and timestamp
-   (honouring `.mailmap`).
-2. Commits are clustered into identities by shared email, then by shared
-   author name.
+1. `git log` extracts every commit's author name, email, timestamp, and
+   `Co-authored-by` trailers (honouring `.mailmap`).
+2. Commits (authors and co-authors alike) are clustered into identities by
+   shared email, then by shared author name.
 3. For GitHub repos, each identity is resolved to a login + avatar (noreply
    emails offline; the rest via the commits API), then profiles are fetched for
    real names and companies. Clusters that resolve to the same login merge.
-4. Per-contributor stats and per-month activity bins are computed.
+4. Per-contributor stats and per-month activity bins are computed, with
+   affiliations applied (auto-detected, or curated per the `--config` file).
 5. The SVG and HTML are rendered. Avatars are embedded as data URIs so both
    files are fully self-contained.
+
+Clones, parsed history (keyed by the branch tip), and GitHub lookups are cached
+under `$XDG_CACHE_HOME/contributor-graphs` (`~/.cache/...`), so re-runs are fast;
+`--refresh` bypasses the cache.
 
 ## Releasing
 

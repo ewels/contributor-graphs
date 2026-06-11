@@ -1678,12 +1678,11 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
                       </td>
                     </tr>
                     <tr>
-                      <td class="flag">--groups</td>
-                      <td>TSV mapping contributors to organisations.</td>
-                    </tr>
-                    <tr>
-                      <td class="flag">--identities</td>
-                      <td>TSV merging a person's names and emails.</td>
+                      <td class="flag">--config</td>
+                      <td>
+                        YAML curation file: identities, group aliases, and
+                        time-bounded affiliations.
+                      </td>
                     </tr>
                     <tr>
                       <td class="flag">--since / --until</td>
@@ -1729,20 +1728,40 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
             the
             <a href="nf-core.html" target="_blank" rel="noopener"
               >whole-org example</a
-            >). The auto-detection is imperfect, so a small tab-separated file
-            overrides it:
+            >).
+          </p>
+          <p>
+            For manual control, pass a YAML curation file with
+            <code>--config</code>. It carries three optional sections:
+            <b>identities</b> (merge a person's names, emails, and logins),
+            <b>aliases</b> (group-name variants that mean the same org), and
+            <b>affiliations</b> (who was where, and when). Anything you write
+            here is authoritative and is never folded away by the
+            auto-detection.
           </p>
           <pre
             class="code"
-          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --groups groups.tsv">Copy</button><span class="cm"># groups.tsv: matcher (name, email, or login) maps to a group</span>
-ewels             Seqera
-apeltzer          Boehringer Ingelheim
-qbicsoftware      QBiC
+          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --config curation.yml">Copy</button><span class="cm"># curation.yml</span>
+identities:
+  - [Phil Ewels, ewels]
 
-<span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--groups groups.tsv</span></pre>
+aliases:
+  Seqera: [Seqera Labs, seqeralabs]
+
+affiliations:
+  ewels:
+    - { group: SciLifeLab, until: <span class="pr">"</span>2022-05<span class="pr">"</span> }
+    - { group: Seqera, since: <span class="pr">"</span>2022-05<span class="pr">"</span> }
+
+<span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--config curation.yml</span></pre>
           <p>
-            A matching <code>--identities</code> file does the same for people
-            who commit under several names or emails over the years.
+            Repeat the periods under a matcher to give one person several
+            affiliations over time (dates are <code>YYYY</code>,
+            <code>YYYY-MM</code>, or <code>YYYY-MM-DD</code>;
+            <code>until</code> is exclusive, overlaps resolve to the later
+            <code>since</code>). Their row is then drawn as one bar per period,
+            coloured by the organisation active at the time, and the
+            by-affiliation view splits their commits across those orgs by date.
           </p>
         </div>
       </section>
