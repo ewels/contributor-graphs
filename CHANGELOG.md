@@ -4,6 +4,44 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.2.0] - 2026-06-11
+
+### Added
+
+- Time-bounded affiliations: a contributor can hold several affiliations over
+  time, each with a `since` / `until` date range (`until` is exclusive; dates
+  are `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`). On overlap the newer range wins and
+  trims the older one. Each period renders as its own bar with rounded end caps,
+  so a person who changed organisation shows a distinct bar per affiliation with
+  gaps where there were no commits. The Wikipedia theme draws the same periods
+  as separate solid bands.
+- Co-authored commits: `Co-authored-by:` trailers are parsed from commit
+  messages and each co-author receives full credit for the commit, folded into
+  the same identity clustering as authors. On by default; disable with
+  `--no-co-authors`, or toggle live in the interactive page.
+- Unified YAML curation file (`--config`) replacing the old `--groups` /
+  `--identities` TSV flags. One file holds `identities` (merge a person's
+  several names/logins), `aliases` (group-name aliases, e.g. "Seqera Labs" and
+  "Seqera" are the same organisation), and time-bounded `affiliations`.
+- Caching for fast re-runs: git analysis is cached per repository and keyed by
+  the branch tip SHA, with freshness checked via `git ls-remote`; GitHub login,
+  profile, avatar, and org-listing lookups are cached with TTLs. Everything is
+  stored under the XDG cache directory. `--refresh` bypasses the caches.
+- Full-width toggle moved into the top button row (Full width | SVG | PNG |
+  Dark), alongside the other controls.
+
+### Changed
+
+- Affiliation filtering now masks the bars and activity, not just which rows
+  appear: selecting an affiliation shows only that affiliation's bar and its
+  commit counts for each person.
+- The tooltip and expanded row list all of a contributor's affiliations, not
+  just the most recent one, and the legend's "+N more" is now a button that
+  reveals every affiliation so any can be filtered.
+- Affiliations are labelled "current affiliations", since auto-detected company
+  data is often out of date.
+- Expanded-row detail text is larger and higher contrast for readability.
+
 ## [1.1.0] - 2026-06-11
 
 ### Added
