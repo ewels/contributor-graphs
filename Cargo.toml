@@ -1,10 +1,12 @@
 [package]
 name = "contributor-graphs"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+rust-version = "1.87"
 description = "Generate contributor timeline graphs (static SVG + interactive HTML) for any git or GitHub repository"
 license = "Apache-2.0"
 repository = "https://github.com/ewels/contributor-graphs"
+homepage = "https://ewels.github.io/contributor-graphs/"
 keywords = ["git", "github", "contributors", "visualization", "timeline"]
 categories = ["command-line-utilities", "visualization"]
 readme = "README.md"

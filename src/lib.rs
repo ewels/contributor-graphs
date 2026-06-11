@@ -6,26 +6,20 @@
 //! renderers in [`svg`] or [`html`].
 //!
 //! ```no_run
-//! use contributor_graphs::{analyze, Config, svg};
+//! use contributor_graphs::{analyze, svg, Config};
 //!
 //! let analysis = analyze("nf-core/rnaseq", &Config::default())?;
 //! let rows: Vec<_> = analysis.contributors.iter().filter(|c| !c.bot).cloned().collect();
 //! let opts = svg::SvgOptions {
-//!     width: 1100.0,
 //!     title: analysis.meta.name.clone(),
-//!     subtitle: String::new(),
-//!     footer_left: String::new(),
-//!     footer_right: String::new(),
-//!     accent: "#2f6feb".into(),
-//!     group_mode: false,
-//!     dark: false,
+//!     ..Default::default()
 //! };
 //! std::fs::write("rnaseq.svg", svg::render_svg(&rows, &opts))?;
 //! # Ok::<(), anyhow::Error>(())
 //! ```
 //!
 //! The lower-level modules ([`repo`], [`identity`], [`github`]) are public too,
-//! so callers can assemble a custom pipeline.
+//! for callers who want to assemble a custom pipeline.
 
 pub mod github;
 pub mod html;
@@ -113,11 +107,6 @@ pub enum Sort {
     Duration,
     /// Alphabetical by name.
     Name,
-}
-
-/// Number of distinct calendar months in which a contributor committed.
-pub fn active_months(c: &Contributor) -> u32 {
-    c.months.iter().filter(|&&v| v > 0).count() as u32
 }
 
 /// Sort contributor rows in place.
@@ -218,6 +207,17 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
         github::embed_avatars(&mut contributors, &client, cfg.avatar_size, cfg.verbose);
     }
 
+    // Owner/org avatar for the interactive page header.
+    let owner_avatar = if cfg.use_github && cfg.embed_avatars {
+        prepared
+            .slug
+            .as_deref()
+            .and_then(|s| s.split('/').next())
+            .and_then(|owner| github::fetch_avatar(&client, owner, 48))
+    } else {
+        None
+    };
+
     let first = contributors.iter().map(|c| c.first).min().unwrap_or(0);
     let last = contributors.iter().map(|c| c.last).max().unwrap_or(0);
     let meta = RepoMeta {
@@ -233,6 +233,7 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
         total_commits: commits.len() as u64,
         total_contributors: contributors.iter().filter(|c| !c.bot).count(),
         generated: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+        owner_avatar,
     };
 
     Ok(Analysis { contributors, meta })
@@ -249,7 +250,7 @@ fn distinct_emails(commits: &[model::Commit]) -> usize {
 /// case/punctuation differences ("Seqera Labs" vs "seqeralabs"), a leading
 /// "The", and prefix forms ("Seqera" vs "Seqera Labs"). Returns the final
 /// group count.
-pub fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
+fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
     use std::collections::HashMap;
     let alnum_key = |g: &str| -> String {
         let lower = g.to_lowercase();

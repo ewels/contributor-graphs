@@ -393,20 +393,62 @@
         margin: clamp(36px, 5vw, 60px) 0 0;
       }
       .figframe {
+        display: block;
+        position: relative;
         background: var(--paper-2);
         border: 1px solid var(--rule);
         border-radius: 14px;
-        padding: 10px;
+        padding: 8px;
         box-shadow:
           0 1px 2px rgba(33, 31, 26, 0.04),
           0 30px 60px -40px rgba(33, 31, 26, 0.35);
+        transition: box-shadow 0.2s ease;
+        color: var(--ink-soft);
+        text-decoration: none;
       }
-      .figframe img {
+      .figframe:hover,
+      .figframe:hover .openlink {
+        text-decoration: none;
+      }
+      .figframe:hover {
+        box-shadow:
+          0 1px 2px rgba(33, 31, 26, 0.06),
+          0 36px 70px -38px rgba(33, 31, 26, 0.45);
+      }
+      .figframe video {
         display: block;
         width: 100%;
         height: auto;
-        border-radius: 7px;
-        transition: opacity 0.3s ease;
+        border-radius: 8px;
+      }
+      .fighint {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-6px);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--ink);
+        color: var(--paper-2);
+        font-size: 13.5px;
+        font-weight: 500;
+        padding: 8px 15px;
+        border-radius: 99px;
+        box-shadow: 0 8px 24px -8px rgba(33, 31, 26, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.18s ease,
+          transform 0.18s ease;
+      }
+      .fighint svg {
+        width: 14px;
+        height: 14px;
+      }
+      .figframe:hover .fighint {
+        opacity: 1;
+        transform: translateX(-50%);
       }
       .figbar {
         display: flex;
@@ -428,35 +470,10 @@
         color: var(--ink);
         font-size: 13px;
       }
-      .seg {
-        display: inline-flex;
-        background: var(--paper);
-        border: 1px solid var(--rule-strong);
-        border-radius: 9px;
-        padding: 3px;
-      }
-      .seg button {
-        appearance: none;
-        border: none;
-        background: none;
-        cursor: pointer;
-        font-family: var(--sans);
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--ink-soft);
-        padding: 5px 13px;
-        border-radius: 6px;
-        transition:
-          color 0.15s,
-          background 0.15s;
-      }
-      .seg button[aria-pressed="true"] {
-        background: var(--ink);
-        color: var(--paper-2);
-      }
       .openlink {
         font-size: 13.5px;
         font-family: var(--sans);
+        color: var(--accent);
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -861,42 +878,50 @@
         </div>
 
         <figure class="figure reveal">
-          <div class="figframe">
-            <img
-              id="showcase"
-              src="example-rnaseq.svg"
-              alt="Contributor timeline for nf-core/rnaseq"
-            />
+          <a
+            class="figframe"
+            href="rnaseq.html"
+            target="_blank"
+            rel="noopener"
+            title="Open the interactive version (opens in a new tab)"
+          >
+            <video
+              poster="app-rnaseq.png"
+              autoplay
+              loop
+              muted
+              playsinline
+              aria-label="Filtering, sorting, grouping and zooming the interactive chart"
+            >
+              <source src="demo.mp4" type="video/mp4" />
+            </video>
+            <span class="fighint"
+              >Open the interactive version
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+              >
+                <path d="M6 3h7v7M13 3 4 12" /></svg
+            ></span>
             <div class="figbar">
               <span class="figcap">
                 <span class="repo">nf-core/rnaseq</span>
-                <span id="figcap-mode">108 contributors over a decade</span>
+                <span>search, filter, group, zoom — live</span>
               </span>
-              <span style="display: flex; gap: 14px; align-items: center">
-                <span class="seg" role="group" aria-label="View mode">
-                  <button id="m-contrib" aria-pressed="true">
-                    Contributors
-                  </button>
-                  <button id="m-aff" aria-pressed="false">Affiliations</button>
-                </span>
-                <a
-                  class="openlink"
-                  href="rnaseq.html"
-                  target="_blank"
-                  rel="noopener"
-                  >Open interactive
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path d="M6 3h7v7M13 3 4 12" />
-                  </svg>
-                </a>
-              </span>
+              <span class="openlink"
+                >Open interactive
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M6 3h7v7M13 3 4 12" /></svg
+              ></span>
             </div>
-          </div>
+          </a>
         </figure>
       </div>
     </header>
@@ -1268,46 +1293,6 @@ qbicsoftware      QBiC
             copy(btn.parentElement.innerText.replace(/^Copy\n?/, "").trim()),
           ),
         );
-
-      // showcase mode toggle
-      const img = $("#showcase"),
-        cap = $("#figcap-mode");
-      const MODES = {
-        contrib: {
-          src: "example-rnaseq.svg",
-          cap: "108 contributors over a decade",
-        },
-        aff: {
-          src: "example-rnaseq-affiliation.svg",
-          cap: "grouped into 42 affiliations",
-        },
-      };
-      function setMode(mode) {
-        $("#m-contrib").setAttribute("aria-pressed", mode === "contrib");
-        $("#m-aff").setAttribute("aria-pressed", mode === "aff");
-        const m = MODES[mode];
-        img.style.opacity = "0";
-        const swap = () => {
-          img.src = m.src;
-          cap.textContent = m.cap;
-        };
-        if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          swap();
-          img.style.opacity = "1";
-          return;
-        }
-        setTimeout(() => {
-          swap();
-          img.onload = () => {
-            img.style.opacity = "1";
-            img.onload = null;
-          };
-        }, 180);
-      }
-      $("#m-contrib").addEventListener("click", () => setMode("contrib"));
-      $("#m-aff").addEventListener("click", () => setMode("aff"));
-      // preload the affiliation view
-      new Image().src = MODES.aff.src;
     </script>
   </body>
 </html>

@@ -290,7 +290,9 @@ pub fn build_contributors(
         }
         let m0 = month_index(first);
         let m1 = month_index(last);
-        let mut months = vec![0u32; (m1 - m0 + 1).max(1) as usize];
+        // Clamp the span so a single corrupt/extreme commit date can't trigger
+        // a huge allocation (commits outside the window are simply not binned).
+        let mut months = vec![0u32; (m1 - m0 + 1).clamp(1, 6000) as usize];
         for &i in &cl.commit_idxs {
             let mi = month_index(commits[i].ts) - m0;
             if let Some(slot) = months.get_mut(mi as usize) {

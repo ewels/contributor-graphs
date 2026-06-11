@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
-    <img src="docs/logo.svg" alt="contributor-graphs" height="76">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ewels/contributor-graphs/main/docs/logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/ewels/contributor-graphs/main/docs/logo.svg" alt="contributor-graphs" height="76">
   </picture>
 </p>
 
@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml"><img src="https://github.com/ewels/contributor-graphs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
+  <a href="https://github.com/ewels/contributor-graphs/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
   <a href="https://ewels.github.io/contributor-graphs/"><img src="https://img.shields.io/badge/docs-website-2f5fd0.svg" alt="Docs"></a>
 </p>
 
@@ -21,10 +21,12 @@ are shaded by monthly commit activity, so it's easy to see who was active when
 and how a project grew over the years.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/example-rnaseq-dark.svg">
-    <img src="docs/example-rnaseq.svg" alt="Contributor timeline for nf-core/rnaseq" width="100%">
-  </picture>
+  <a href="https://ewels.github.io/contributor-graphs/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ewels/contributor-graphs/main/docs/app-rnaseq-dark.png">
+      <img src="https://raw.githubusercontent.com/ewels/contributor-graphs/main/docs/app-rnaseq.png" alt="The interactive contributor-graphs page for nf-core/rnaseq" width="100%">
+    </picture>
+  </a>
 </p>
 
 <p align="center">
@@ -224,4 +226,4 @@ crates.io publishing uses [Trusted Publishing](https://crates.io/docs/trusted-pu
 
 ## License
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](https://github.com/ewels/contributor-graphs/blob/main/LICENSE)

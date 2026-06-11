@@ -201,6 +201,19 @@ pub fn enrich_clusters(
     }
 }
 
+/// Fetch a GitHub avatar (e.g. an org/owner) and return it as a data URI.
+pub fn fetch_avatar(client: &GhClient, login: &str, size: u32) -> Option<String> {
+    let url = format!("https://avatars.githubusercontent.com/{login}?s={size}");
+    let (bytes, ct) = client.fetch_bytes(&url)?;
+    let ct = if ct.starts_with("image/") {
+        ct
+    } else {
+        "image/png".into()
+    };
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Some(format!("data:{ct};base64,{b64}"))
+}
+
 /// Clean up the free-text GitHub `company` field into a usable group name.
 /// Handles common patterns like "@seqeralabs", "QBiC @qbicsoftware", and
 /// multi-affiliation strings ("Seqera | SciLifeLab" → "Seqera").

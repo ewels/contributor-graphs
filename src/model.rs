@@ -78,9 +78,12 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
             let agg = map.remove(&key).unwrap();
             let m0 = *agg.months.keys().min().unwrap_or(&month_index(agg.first));
             let m1 = *agg.months.keys().max().unwrap_or(&m0);
-            let mut months = vec![0u32; (m1 - m0 + 1).max(1) as usize];
+            let len = (m1 - m0 + 1).clamp(1, 6000) as usize;
+            let mut months = vec![0u32; len];
             for (&m, &v) in &agg.months {
-                months[(m - m0) as usize] = v;
+                if let Some(slot) = months.get_mut((m - m0) as usize) {
+                    *slot += v;
+                }
             }
             let mut members = agg.members;
             members.sort_by_key(|(_, commits)| std::cmp::Reverse(*commits));
@@ -116,6 +119,9 @@ pub struct RepoMeta {
     pub total_commits: u64,
     pub total_contributors: usize,
     pub generated: String,
+    /// Owner/org avatar as a data URI, for the interactive page header.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_avatar: Option<String>,
 }
 
 pub fn month_index(ts: i64) -> i32 {

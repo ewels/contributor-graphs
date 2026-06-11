@@ -1,15 +1,15 @@
 # Generated showcase assets — exclude from GitHub language stats and diffs.
 # (docs/index.html is hand-written and intentionally left counted.)
 docs/rnaseq.html linguist-generated=true
-docs/multiqc.html linguist-generated=true
 docs/example-rnaseq.svg linguist-generated=true
-docs/example-rnaseq-dark.svg linguist-generated=true
-docs/example-rnaseq-affiliation.svg linguist-generated=true
 docs/logo.svg linguist-generated=true
 docs/logo-dark.svg linguist-generated=true
 docs/favicon.svg linguist-generated=true
 docs/og-card.png linguist-generated=true
 docs/og-card.html linguist-generated=true
+docs/app-rnaseq.png linguist-generated=true
+docs/app-rnaseq-dark.png linguist-generated=true
+docs/demo.mp4 linguist-generated=true
 
 # Lockfile: collapse in diffs.
 Cargo.lock linguist-generated=true

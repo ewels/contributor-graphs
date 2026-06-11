@@ -11,9 +11,24 @@ pub struct SvgOptions {
     pub footer_right: String,
     pub accent: String,
     /// Each row is a whole affiliation rather than one person.
-    pub group_mode: bool,
+    pub by_affiliation: bool,
     /// Render on a dark background.
     pub dark: bool,
+}
+
+impl Default for SvgOptions {
+    fn default() -> Self {
+        SvgOptions {
+            width: 1100.0,
+            title: String::new(),
+            subtitle: String::new(),
+            footer_left: String::new(),
+            footer_right: String::new(),
+            accent: "#2f6feb".into(),
+            by_affiliation: false,
+            dark: false,
+        }
+    }
 }
 
 pub const GROUP_PALETTE: &[&str] = &[
@@ -244,7 +259,10 @@ pub fn smooth_months(months: &[u32]) -> Vec<f64> {
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let th = if opts.dark { &DARK } else { &LIGHT };
-    let width = opts.width;
+    let width = opts.width.max(360.0);
+    // Colours are interpolated raw into SVG attributes; keep the user-supplied
+    // accent from breaking out of them.
+    let accent = esc(&opts.accent);
 
     let t_first = rows.iter().map(|c| c.first).min().unwrap_or(0);
     let t_last = rows.iter().map(|c| c.last).max().unwrap_or(1);
@@ -261,7 +279,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     }
     // In affiliation mode every row is its own group, so the legend would just
     // duplicate the y-axis — suppress it.
-    let show_legend = has_groups && !opts.group_mode;
+    let show_legend = has_groups && !opts.by_affiliation;
     if !show_legend {
         legend.clear();
     }
@@ -448,12 +466,12 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                 if has_groups {
                     OTHER_GROUP_COLOR.to_string()
                 } else {
-                    opts.accent.clone()
+                    accent.clone()
                 }
             });
 
         let _ = write!(s, r#"<g class="row">"#);
-        if opts.group_mode {
+        if opts.by_affiliation {
             let people = if c.members == 1 { "person" } else { "people" };
             let _ = write!(
                 s,
@@ -478,7 +496,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
 
         // Avatar, member-count badge (affiliation mode), or initials fallback.
         let acx = label_w - 16.0 - AVATAR / 2.0;
-        if opts.group_mode {
+        if opts.by_affiliation {
             let label = if c.members < 100 {
                 c.members.to_string()
             } else {

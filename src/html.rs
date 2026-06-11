@@ -8,6 +8,16 @@ pub struct HtmlOptions {
     pub unaffiliated_label: String,
 }
 
+impl Default for HtmlOptions {
+    fn default() -> Self {
+        HtmlOptions {
+            accent: "#2f6feb".into(),
+            by_affiliation: false,
+            unaffiliated_label: "Unaffiliated".into(),
+        }
+    }
+}
+
 pub fn render_html(meta: &RepoMeta, contributors: &[Contributor], opts: &HtmlOptions) -> String {
     let data = serde_json::json!({
         "repo": meta,
