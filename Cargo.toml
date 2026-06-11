@@ -7,6 +7,9 @@ license = "Apache-2.0"
 repository = "https://github.com/ewels/contributor-graphs"
 keywords = ["git", "github", "contributors", "visualization", "timeline"]
 categories = ["command-line-utilities", "visualization"]
+readme = "README.md"
+# Keep the published crate lean — ship the source, not the docs site or CI.
+exclude = ["/docs", "/.github", "/.claude", "/Dockerfile", "/.dockerignore", "/prek.toml", "/.prettierignore"]
 
 [[bin]]
 name = "contributor-graphs"

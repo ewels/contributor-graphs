@@ -120,6 +120,7 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `-b, --branch <REF>`                | Which branch/ref to read (default: `HEAD`)                           |
 | `--since <DATE>` / `--until <DATE>` | Restrict the commit window                                           |
 | `--min-commits <N>`                 | Hide contributors below `N` commits in the SVG (default: 1)          |
+| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first→last span) from the SVG |
 | `--max-contributors <N>`            | Cap SVG rows to the top `N` by commits (default: 40)                 |
 | `--include-bots`                    | Keep bot accounts (excluded by default)                              |
 | `--exclude <PATTERN>`               | Drop contributors matching a name/login (repeatable)                 |
@@ -201,6 +202,25 @@ contributor-graphs nf-core/methylseq --identities identities.tsv
 4. Per-contributor stats and per-month activity bins are computed.
 5. The SVG and HTML are rendered. Avatars are embedded as data URIs so both
    files are fully self-contained.
+
+## Releasing
+
+Releases are cut by publishing a GitHub Release whose tag is the version
+(e.g. `v0.1.0`). That triggers the workflows to build cross-platform binaries,
+attach them to the release, build the multi-arch Docker image, and publish to
+crates.io.
+
+crates.io publishing uses [Trusted Publishing](https://crates.io/docs/trusted-publishing)
+(OIDC — no API token stored in the repo). One-time setup:
+
+1. Publish the first version manually (Trusted Publishing can't attach to a
+   crate that doesn't exist yet): create a short-lived token at crates.io →
+   Account Settings → API Tokens, then `cargo publish` (run `cargo publish
+--dry-run` first). Revoke the token afterwards.
+2. On crates.io → the crate → Settings → Trusted Publishing, add a GitHub
+   publisher: owner `ewels`, repo `contributor-graphs`, workflow `release.yml`.
+3. From then on, bump `version` in `Cargo.toml`, then publish a GitHub Release —
+   the workflow mints a short-lived token via OIDC and publishes automatically.
 
 ## License
 
