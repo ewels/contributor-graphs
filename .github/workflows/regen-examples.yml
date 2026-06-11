@@ -47,5 +47,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git commit -m "Regenerate docs examples [skip ci]"
+          # No [skip ci]: this commit touches only docs/**, which the Pages
+          # deploy needs to see. regen-examples only triggers on source paths,
+          # so a docs-only commit never retriggers this workflow.
+          git commit -m "Regenerate docs examples"
           git push
