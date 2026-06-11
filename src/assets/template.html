@@ -381,7 +381,43 @@
         margin: 0 0 2px;
         padding: 0 8px;
         display: flex;
+        align-items: center;
         justify-content: space-between;
+      }
+      .context-card .hint-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: none;
+      }
+      .ctx-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 18px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--faint);
+        cursor: pointer;
+        transition:
+          color 0.12s,
+          background 0.12s,
+          border-color 0.12s;
+      }
+      .ctx-toggle:hover {
+        color: var(--muted);
+        background: var(--accent-soft);
+      }
+      .ctx-toggle[aria-pressed="true"] {
+        color: var(--accent);
+        border-color: var(--border-strong);
+      }
+      .ctx-toggle svg {
+        width: 14px;
+        height: 14px;
       }
       #context {
         display: block;
@@ -699,7 +735,28 @@
           <span
             >Repository activity — drag to zoom the timeline, double-click to
             reset</span
-          ><span id="brush-label"></span>
+          >
+          <span class="hint-right">
+            <span id="brush-label"></span>
+            <button
+              class="ctx-toggle"
+              id="align-ctx"
+              type="button"
+              aria-pressed="false"
+              title="Align the activity plot with the rows below"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1.5 8h13M4 5 1.5 8 4 11M12 5l2.5 3-2.5 3" />
+              </svg>
+            </button>
+          </span>
         </p>
         <svg id="context" height="64"></svg>
       </div>
@@ -921,6 +978,7 @@
         sort: "first",
         color: DEFAULT_COLOR,
         bots: false,
+        align: false, // align the activity strip with the rows (default: full width)
         t0: null,
         t1: null,
         gsel: new Set(),
@@ -992,6 +1050,7 @@
           if (p.has("sort")) state.sort = p.get("sort");
           if (p.has("color")) state.color = p.get("color");
           if (p.has("bots")) state.bots = p.get("bots") === "1";
+          if (p.has("align")) state.align = p.get("align") === "1";
           if (p.has("t0")) state.t0 = +p.get("t0");
           if (p.has("t1")) state.t1 = +p.get("t1");
           if (p.has("g"))
@@ -1019,6 +1078,7 @@
           if (state.sort !== "first") p.set("sort", state.sort);
           if (state.color !== DEFAULT_COLOR) p.set("color", state.color);
           if (state.bots) p.set("bots", "1");
+          if (state.align) p.set("align", "1");
           if (state.t0 != null) {
             p.set("t0", Math.round(state.t0));
             p.set("t1", Math.round(state.t1));
@@ -1479,18 +1539,22 @@
       function renderContext() {
         const svg = $("#context");
         const th = theme();
-        // Share the chart's width and plotting origin so the activity curve
-        // lines up horizontally with the rows below it.
         const { width, chartX, chartW } = computeLayout();
         svg.setAttribute("width", width);
         svg.setAttribute("viewBox", `0 0 ${width} ${CTX_H}`);
+
+        // When "align" is on, share the chart's plotting origin so the activity
+        // curve lines up with the rows below; otherwise span the full width.
+        const padX = 6;
+        const x0 = state.align ? chartX : padX;
+        const w = state.align ? chartW : width - padX * 2;
 
         // The whole-repo range, padded exactly like the chart at full zoom.
         const d0 = REPO.first,
           d1 = REPO.last;
         const [t0, t1] = paddedDomain(d0, d1);
-        const sx = (ts) => chartX + ((ts - t0) / (t1 - t0)) * chartW;
-        ctxGeom = { sx, t0, t1, chartX, chartW };
+        const sx = (ts) => x0 + ((ts - t0) / (t1 - t0)) * w;
+        ctxGeom = { sx, t0, t1, x0, w };
 
         const { m0, bins } = SERIES;
         const max = maxOf(bins, 1);
@@ -1516,7 +1580,7 @@
           `<polyline points="${pts.join(" ")}" fill="none" stroke="${th.ctxLine}" stroke-width="1.2"/>`,
         );
         parts.push(
-          `<line x1="${chartX - 4}" y1="${baseY}" x2="${chartX + chartW + 4}" y2="${baseY}" stroke="${th.gridYear}"/>`,
+          `<line x1="${x0}" y1="${baseY}" x2="${x0 + w}" y2="${baseY}" stroke="${th.gridYear}"/>`,
         );
         // Brush layer (updated separately).
         parts.push(`<g id="brushg"></g>`);
@@ -1536,8 +1600,8 @@
         }
         const x0 = ctxGeom.sx(state.t0),
           x1 = ctxGeom.sx(state.t1);
-        const gx0 = ctxGeom.chartX,
-          gx1 = ctxGeom.chartX + ctxGeom.chartW;
+        const gx0 = ctxGeom.x0,
+          gx1 = ctxGeom.x0 + ctxGeom.w;
         g.innerHTML =
           `<rect x="${gx0}" y="2" width="${Math.max(0, x0 - gx0)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
           `<rect x="${x1}" y="2" width="${Math.max(0, gx1 - x1)}" height="${baseY - 2}" fill="${theme().dim}"/>` +
@@ -1554,12 +1618,12 @@
         const tsAt = (clientX) => {
           const rect = svg.getBoundingClientRect();
           const x = Math.min(
-            Math.max(clientX - rect.left, ctxGeom.chartX),
-            ctxGeom.chartX + ctxGeom.chartW,
+            Math.max(clientX - rect.left, ctxGeom.x0),
+            ctxGeom.x0 + ctxGeom.w,
           );
           return (
             ctxGeom.t0 +
-            ((x - ctxGeom.chartX) / ctxGeom.chartW) * (ctxGeom.t1 - ctxGeom.t0)
+            ((x - ctxGeom.x0) / ctxGeom.w) * (ctxGeom.t1 - ctxGeom.t0)
           );
         };
         svg.addEventListener("pointerdown", (e) => {
@@ -1772,7 +1836,20 @@
         $("#color").disabled = aff;
         $("#color").closest(".ctl").style.opacity = aff ? ".5" : "";
         $("#bots").checked = state.bots;
+        $("#align-ctx").setAttribute(
+          "aria-pressed",
+          state.align ? "true" : "false",
+        );
       }
+      $("#align-ctx").addEventListener("click", () => {
+        state.align = !state.align;
+        $("#align-ctx").setAttribute(
+          "aria-pressed",
+          state.align ? "true" : "false",
+        );
+        renderContext();
+        writeHash();
+      });
       $("#rows").addEventListener("change", (e) => {
         state.mode = e.target.value;
         state.gsel.clear();
@@ -1834,6 +1911,7 @@
         state.sort = "first";
         state.color = DEFAULT_COLOR;
         state.bots = false;
+        state.align = false;
         state.t0 = state.t1 = null;
         state.gsel.clear();
         syncControls();

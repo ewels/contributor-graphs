@@ -14,10 +14,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- The interactive page's total-activity strip now shares the chart's left
-  margin and time scale, so its plotting area lines up exactly with the
-  contributor rows: a spike in overall activity sits directly above the rows
-  that drove it.
+- The interactive page's total-activity strip can line its plotting area up
+  with the contributor rows, so a spike in overall activity sits directly above
+  the rows that drove it. Toggle it with the ↔ button on the activity bar; the
+  strip stays full-width by default.
 
 ## [1.0.0] - 2026-06-11
 
