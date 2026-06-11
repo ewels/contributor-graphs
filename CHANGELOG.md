@@ -22,7 +22,7 @@ All notable changes to this project are documented here. The format follows
   sans-serif body, Wikipedia colours, square controls, and a distinct solid bar
   per contributor. The interactive page merges theme selection into a single
   top-nav dropdown (Light / Dark / Wikipedia) that defaults to the OS
-  preference; the SVG takes `--skin wikipedia`.
+  preference; the SVG takes `--theme wikipedia`.
 - The interactive header shows the GitHub repository description, when it has one.
 - Custom, extensible themes: define extra themes in a JSON file (`--themes`),
   inheriting from a built-in via `extends` and overriding only the colours/fonts
