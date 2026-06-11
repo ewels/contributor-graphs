@@ -1,13 +1,7 @@
-mod github;
-mod html;
-mod identity;
-mod model;
-mod repo;
-mod svg;
-
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
-use model::{format_month_year, thousands, Contributor, RepoMeta};
+use contributor_graphs::{analyze, html, model, svg, Analysis, Config, Contributor, Sort};
+use model::{format_month_year, thousands};
 use std::path::PathBuf;
 
 /// Generate contributor timeline graphs for a git/GitHub repository:
@@ -49,6 +43,11 @@ struct Args {
     /// Minimum commits for a contributor to appear in the static SVG
     #[arg(long, default_value_t = 1)]
     min_commits: u32,
+
+    /// Minimum span in days from a contributor's first to last commit, for the
+    /// static SVG (drops one-off and short-burst contributors)
+    #[arg(long, default_value_t = 0)]
+    min_span_days: i64,
 
     /// Maximum rows in the static SVG (top contributors by commits)
     #[arg(long, default_value_t = 40)]
@@ -134,6 +133,18 @@ enum SortKey {
     Name,
 }
 
+impl From<SortKey> for Sort {
+    fn from(k: SortKey) -> Sort {
+        match k {
+            SortKey::First => Sort::First,
+            SortKey::Last => Sort::Last,
+            SortKey::Commits => Sort::Commits,
+            SortKey::Duration => Sort::Duration,
+            SortKey::Name => Sort::Name,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, ValueEnum)]
 enum Format {
     Svg,
@@ -161,68 +172,9 @@ fn read_tsv(path: &PathBuf) -> Result<Vec<Vec<String>>> {
 fn main() -> Result<()> {
     let args = Args::parse();
     let started = std::time::Instant::now();
-
     eprintln!("contributor-graphs");
-    let prepared = repo::prepare(&args.repo, args.branch.as_deref())?;
-    eprintln!(
-        "→ repository: {} (branch {})",
-        prepared.display_name, prepared.branch
-    );
 
-    let commits = repo::read_commits(
-        &prepared,
-        args.branch.as_deref(),
-        args.since.as_deref(),
-        args.until.as_deref(),
-        args.no_merges,
-    )?;
-    if commits.is_empty() {
-        bail!("no commits found");
-    }
-    let raw_identities = {
-        let mut e: Vec<&str> = commits.iter().map(|c| c.email.as_str()).collect();
-        e.sort_unstable();
-        e.dedup();
-        e.len()
-    };
-    eprintln!(
-        "→ {} commits from {} distinct author emails",
-        thousands(commits.len() as u64),
-        raw_identities
-    );
-
-    // ---- identity clustering ----
-    let mut clusters = identity::cluster_commits(&commits, !args.no_name_merge);
-
-    // ---- GitHub enrichment ----
-    let client = github::GhClient::new(if args.no_github {
-        None
-    } else {
-        github::find_token()
-    });
-    if !args.no_github {
-        if let Some(slug) = &prepared.slug {
-            eprintln!("→ enriching from GitHub ({slug})");
-            github::enrich_clusters(&mut clusters, &commits, slug, &client);
-            clusters = identity::merge_by_login(clusters);
-            github::fetch_profiles(&mut clusters, &client);
-            if args.no_affiliation {
-                for cl in clusters.iter_mut() {
-                    cl.affiliation = None;
-                }
-            }
-        } else {
-            eprintln!("→ not a GitHub repo, skipping enrichment");
-        }
-    }
-
-    if let Some(path) = &args.identities {
-        let rows = read_tsv(path)?;
-        clusters = identity::apply_identity_file(clusters, &rows);
-        eprintln!("→ applied identity overrides from {}", path.display());
-    }
-
-    let groups: Vec<(String, String)> = match &args.groups {
+    let groups = match &args.groups {
         Some(path) => read_tsv(path)?
             .into_iter()
             .filter(|r| r.len() >= 2)
@@ -230,62 +182,35 @@ fn main() -> Result<()> {
             .collect(),
         None => Vec::new(),
     };
-
-    let mut contributors = identity::build_contributors(&clusters, &commits, &groups);
-
-    let n_groups = canonicalize_groups(&mut contributors);
-    if n_groups > 0 {
-        eprintln!("→ {n_groups} distinct affiliations/groups");
-    }
-
-    // Drop explicitly excluded contributors entirely.
-    if !args.exclude.is_empty() {
-        contributors.retain(|c| {
-            !args.exclude.iter().any(|pat| {
-                let p = pat.to_lowercase();
-                c.name.to_lowercase().contains(&p)
-                    || c.login
-                        .as_deref()
-                        .is_some_and(|l| l.to_lowercase().contains(&p))
-            })
-        });
-    }
-
-    let n_bots = contributors.iter().filter(|c| c.bot).count();
-    eprintln!(
-        "→ merged to {} contributors ({} bots)",
-        contributors.len(),
-        n_bots
-    );
-
-    // ---- avatars ----
-    if !args.no_embed_avatars && !args.no_github {
-        github::embed_avatars(&mut contributors, &client, 64);
-    }
-
-    // ---- metadata ----
-    let first = contributors.iter().map(|c| c.first).min().unwrap_or(0);
-    let last = contributors.iter().map(|c| c.last).max().unwrap_or(0);
-    let meta = RepoMeta {
-        name: args
-            .title
-            .clone()
-            .unwrap_or_else(|| prepared.display_name.clone()),
-        url: prepared.url.clone(),
-        slug: prepared.slug.clone(),
-        branch: prepared.branch.clone(),
-        first,
-        last,
-        total_commits: commits.len() as u64,
-        total_contributors: contributors.iter().filter(|c| !c.bot).count(),
-        generated: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+    let identities = match &args.identities {
+        Some(path) => read_tsv(path)?,
+        None => Vec::new(),
     };
+
+    let cfg = Config {
+        branch: args.branch.clone(),
+        since: args.since.clone(),
+        until: args.until.clone(),
+        no_merges: args.no_merges,
+        title: args.title.clone(),
+        exclude: args.exclude.clone(),
+        groups,
+        identities,
+        use_github: !args.no_github,
+        detect_affiliation: !args.no_affiliation,
+        merge_names: !args.no_name_merge,
+        embed_avatars: !args.no_embed_avatars,
+        avatar_size: 64,
+        verbose: true,
+    };
+
+    let Analysis { contributors, meta } = analyze(&args.repo, &cfg)?;
 
     std::fs::create_dir_all(&args.output_dir)?;
     let basename = args
         .basename
         .clone()
-        .unwrap_or_else(|| repo::sanitize(&prepared.display_name));
+        .unwrap_or_else(|| contributor_graphs::repo::sanitize(&meta.name));
 
     // ---- static SVG ----
     if matches!(args.format, Format::Svg | Format::Both) {
@@ -299,13 +224,14 @@ fn main() -> Result<()> {
         } else {
             base
         };
-        rows.retain(|c| c.commits >= args.min_commits);
+        let min_span = args.min_span_days * 86400;
+        rows.retain(|c| c.commits >= args.min_commits && (c.last - c.first) >= min_span);
         let eligible = rows.len();
         if rows.len() > args.max_contributors {
             rows.sort_by_key(|c| std::cmp::Reverse(c.commits));
             rows.truncate(args.max_contributors);
         }
-        sort_rows(&mut rows, args.sort);
+        contributor_graphs::sort(&mut rows, args.sort.into());
 
         let unit = if args.by_affiliation {
             "affiliations"
@@ -359,7 +285,7 @@ fn main() -> Result<()> {
     // ---- interactive HTML ----
     if matches!(args.format, Format::Html | Format::Both) {
         let mut all = contributors.clone();
-        sort_rows(&mut all, SortKey::First);
+        contributor_graphs::sort(&mut all, Sort::First);
         let html_opts = html::HtmlOptions {
             accent: args.accent.clone(),
             by_affiliation: args.by_affiliation,
@@ -384,78 +310,4 @@ fn main() -> Result<()> {
 
     eprintln!("✓ done in {:.1}s", started.elapsed().as_secs_f64());
     Ok(())
-}
-
-/// Merge group-name variants that refer to the same organisation:
-/// case/punctuation differences ("Seqera Labs" vs "seqeralabs") and
-/// prefix forms ("Seqera" vs "Seqera Labs"). Returns the final group count.
-fn canonicalize_groups(contributors: &mut [Contributor]) -> usize {
-    use std::collections::HashMap;
-    let alnum_key = |g: &str| -> String {
-        let lower = g.to_lowercase();
-        let trimmed = lower.strip_prefix("the ").unwrap_or(&lower);
-        trimmed.chars().filter(|c| c.is_alphanumeric()).collect()
-    };
-
-    // Count members per raw variant.
-    let mut variants: HashMap<String, usize> = HashMap::new();
-    for c in contributors.iter() {
-        if let Some(g) = &c.group {
-            *variants.entry(g.clone()).or_default() += 1;
-        }
-    }
-
-    // Map each variant to a cluster key, merging prefix forms (≥6 chars).
-    let mut keys: Vec<String> = variants.keys().map(|g| alnum_key(g)).collect();
-    keys.sort();
-    keys.dedup();
-    let resolve = |key: &str| -> String {
-        keys.iter()
-            .filter(|k| k.len() >= 6 && key.starts_with(*k))
-            .min_by_key(|k| k.len())
-            .map(|k| k.to_string())
-            .unwrap_or_else(|| key.to_string())
-    };
-
-    // Pick the best display spelling per cluster: most members, then
-    // prefer spellings with spaces and capital letters.
-    let mut best: HashMap<String, (&String, usize)> = HashMap::new();
-    for (g, n) in &variants {
-        let cluster = resolve(&alnum_key(g));
-        let score = |g: &str, n: usize| {
-            n * 4
-                + usize::from(g.contains(' ')) * 2
-                + usize::from(g.chars().any(|c| c.is_uppercase()))
-        };
-        let entry = best.entry(cluster).or_insert((g, *n));
-        if score(g, *n) > score(entry.0, entry.1) {
-            *entry = (g, *n);
-        }
-    }
-
-    let display: HashMap<String, String> = best
-        .iter()
-        .map(|(k, (g, _))| (k.clone(), (*g).clone()))
-        .collect();
-    for c in contributors.iter_mut() {
-        if let Some(g) = &c.group {
-            c.group = display
-                .get(&resolve(&alnum_key(g)))
-                .cloned()
-                .or(c.group.clone());
-        }
-    }
-    display.len()
-}
-
-fn sort_rows(rows: &mut [Contributor], key: SortKey) {
-    match key {
-        SortKey::First => {
-            rows.sort_by(|a, b| a.first.cmp(&b.first).then(b.commits.cmp(&a.commits)))
-        }
-        SortKey::Last => rows.sort_by(|a, b| b.last.cmp(&a.last).then(b.commits.cmp(&a.commits))),
-        SortKey::Commits => rows.sort_by_key(|c| std::cmp::Reverse(c.commits)),
-        SortKey::Duration => rows.sort_by_key(|c| std::cmp::Reverse(c.last - c.first)),
-        SortKey::Name => rows.sort_by_key(|a| a.name.to_lowercase()),
-    }
 }

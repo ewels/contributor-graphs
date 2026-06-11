@@ -1,0 +1,8 @@
+target/
+.git/
+docs/
+.github/
+.claude/
+*.svg
+.prettierignore
+prek.toml

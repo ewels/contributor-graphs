@@ -138,6 +138,7 @@ pub fn enrich_clusters(
     commits: &[Commit],
     slug: &str,
     client: &GhClient,
+    verbose: bool,
 ) {
     let mut need_api: Vec<(usize, String)> = Vec::new();
     for (i, cl) in clusters.iter_mut().enumerate() {
@@ -161,7 +162,7 @@ pub fn enrich_clusters(
     }
 
     if need_api.is_empty() || !client.has_token() {
-        if !need_api.is_empty() {
+        if !need_api.is_empty() && verbose {
             eprintln!(
                 "  no GitHub token found ({} identities left unresolved) — run `gh auth login` to enable lookups",
                 need_api.len()
@@ -192,10 +193,12 @@ pub fn enrich_clusters(
         clusters[idx].login = Some(login);
         clusters[idx].avatar_url = Some(avatar);
     }
-    eprintln!(
-        "  resolved {resolved}/{} identities via GitHub API",
-        need_api.len()
-    );
+    if verbose {
+        eprintln!(
+            "  resolved {resolved}/{} identities via GitHub API",
+            need_api.len()
+        );
+    }
 }
 
 /// Clean up the free-text GitHub `company` field into a usable group name.
@@ -223,7 +226,7 @@ pub fn normalize_company(raw: &str) -> Option<String> {
 
 /// Fetch GitHub user profiles for every resolved login: improves display
 /// names ("phue" → "Patrick Hüther") and yields company affiliations.
-pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient) {
+pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient, verbose: bool) {
     if !client.has_token() {
         return;
     }
@@ -257,16 +260,23 @@ pub fn fetch_profiles(clusters: &mut [Cluster], client: &GhClient) {
             }
         }
     }
-    eprintln!(
-        "  fetched {} profiles ({} with an affiliation)",
-        results.len(),
-        with_company
-    );
+    if verbose {
+        eprintln!(
+            "  fetched {} profiles ({} with an affiliation)",
+            results.len(),
+            with_company
+        );
+    }
 }
 
 /// Replace remote avatar URLs with embedded data URIs so the outputs are
 /// fully self-contained (and render in places that block remote images).
-pub fn embed_avatars(contributors: &mut [Contributor], client: &GhClient, size: u32) {
+pub fn embed_avatars(
+    contributors: &mut [Contributor],
+    client: &GhClient,
+    size: u32,
+    verbose: bool,
+) {
     let mut urls: Vec<String> = Vec::new();
     for c in contributors.iter() {
         if let Some(u) = &c.avatar {
@@ -324,5 +334,7 @@ pub fn embed_avatars(contributors: &mut [Contributor], client: &GhClient, size: 
             }
         }
     }
-    eprintln!("  embedded {n} avatars as data URIs");
+    if verbose {
+        eprintln!("  embedded {n} avatars as data URIs");
+    }
 }

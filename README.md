@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
-    <img src="docs/logo.svg" alt="contributor-graphs" height="52">
+    <img src="docs/logo.svg" alt="contributor-graphs" height="76">
   </picture>
 </p>
 
@@ -53,18 +53,26 @@ when, who carried a project, and how a community grew over the years.
 
 ## Install
 
-Requires [Rust](https://rustup.rs). The [GitHub CLI](https://cli.github.com)
-(`gh`) is optional but recommended for enrichment without rate limits.
+Grab a prebuilt binary, install with Cargo, or use Docker. The
+[GitHub CLI](https://cli.github.com) (`gh`) is optional but recommended for
+enrichment without rate limits.
+
+**Prebuilt binary** — download the archive for your platform from the
+[releases page](https://github.com/ewels/contributor-graphs/releases), unpack
+it, and put `contributor-graphs` on your `PATH`. No toolchain required.
+
+**Cargo** (needs [Rust](https://rustup.rs)):
 
 ```bash
-# latest from GitHub
-cargo install --git https://github.com/ewels/contributor-graphs
+cargo install --git https://github.com/ewels/contributor-graphs  # latest
+cargo install contributor-graphs                                 # once on crates.io
+```
 
-# once published to crates.io
-cargo install contributor-graphs
+**Docker** — published to the GitHub Container Registry:
 
-# or from a local clone
-cargo install --path .
+```bash
+docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
+  ghcr.io/ewels/contributor-graphs nf-core/rnaseq
 ```
 
 ## Usage
