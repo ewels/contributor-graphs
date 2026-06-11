@@ -686,7 +686,7 @@
           <label for="rows">Rows</label>
           <select id="rows">
             <option value="contributors">Contributors</option>
-            <option value="affiliations">Affiliations</option>
+            <option value="affiliations">Current affiliations</option>
           </select>
         </div>
         <div class="ctl">
@@ -1357,7 +1357,7 @@
       const NAME_SIZE = 12.5,
         COUNT_W = 62,
         MARGIN_R = 14;
-      const EXP_H = 92; // extra height added to an expanded row for its plot
+      const EXP_H = 108; // extra height added to an expanded row for its plot
       let currentRows = [];
       // Per-visible-row vertical layout ({ y, h }), rebuilt every renderChart so
       // the tooltip and click handlers can map a pixel y back to a row.
@@ -1620,9 +1620,9 @@
             const info = (txt, fill, o) => {
               o = o || {};
               r.push(
-                `<text x="${ix}" y="${iy}" font-size="${o.size || 11}" font-weight="${o.weight || 400}" fill="${fill}" text-anchor="end">${txt}</text>`,
+                `<text x="${ix}" y="${iy}" font-size="${o.size || 12.5}" font-weight="${o.weight || 400}" fill="${fill}" text-anchor="end">${txt}</text>`,
               );
-              iy += o.gap || 15;
+              iy += o.gap || 17;
             };
             const fitLeft = (str, size) => {
               let s = str;
@@ -1638,12 +1638,12 @@
               const names = c.member_names || [];
               const extra = c.members - names.length;
               let list = names.join(", ") + (extra > 0 ? ` +${extra}` : "");
-              if (list) info(esc(fitLeft(list, 10)), th.faint, { size: 10 });
+              if (list) info(esc(fitLeft(list, 11.5)), th.muted, { size: 11.5 });
             } else {
               if (c.login) info("@" + esc(c.login), th.muted);
               if (c.group)
                 info(
-                  esc(fitLeft(c.group, 11)),
+                  esc(fitLeft(c.group, 12.5)),
                   GROUP_COLOR[c.group] || OTHER_COLOR,
                   {
                     weight: 600,
@@ -1651,14 +1651,14 @@
                 );
             }
             info(`${fmtNum(c.commits)} commits`, th.text, { weight: 600 });
-            info(`${fmtDate(c.first)} – ${fmtDate(c.last)}`, th.faint, {
-              size: 10.5,
+            info(`${fmtDate(c.first)} – ${fmtDate(c.last)}`, th.muted, {
+              size: 11.5,
             });
             info(
               `${active} active month${active === 1 ? "" : "s"} · ${span}`,
-              th.faint,
+              th.muted,
               {
-                size: 10.5,
+                size: 11.5,
               },
             );
 
@@ -2148,7 +2148,9 @@
         const aff = affMode();
         $("#rows").value = state.mode;
         $("#search").value = state.q;
-        $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
+        $("#search").placeholder = aff
+          ? "Current affiliation…"
+          : "Name or username…";
         minRange.value = minToSlider(state.min);
         $("#min-num").value = state.min;
         $("#min-num").max = MAX_COMMITS;
