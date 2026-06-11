@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>contributor-graphs — contributor timelines for any git repo</title>
+    <title>contributor-graphs: contributor timelines for any git repo</title>
     <meta
       name="description"
       content="A small Rust tool that turns a git or GitHub repository into a contributor timeline: a publication-ready SVG and a self-contained interactive HTML page."
@@ -17,14 +17,14 @@
     <meta property="og:title" content="contributor-graphs" />
     <meta
       property="og:description"
-      content="Contributor timelines for any git or GitHub repository — a publication-ready SVG and a self-contained interactive HTML page."
+      content="Contributor timelines for any git or GitHub repository: a publication-ready SVG and a self-contained interactive HTML page."
     />
     <meta
       property="og:image"
       content="https://ewels.github.io/contributor-graphs/og-card.png"
     />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="contributor-graphs" />
     <meta
@@ -812,7 +812,7 @@
           </p>
           <h1 class="title reveal">Who built it,<br />and <em>when</em>.</h1>
           <p class="lede reveal">
-            Point it at any repository and get a contributor timeline — a
+            Point it at any repository and get a contributor timeline: a
             <b>publication-ready SVG</b> for your paper or README, and a
             <b>self-contained interactive HTML</b> page for digging in. Time
             across the top, contributors down the side, every bar shaded by how
@@ -870,7 +870,7 @@
             <div class="figbar">
               <span class="figcap">
                 <span class="repo">nf-core/rnaseq</span>
-                <span id="figcap-mode">— 108 contributors over a decade</span>
+                <span id="figcap-mode">108 contributors over a decade</span>
               </span>
               <span style="display: flex; gap: 14px; align-items: center">
                 <span class="seg" role="group" aria-label="View mode">
@@ -910,8 +910,8 @@
             Every run writes both. The SVG is vector, self-contained, and drops
             straight into a manuscript figure or a README. The HTML carries the
             same data but lets a reader filter, sort, zoom the timeline, and
-            read each contributor's detail on hover — no server, no build step,
-            just a file you can open or commit to a
+            read each contributor's detail on hover, with no server and no build
+            step, just a file you can open or commit to a
             <code>gh-pages</code> branch.
           </p>
           <div class="outputs">
@@ -946,7 +946,7 @@
             <a href="https://cli.github.com" target="_blank" rel="noopener"
               >GitHub CLI</a
             >
-            is optional but worth having — it's how the tool finds a token for
+            is optional but worth having: it's how the tool finds a token for
             username and avatar lookups without hitting the anonymous rate
             limit.
           </p>
@@ -981,7 +981,7 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
 
           <p>
             In CI, the <code>GITHUB_TOKEN</code> that Actions injects is picked
-            up automatically — nothing else to configure.
+            up automatically, with nothing else to configure.
           </p>
         </div>
       </section>
@@ -1044,21 +1044,21 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
           <p>
             The tool reads each contributor's <b>company</b> from their GitHub
             profile and uses it to colour the chart by organisation. Spelling
-            variants get folded together — <code>seqeralabs</code>,
+            variants get folded together, so <code>seqeralabs</code>,
             <code>Seqera Labs</code> and <code>Seqera</code> all become one
-            group — and the most common organisations get distinct colours while
+            group, and the most common organisations get distinct colours while
             the long tail shares a neutral grey.
           </p>
           <p>
             When the organisations are the story rather than the individuals,
             <code>--by-affiliation</code> merges everyone from each one into a
-            single bar (in the interactive page it's a live toggle — try it in
+            single bar (in the interactive page it's a live toggle, so try it in
             the chart above). The auto-detection is imperfect, so a small
             tab-separated file overrides it:
           </p>
           <pre
             class="code"
-          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --groups groups.tsv">Copy</button><span class="cm"># groups.tsv — matcher (name, email, or login) → group</span>
+          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --groups groups.tsv">Copy</button><span class="cm"># groups.tsv: matcher (name, email, or login) maps to a group</span>
 ewels             Seqera
 apeltzer          Boehringer Ingelheim
 qbicsoftware      QBiC
@@ -1161,8 +1161,8 @@ qbicsoftware      QBiC
             <li>
               <b>Merge identities.</b>
               <span class="s-body"
-                >Commits are clustered by shared email, then by shared name —
-                the usual mess of one person under five addresses, folded back
+                >Commits are clustered by shared email, then by shared name: the
+                usual mess of one person under five addresses, folded back
                 together.</span
               >
             </li>
@@ -1275,11 +1275,11 @@ qbicsoftware      QBiC
       const MODES = {
         contrib: {
           src: "example-rnaseq.svg",
-          cap: "— 108 contributors over a decade",
+          cap: "108 contributors over a decade",
         },
         aff: {
           src: "example-rnaseq-affiliation.svg",
-          cap: "— grouped into 42 affiliations",
+          cap: "grouped into 42 affiliations",
         },
       };
       function setMode(mode) {

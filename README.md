@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  Contributor timelines for any git or GitHub repository — a publication-ready
+  Contributor timelines for any git or GitHub repository: a publication-ready
   SVG and a self-contained interactive HTML page.
 </p>
 
@@ -16,9 +16,9 @@
   <a href="https://ewels.github.io/contributor-graphs/"><img src="https://img.shields.io/badge/docs-website-2f5fd0.svg" alt="Docs"></a>
 </p>
 
-The x-axis is time (first commit → today); each row is a contributor. Bars are
-shaded by monthly commit activity, so you can see at a glance who was active
-when, who carried a project, and how a community grew over the years.
+The x-axis is time (first commit to today); each row is a contributor. Bars
+are shaded by monthly commit activity, so it's easy to see who was active when
+and how a project grew over the years.
 
 <p align="center">
   <picture>
@@ -33,20 +33,20 @@ when, who carried a project, and how a community grew over the years.
 
 ## Features
 
-- **Works with anything** — a local path (`.`), a GitHub slug (`nf-core/rnaseq`),
+- **Works with anything:** a local path (`.`), a GitHub slug (`nf-core/rnaseq`),
   or any git URL. Remote repos are cloned (history only) into a local cache.
-- **GitHub enrichment** — resolves real names, `@usernames` and avatars via the
+- **GitHub enrichment:** resolves real names, `@usernames` and avatars via the
   GitHub API, using your `gh` CLI token automatically to avoid rate limits.
-- **Identity merging** — folds together the many name and email spellings a
+- **Identity merging:** folds together the many name and email spellings a
   single person accumulates over the years, with a manual override file for the
   stragglers.
-- **Affiliation grouping** — auto-detects organisations from GitHub profile
+- **Affiliation grouping:** auto-detects organisations from GitHub profile
   companies (e.g. _SciLifeLab_, _Seqera_) and colours by them. Optionally
   **collapse the whole chart to one row per affiliation**, so each bar is an
   organisation rather than a person. Supply your own grouping file for control.
-- **Noise filters** — exclude bots, set a minimum-commit threshold, cap to the
+- **Noise filters:** exclude bots, set a minimum-commit threshold, cap to the
   top _N_ contributors. In the HTML these are live controls.
-- **Interactive HTML** — search, sort, filter by group, switch between
+- **Interactive HTML:** search, sort, filter by group, switch between
   per-contributor and per-affiliation rows, drag-to-zoom the timeline, hover
   for detail + activity sparkline, dark mode, and SVG/PNG export. Everything is
   embedded in one file; no server needed.
@@ -57,7 +57,7 @@ Grab a prebuilt binary, install with Cargo, or use Docker. The
 [GitHub CLI](https://cli.github.com) (`gh`) is optional but recommended for
 enrichment without rate limits.
 
-**Prebuilt binary** — download the archive for your platform from the
+**Prebuilt binary:** download the archive for your platform from the
 [releases page](https://github.com/ewels/contributor-graphs/releases), unpack
 it, and put `contributor-graphs` on your `PATH`. No toolchain required.
 
@@ -68,7 +68,7 @@ cargo install --git https://github.com/ewels/contributor-graphs  # latest
 cargo install contributor-graphs                                 # once on crates.io
 ```
 
-**Docker** — published to the GitHub Container Registry:
+**Docker:** published to the GitHub Container Registry:
 
 ```bash
 docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
@@ -78,7 +78,7 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
 ## Usage
 
 ```bash
-# A GitHub repo by slug — clones history, enriches, writes two files
+# A GitHub repo by slug: clones history, enriches, writes two files
 contributor-graphs nf-core/rnaseq
 
 # A local checkout
@@ -93,15 +93,15 @@ This writes `<repo>.svg` and `<repo>.html` into the output directory.
 ### Authentication
 
 To enrich with usernames and avatars (and dodge GitHub's anonymous rate limit),
-the tool reads a token from `$GITHUB_TOKEN`, `$GH_TOKEN`, or — if neither is set
-— runs `gh auth token`. Locally, just be logged in:
+the tool reads a token from `$GITHUB_TOKEN` or `$GH_TOKEN`, falling back to
+`gh auth token` if neither is set. Locally, just be logged in:
 
 ```bash
 gh auth login
 ```
 
 In CI, the `$GITHUB_TOKEN` that GitHub Actions injects is picked up
-automatically — no extra setup needed:
+automatically, with no extra setup:
 
 ```yaml
 - run: contributor-graphs ${{ github.repository }} -o site/
@@ -120,7 +120,7 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `-b, --branch <REF>`                | Which branch/ref to read (default: `HEAD`)                           |
 | `--since <DATE>` / `--until <DATE>` | Restrict the commit window                                           |
 | `--min-commits <N>`                 | Hide contributors below `N` commits in the SVG (default: 1)          |
-| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first→last span) from the SVG |
+| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first-to-last span) from SVG  |
 | `--max-contributors <N>`            | Cap SVG rows to the top `N` by commits (default: 40)                 |
 | `--include-bots`                    | Keep bot accounts (excluded by default)                              |
 | `--exclude <PATTERN>`               | Drop contributors matching a name/login (repeatable)                 |
@@ -142,9 +142,9 @@ Run `contributor-graphs --help` for the full list.
 ### Grouping by affiliation
 
 Affiliations are detected automatically from the `company` field of each
-contributor's GitHub profile. Variant spellings are merged (`seqeralabs`,
-`Seqera Labs`, `Seqera` → one group). The most common groups get distinct
-colours; a long tail shares a neutral grey and the bots are dropped.
+contributor's GitHub profile. Variant spellings are merged, so `seqeralabs`,
+`Seqera Labs` and `Seqera` all count as one group. The most common groups get
+distinct colours; the long tail shares a neutral grey, and bots are dropped.
 
 For full control, supply a tab-separated file. Each row is `matcher<TAB>group`,
 where _matcher_ is a name, email, or GitHub login:
@@ -163,8 +163,8 @@ contributor-graphs nf-core/methylseq --groups groups.tsv
 
 Manual mappings take precedence over auto-detected affiliations.
 
-To make the affiliations the _subject_ of the chart — one bar per organisation,
-with every member's commits merged into it — pass `--by-affiliation`. People
+To make the affiliations the _subject_ of the chart, pass `--by-affiliation`:
+one bar per organisation, with every member's commits merged into it. People
 with no detected affiliation are pooled into a single "Unaffiliated" row
 (rename it with `--unaffiliated-label`). In the interactive HTML this is the
 **Rows** dropdown, so you can flip between people and organisations live.
@@ -211,7 +211,7 @@ attach them to the release, build the multi-arch Docker image, and publish to
 crates.io.
 
 crates.io publishing uses [Trusted Publishing](https://crates.io/docs/trusted-publishing)
-(OIDC — no API token stored in the repo). One-time setup:
+(OIDC, so no API token is stored in the repo). One-time setup:
 
 1. Publish the first version manually (Trusted Publishing can't attach to a
    crate that doesn't exist yet): create a short-lived token at crates.io →
@@ -219,8 +219,8 @@ crates.io publishing uses [Trusted Publishing](https://crates.io/docs/trusted-pu
 --dry-run` first). Revoke the token afterwards.
 2. On crates.io → the crate → Settings → Trusted Publishing, add a GitHub
    publisher: owner `ewels`, repo `contributor-graphs`, workflow `release.yml`.
-3. From then on, bump `version` in `Cargo.toml`, then publish a GitHub Release —
-   the workflow mints a short-lived token via OIDC and publishes automatically.
+3. From then on, bump `version` in `Cargo.toml`, then publish a GitHub Release. The workflow mints a short-lived token via OIDC
+   and publishes automatically.
 
 ## License
 

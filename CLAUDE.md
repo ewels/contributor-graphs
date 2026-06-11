@@ -21,29 +21,29 @@ in a browser.
 
 ## Layout
 
-- `src/main.rs` — CLI args (clap), pipeline orchestration, group canonicalisation.
-- `src/repo.rs` — input resolution (local path / `owner/repo` / git URL), bare
+- `src/main.rs`: CLI args (clap), pipeline orchestration, group canonicalisation.
+- `src/repo.rs`: input resolution (local path / `owner/repo` / git URL), bare
   partial clone into a temp cache, `git log` parsing.
-- `src/identity.rs` — clustering commit identities by email then name, manual
+- `src/identity.rs`: clustering commit identities by email then name, manual
   identity/group files, bot detection, building `Contributor` rows.
-- `src/github.rs` — token discovery (`GITHUB_TOKEN` → `GH_TOKEN` → `gh auth
+- `src/github.rs`: token discovery (`GITHUB_TOKEN` → `GH_TOKEN` → `gh auth
 token`), parallel login/avatar resolution and profile/company lookup, avatar
   embedding as data URIs, `company` normalisation.
-- `src/model.rs` — `Contributor` / `RepoMeta`, month-bin helpers, and
+- `src/model.rs`: `Contributor` / `RepoMeta`, month-bin helpers, and
   `aggregate_by_group` (the `--by-affiliation` collapse).
-- `src/svg.rs` — static SVG renderer (layout, time ticks, activity shading,
+- `src/svg.rs`: static SVG renderer (layout, time ticks, activity shading,
   group colours, legend).
-- `src/html.rs` + `src/assets/template.html` — the interactive page. The Rust
+- `src/html.rs` + `src/assets/template.html`: the interactive page. The Rust
   side serialises data to JSON and substitutes it into the template; all the
   interactivity (filters, brush-zoom, tooltips, affiliation toggle, theming,
   export) lives in the template's inline `<script>`.
-- `docs/` — the documentation website (`index.html`), served via GitHub Pages.
+- `docs/`: the documentation website (`index.html`), served via GitHub Pages.
   `rnaseq.html` / `multiqc.html` / `example-*.svg` are generated showcase
   assets; regenerate them with the binary if the rendering changes.
 
 ## Conventions
 
-- Keep the SVG and HTML renderers visually in sync — they share layout
+- Keep the SVG and HTML renderers visually in sync, since they share layout
   constants, the time-tick logic, and the activity-shading maths. A change to
   one usually needs the mirror change in the other.
 - The HTML output must stay a single self-contained file (avatars inlined, no
