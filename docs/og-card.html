@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  Source for og-card.png (the social share card). To regenerate after editing:
+  serve docs/ and screenshot this page at exactly 1200×630, e.g.
+
+    cd docs && python3 -m http.server 8000
+    # capture the #card element / 1200×630 viewport to og-card.png
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      #card {
+        width: 1200px;
+        height: 630px;
+        background: #f6f5f1;
+        position: relative;
+        overflow: hidden;
+        font-family: "IBM Plex Sans", sans-serif;
+        color: #211f1a;
+      }
+      .pad {
+        padding: 64px 72px 0;
+      }
+      .logo {
+        height: 82px;
+        display: block;
+      }
+      h1 {
+        font-family: "Fraunces", serif;
+        font-weight: 500;
+        font-size: 78px;
+        line-height: 0.98;
+        letter-spacing: -0.025em;
+        margin: 40px 0 22px;
+      }
+      h1 em {
+        font-style: italic;
+        font-weight: 400;
+        color: #2f5fd0;
+      }
+      .lede {
+        font-size: 25px;
+        line-height: 1.4;
+        color: #5b574d;
+        max-width: 20ch;
+      }
+      .meta {
+        position: absolute;
+        left: 72px;
+        bottom: 40px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 18px;
+        color: #938e81;
+        letter-spacing: -0.01em;
+      }
+      .chart {
+        position: absolute;
+        right: -40px;
+        top: 112px;
+        width: 600px;
+        height: 470px;
+        background: #fbfaf7;
+        border: 1px solid #e3dfd4;
+        border-radius: 16px 0 0 16px;
+        box-shadow: -30px 30px 80px -50px rgba(33, 31, 26, 0.4);
+        overflow: hidden;
+        padding: 8px;
+      }
+      .chart img {
+        width: 760px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="card">
+      <div class="chart"><img src="example-rnaseq.svg" alt="" /></div>
+      <div class="pad">
+        <img class="logo" src="logo.svg" alt="contributor-graphs" />
+        <h1>Who built it,<br />and <em>when</em>.</h1>
+        <p class="lede">Contributor timelines for any git or GitHub repo.</p>
+      </div>
+      <div class="meta">ewels.github.io/contributor-graphs</div>
+    </div>
+  </body>
+</html>

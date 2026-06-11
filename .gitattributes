@@ -9,6 +9,7 @@ docs/logo.svg linguist-generated=true
 docs/logo-dark.svg linguist-generated=true
 docs/favicon.svg linguist-generated=true
 docs/og-card.png linguist-generated=true
+docs/og-card.html linguist-generated=true
 
 # Lockfile: collapse in diffs.
 Cargo.lock linguist-generated=true
