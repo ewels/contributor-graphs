@@ -4,9 +4,10 @@
 # non-fork repository in the nf-core GitHub org into one timeline.
 #
 # This clones ~180 repositories (history only) and enriches a few thousand
-# contributors, so it takes several minutes and a lot of GitHub API calls — it
-# is intentionally NOT part of regen-examples.sh or the CI auto-regeneration.
-# Run it by hand (with `gh` logged in) when the org example needs refreshing.
+# contributors, so a cold run takes several minutes and a lot of GitHub API
+# calls. The regen-examples CI workflow now runs it on a persistent cache (and
+# with a higher API budget), so warm reruns are cheap; run it by hand (with
+# `gh` logged in) when you want to refresh the org example locally.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

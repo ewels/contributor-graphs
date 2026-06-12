@@ -1,8 +1,14 @@
 name: Regenerate examples
 
-# Rebuild the docs/ showcase SVG + HTML whenever the renderers change, and
-# commit the result back. The commit only touches docs/**, which triggers the
-# Pages deploy; this workflow ignores docs/** so it never retriggers itself.
+# Rebuild the docs/ showcase SVG + HTML whenever the renderers, scripts, or
+# curation files change, and commit the result back. The commit only touches
+# docs/**, which triggers the Pages deploy; this workflow ignores docs/** so it
+# never retriggers itself.
+#
+# This regenerates both the rnaseq/sarek examples and the heavy whole-org
+# nf-core example. The org example clones ~180 repos and enriches a few
+# thousand contributors, so it leans on the persistent contributor-graphs cache
+# (below) to stay fast and well within the API budget on warm reruns.
 #
 # The PNG screenshots (docs/app-rnaseq*.png) and demo.mp4 are NOT regenerated
 # here — they are captured by hand.
@@ -15,6 +21,9 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "scripts/regen-examples.sh"
+      - "scripts/regen-org-example.sh"
+      - "scripts/examples-affiliations.tsv"
+      - "scripts/examples-curation.yml"
       - ".github/workflows/regen-examples.yml"
   workflow_dispatch:
 
@@ -30,14 +39,41 @@ jobs:
   regen:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      # checkout keeps its credentials persisted on purpose — the commit step
+      # below pushes the regenerated docs with them.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
-      - name: Regenerate SVG + HTML
+      # Persist the contributor-graphs cache (bare clones, parsed git logs keyed
+      # by branch-tip SHA, and the GitHub SHA/login/avatar lookups) across runs.
+      # A unique key per run always saves a fresh snapshot; restore-keys pulls
+      # the most recent one back. Warm reruns then only ls-remote for freshness
+      # and re-fetch what actually changed, keeping the org regen fast and under
+      # the API rate limit.
+      - name: Cache contributor-graphs data
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/contributor-graphs
+          key: contributor-graphs-${{ github.run_id }}
+          restore-keys: |
+            contributor-graphs-
+
+      # EXAMPLES_TOKEN (a PAT, optional) lifts the API budget to 5,000 req/hr,
+      # enough to seed the org example from a cold cache. Without it we fall back
+      # to the ~1,000 req/hr GITHUB_TOKEN, which is fine for warm reruns and the
+      # rnaseq/sarek examples but can be too small for a cold org build.
+      - name: Regenerate rnaseq + sarek examples
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.EXAMPLES_TOKEN || github.token }}
         run: ./scripts/regen-examples.sh
+
+      - name: Regenerate whole-org nf-core example
+        env:
+          GITHUB_TOKEN: ${{ secrets.EXAMPLES_TOKEN || github.token }}
+        run: ./scripts/regen-org-example.sh
 
       - name: Commit and redeploy if changed
         env:
