@@ -9,12 +9,14 @@ on:
     types: [published]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   binaries:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write # upload binaries to the release
     strategy:
       fail-fast: false
       matrix:
@@ -28,13 +30,16 @@ jobs:
           - { os: macos-latest, target: x86_64-apple-darwin }
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
+      # No build cache here: a poisoned cache could end up in released
+      # binaries, and release builds should be clean anyway (zizmor
+      # cache-poisoning).
 
       - name: Install cross-linker (aarch64 Linux)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -49,9 +54,11 @@ jobs:
 
       - name: Package
         shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
         run: |
           bin=contributor-graphs
-          name="$bin-${{ github.event.release.tag_name }}-${{ matrix.target }}"
+          name="$bin-$TAG-${{ matrix.target }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
             7z a "$name.zip" "./target/${{ matrix.target }}/release/$bin.exe" ./README.md ./LICENSE
             echo "ASSET=$name.zip" >> "$GITHUB_ENV"
@@ -61,7 +68,7 @@ jobs:
           fi
 
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           files: ${{ env.ASSET }}
 
@@ -78,8 +85,12 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
       # Skip if this version is already on crates.io (e.g. the first release,
       # which is published manually). Checked before auth so it doesn't fail
       # when Trusted Publishing isn't configured yet.
@@ -92,7 +103,7 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.check.outputs.skip != 'true'
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@bbd81622f20ce9e2dd9622e3218b975523e45bbe # v1.0.4
         id: auth
       - if: steps.check.outputs.skip != 'true'
         name: Publish
