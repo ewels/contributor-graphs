@@ -35,29 +35,40 @@ and how a project grew over the years.
 
 ## Features
 
-- **Works with anything:** a local path (`.`), a GitHub slug (`nf-core/rnaseq`),
-  any git URL, or a bare `owner` (org/user) that expands to all its repos.
-  Several sources pool into one timeline, deduplicated by commit SHA.
-- **GitHub enrichment:** resolves real names, `@usernames` and avatars via the
-  GitHub API, using your `gh` CLI token automatically to avoid rate limits.
-- **Identity merging:** folds together the many name and email spellings a
+- 📊 **Two files per run:** a static SVG for embedding and a self-contained
+  interactive HTML page, from a single command.
+- 🎯 **Works with anything:** a local path (`.`), a GitHub slug
+  (`nf-core/rnaseq`), any git URL, or a bare `owner` (org/user) that expands to
+  all its repos.
+- 🧩 **Many repos, one timeline:** pass as many repos and whole orgs as you
+  like; their histories pool into a single chart, with commits shared across
+  them deduplicated by SHA.
+- 🔥 **Activity heat:** each bar is shaded by the contributor's monthly commit
+  volume, so busy and quiet stretches read at a glance.
+- 🐙 **GitHub enrichment:** resolves real names, `@usernames` and avatars via
+  the GitHub API, using your `gh` CLI token automatically to avoid rate limits.
+- 🔗 **Identity merging:** folds together the many name and email spellings a
   single person accumulates over the years, with a manual override for the
   stragglers.
-- **Co-authors:** counts `Co-authored-by` trailers as commits for each
+- 🤝 **Co-authors:** counts `Co-authored-by` trailers as commits for each
   co-author (full credit), on by default, with a live toggle in the page.
-- **Affiliation grouping:** auto-detects organisations from GitHub profile
+- 🏢 **Affiliation grouping:** auto-detects organisations from GitHub profile
   companies (e.g. _SciLifeLab_, _Seqera_) and colours by them. Optionally
   **collapse the whole chart to one row per affiliation**. A curation file adds
   **time-bounded affiliations** (so a person's row is coloured by the org active
   at each point) and **group-name aliases**.
-- **Fast re-runs:** clones, parsed history, and GitHub lookups are cached under
-  `~/.cache`, so re-running an unchanged repo (or a whole org) takes seconds.
-- **Noise filters:** exclude bots, set a minimum-commit threshold, cap to the
+- 🏷️ **Release markers:** every git tag is drawn as a vertical line on the
+  timeline, with a toggle to show or hide them.
+- ⚡ **Fast re-runs:** clones, parsed history, and GitHub lookups are cached
+  under `~/.cache`, so re-running an unchanged repo (or a whole org) takes
+  seconds.
+- 🧹 **Noise filters:** exclude bots, set a minimum-commit threshold, cap to the
   top _N_ contributors. In the HTML these are live controls.
-- **Interactive HTML:** search, sort, filter by affiliation, switch between
-  per-contributor and per-affiliation rows, drag-to-zoom the timeline, hover
-  for detail + activity sparkline, full-width and dark mode toggles, and
-  SVG/PNG export. Everything is embedded in one file; no server needed.
+- 🖱️ **Interactive HTML:** search, sort, filter by affiliation, switch between
+  per-contributor and per-affiliation rows, drag-to-zoom the timeline, hover for
+  detail + activity sparkline, light / dark / Wikipedia themes, and SVG/PNG
+  export. Everything is embedded in one file; no server needed.
+- 📦 **One binary:** a single Rust binary with no runtime to install.
 
 ## Install
 
