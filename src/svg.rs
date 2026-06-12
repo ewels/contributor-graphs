@@ -408,9 +408,10 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
         let y = header_h - 4.0 + *line as f64 * 20.0;
         let _ = write!(
             s,
-            r#"<rect x="{}" y="{}" width="10" height="10" rx="3" fill="{color}"/>"#,
+            r#"<rect x="{}" y="{}" width="10" height="10" rx="{rx}" fill="{color}"/>"#,
             n(*x),
-            n(y)
+            n(y),
+            rx = if th.flat { 0 } else { 3 }
         );
         let _ = write!(
             s,

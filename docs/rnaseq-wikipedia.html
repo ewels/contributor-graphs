@@ -92,6 +92,10 @@
       [data-theme="wikipedia"] .ctx-toggle {
         border-radius: 2px;
       }
+      /* Square the legend colour swatches too. */
+      [data-theme="wikipedia"] .legend .chip .dot {
+        border-radius: 0;
+      }
       * {
         box-sizing: border-box;
       }
@@ -1728,11 +1732,13 @@
               (y < y0 ? YEAR_PALETTE.length : 0)
           ];
         }
-        // Flat themes give every row a distinct band colour — the defining
-        // feature of the "band members over time" look.
-        if (theme().flat) return bandColor(c);
+        // Colouring by affiliation wins in every theme (so the Wikipedia skin
+        // matches its affiliation legend).
         if (state.color === "group")
           return c.group ? gcol(c.group) : OTHER_COLOR;
+        // Otherwise flat themes give every row a distinct band colour — the
+        // defining feature of the "band members over time" look.
+        if (theme().flat) return bandColor(c);
         return ACCENT; // activity heat (shaded on top) or solid
       }
       // The colour for one month bin: the affiliation active that month when the
@@ -2717,12 +2723,7 @@
       function renderLegend() {
         const el = $("#legend");
         // In affiliation mode the y-axis already labels every group.
-        if (
-          !GROUPS.length ||
-          state.color !== "group" ||
-          affMode() ||
-          theme().flat
-        ) {
+        if (!GROUPS.length || state.color !== "group" || affMode()) {
           el.hidden = true;
           return;
         }

@@ -477,7 +477,7 @@
       .figcap {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: 12px;
         padding: 9px 8px 4px;
         font-size: 13px;
@@ -712,6 +712,62 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 7px;
         padding: 6px 10px;
+      }
+      /* syntax highlighting inside code blocks */
+      pre.code .tk-key {
+        color: #7ea0ee;
+      }
+      pre.code .tk-str {
+        color: #b3c98a;
+      }
+      pre.code .tk-num {
+        color: var(--accent-warm);
+      }
+      pre.code .tk-pun {
+        color: var(--term-faint);
+      }
+      pre.code .tk-var {
+        color: #6fb6c9;
+      }
+      pre.code .tk-lil {
+        color: #c7a6e8;
+      }
+
+      /* install method switcher (tabs) */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--rule);
+        margin-top: 6px;
+      }
+      .tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--ink-soft);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 9px 13px;
+        margin-bottom: -1px;
+        cursor: pointer;
+      }
+      .tab svg {
+        width: 16px;
+        height: 16px;
+      }
+      .tab:hover {
+        color: var(--ink);
+      }
+      .tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      .tabpanel[hidden] {
+        display: none;
       }
 
       /* usage list */
@@ -1040,13 +1096,9 @@
               </button>
             </div>
             <p class="meta-line">
-              <span><span class="dot"></span>one binary, no runtime</span>
               <span
-                ><span class="dot"></span>uses your <code>gh</code> token</span
-              >
-              <span
-                ><span class="dot"></span>path · <code>owner/repo</code> · git
-                URL</span
+                >also a prebuilt binary or Docker<span class="dot"></span
+                ><a href="#install">install options</a></span
               >
             </p>
           </div>
@@ -1081,7 +1133,6 @@
               ></span>
             </a>
             <figcaption class="figcap">
-              <span class="repo">nf-core/rnaseq · live</span>
               <a
                 class="openlink"
                 href="rnaseq.html"
@@ -1512,7 +1563,7 @@
           <div class="split">
             <div>
               <p>
-                Grab a prebuilt binary, install with Cargo, or run it through
+                Install with Cargo, grab a prebuilt binary, or run it through
                 Docker. The
                 <a href="https://cli.github.com" target="_blank" rel="noopener"
                   >GitHub CLI</a
@@ -1525,34 +1576,107 @@
                 In CI, the <code>GITHUB_TOKEN</code> that Actions injects is
                 picked up automatically, with nothing else to configure.
               </p>
-              <p class="install-h">Prebuilt binary</p>
               <p>
-                Download the archive for your platform from the
+                Prebuilt binaries for every platform are on the
                 <a
                   href="https://github.com/ewels/contributor-graphs/releases"
                   target="_blank"
                   rel="noopener"
                   >releases page</a
-                >, unpack it, and put <code>contributor-graphs</code> on your
-                <code>PATH</code>. No toolchain required.
+                >.
               </p>
             </div>
             <div>
-              <p class="install-h">Cargo</p>
-              <pre
-                class="code"
-              ><button class="copybtn" data-copy="cargo install --git https://github.com/ewels/contributor-graphs">Copy</button><span class="cm"># latest from GitHub</span>
-cargo install --git https://github.com/ewels/contributor-graphs
+              <div class="tabs" role="tablist" aria-label="Install method">
+                <button class="tab active" type="button" data-tab="cargo">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m16.5 9.4-9-5.19" />
+                    <path
+                      d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                    />
+                    <path d="M3.27 6.96 12 12.01l8.73-5.05" />
+                    <path d="M12 22.08V12" />
+                  </svg>
+                  Cargo
+                </button>
+                <button class="tab" type="button" data-tab="binary">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Binary
+                </button>
+                <button class="tab" type="button" data-tab="docker">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="4" y="9.5" width="3.4" height="3.4" rx="0.4" />
+                    <rect x="8" y="9.5" width="3.4" height="3.4" rx="0.4" />
+                    <rect x="12" y="9.5" width="3.4" height="3.4" rx="0.4" />
+                    <rect x="8" y="5.5" width="3.4" height="3.4" rx="0.4" />
+                    <path
+                      d="M2.5 14.5h15.2a3.8 3.8 0 0 1-3.8 3.8H6.3a3.8 3.8 0 0 1-3.8-3.8z"
+                    />
+                    <path d="M18.6 13.2c1.1-.9 2.5-.3 2.9.3" />
+                  </svg>
+                  Docker
+                </button>
+              </div>
+              <div class="tabpanel" data-panel="cargo">
+                <pre
+                  class="code"
+                ><button class="copybtn" data-copy="cargo install contributor-graphs">Copy</button><span class="cm"># install from crates.io</span>
+cargo install contributor-graphs
 
-<span class="cm"># once published to crates.io</span>
-cargo install contributor-graphs</pre>
+<span class="cm"># run it (a local path, owner/repo, git URL, or org name)</span>
+contributor-graphs <span class="tk-var">owner/repo</span></pre>
+              </div>
+              <div class="tabpanel" data-panel="binary" hidden>
+                <pre
+                  class="code"
+                ><button class="copybtn" data-copy='VERSION=v1.3.0; case "$(uname -sm)" in "Darwin arm64") TARGET=aarch64-apple-darwin;; "Darwin x86_64") TARGET=x86_64-apple-darwin;; "Linux aarch64") TARGET=aarch64-unknown-linux-gnu;; "Linux x86_64") TARGET=x86_64-unknown-linux-gnu;; esac; curl -L https://github.com/ewels/contributor-graphs/releases/download/$VERSION/contributor-graphs-$VERSION-$TARGET.tar.gz | tar -xz'>Copy</button><span class="cm"># latest release, picks your platform, no toolchain needed</span>
+<span class="tk-var">VERSION</span>=<span class="tk-num">v1.3.0</span>
+<span class="tk-key">case</span> "<span class="tk-var">$(uname -sm)</span>" <span class="tk-key">in</span>
+  <span class="tk-str">"Darwin arm64"</span>)  <span class="tk-var">TARGET</span>=<span class="tk-str">aarch64-apple-darwin</span> ;;
+  <span class="tk-str">"Darwin x86_64"</span>) <span class="tk-var">TARGET</span>=<span class="tk-str">x86_64-apple-darwin</span> ;;
+  <span class="tk-str">"Linux aarch64"</span>) <span class="tk-var">TARGET</span>=<span class="tk-str">aarch64-unknown-linux-gnu</span> ;;
+  <span class="tk-str">"Linux x86_64"</span>)  <span class="tk-var">TARGET</span>=<span class="tk-str">x86_64-unknown-linux-gnu</span> ;;
+<span class="tk-key">esac</span>
+curl -L https://github.com/ewels/contributor-graphs/releases/download/<span class="tk-var">$VERSION</span>/contributor-graphs-<span class="tk-var">$VERSION</span>-<span class="tk-var">$TARGET</span>.tar.gz | tar -xz
 
-              <p class="install-h">Docker</p>
-              <pre
-                class="code"
-              ><button class="copybtn" data-copy='docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN ghcr.io/ewels/contributor-graphs nf-core/rnaseq'>Copy</button><span class="cm"># writes into the mounted dir; passes your token through</span>
-docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
-  ghcr.io/ewels/contributor-graphs nf-core/rnaseq</pre>
+<span class="cm"># run it</span>
+./contributor-graphs <span class="tk-var">owner/repo</span></pre>
+              </div>
+              <div class="tabpanel" data-panel="docker" hidden>
+                <pre
+                  class="code"
+                ><button class="copybtn" data-copy='docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN ghcr.io/ewels/contributor-graphs owner/repo'>Copy</button><span class="cm"># writes into the mounted dir; passes your token through</span>
+docker run --rm -v "<span class="tk-var">$PWD</span>:/work" -e <span class="tk-var">GITHUB_TOKEN</span> \
+  ghcr.io/ewels/contributor-graphs <span class="tk-var">owner/repo</span></pre>
+              </div>
             </div>
           </div>
         </div>
@@ -1561,14 +1685,16 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
       <section class="band" id="usage">
         <div class="wrap">
           <p class="marker">Usage</p>
-          <h2 class="head">Point it at a repo.</h2>
+          <h2 class="head">Point it at your repos.</h2>
           <div class="split">
             <div>
               <p>
-                Each argument is a local path, a GitHub
-                <code>owner/repo</code> slug, a git URL, or a bare
+                Pass as many sources as you like. Each argument is a local path,
+                a GitHub <code>owner/repo</code> slug, a git URL, or a bare
                 <code>owner</code> (org or user) that expands to all of its
-                repos.
+                repos. Mix and match any number of repos and whole orgs in one
+                command; their histories are pooled into a single timeline and
+                commits shared across them are deduplicated by SHA.
               </p>
               <p>
                 Everything is cached under
@@ -1751,19 +1877,20 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
           </p>
           <pre
             class="code"
-          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --config curation.yml">Copy</button><span class="cm"># curation.yml</span>
-identities:
-  - [Phil Ewels, ewels]
+          ><button class="copybtn" data-copy="identities:&#10;  - [Phil Ewels, ewels]&#10;&#10;aliases:&#10;  Seqera: [Seqera Labs, seqeralabs]&#10;&#10;affiliations:&#10;  ewels:&#10;    - { group: SciLifeLab, until: &quot;2022-05&quot; }&#10;    - { group: Seqera, since: &quot;2022-05&quot; }">Copy</button><span class="cm"># curation.yml</span>
+<span class="tk-key">identities</span>:
+  <span class="tk-pun">-</span> <span class="tk-pun">[</span><span class="tk-str">Phil Ewels</span>, <span class="tk-str">ewels</span><span class="tk-pun">]</span>
 
-aliases:
-  Seqera: [Seqera Labs, seqeralabs]
+<span class="tk-key">aliases</span>:
+  <span class="tk-key">Seqera</span>: <span class="tk-pun">[</span><span class="tk-str">Seqera Labs</span>, <span class="tk-str">seqeralabs</span><span class="tk-pun">]</span>
 
-affiliations:
-  ewels:
-    - { group: SciLifeLab, until: <span class="pr">"</span>2022-05<span class="pr">"</span> }
-    - { group: Seqera, since: <span class="pr">"</span>2022-05<span class="pr">"</span> }
-
-<span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--config curation.yml</span></pre>
+<span class="tk-key">affiliations</span>:
+  <span class="tk-key">ewels</span>:
+    <span class="tk-pun">-</span> <span class="tk-pun">{</span> <span class="tk-key">group</span>: <span class="tk-str">SciLifeLab</span>, <span class="tk-key">until</span>: <span class="tk-num">"2022-05"</span> <span class="tk-pun">}</span>
+    <span class="tk-pun">-</span> <span class="tk-pun">{</span> <span class="tk-key">group</span>: <span class="tk-str">Seqera</span>, <span class="tk-key">since</span>: <span class="tk-num">"2022-05"</span> <span class="tk-pun">}</span></pre>
+          <pre
+            class="code"
+          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --config curation.yml">Copy</button><span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--config curation.yml</span></pre>
           <p>
             Repeat the periods under a matcher to give one person several
             affiliations over time (dates are <code>YYYY</code>,
@@ -1785,13 +1912,14 @@ affiliations:
           </p>
           <pre
             class="code"
-          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --affiliations affiliations.csv">Copy</button><span class="cm"># affiliations.csv</span>
-username,full name,affiliation,start,end
-ewels,Phil Ewels,SciLifeLab,2014,2022-05
-ewels,Phil Ewels,Seqera,2022-05
-maxulysse,,Seqera,2022-11,2025-12
-
-<span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--affiliations affiliations.csv</span></pre>
+          ><button class="copybtn" data-copy="username,full name,affiliation,start,end&#10;ewels,Phil Ewels,SciLifeLab,2014,2022-05&#10;ewels,Phil Ewels,Seqera,2022-05&#10;maxulysse,,Seqera,2022-11,2025-12">Copy</button><span class="cm"># affiliations.csv</span>
+<span class="tk-key">username</span>,<span class="tk-str">full name</span>,<span class="tk-var">affiliation</span>,<span class="tk-num">start</span>,<span class="tk-lil">end</span>
+<span class="tk-key">ewels</span>,<span class="tk-str">Phil Ewels</span>,<span class="tk-var">SciLifeLab</span>,<span class="tk-num">2014</span>,<span class="tk-lil">2022-05</span>
+<span class="tk-key">ewels</span>,<span class="tk-str">Phil Ewels</span>,<span class="tk-var">Seqera</span>,<span class="tk-num">2022-05</span>
+<span class="tk-key">maxulysse</span>,,<span class="tk-var">Seqera</span>,<span class="tk-num">2022-11</span>,<span class="tk-lil">2025-12</span></pre>
+          <pre
+            class="code"
+          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --affiliations affiliations.csv">Copy</button><span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--affiliations affiliations.csv</span></pre>
         </div>
       </section>
 
@@ -1938,6 +2066,19 @@ maxulysse,,Seqera,2022-11,2025-12
             copy(btn.parentElement.innerText.replace(/^Copy\n?/, "").trim()),
           ),
         );
+      // install method switcher: show one panel at a time
+      document.querySelectorAll(".tabs .tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const tabs = tab.closest(".tabs");
+          const name = tab.dataset.tab;
+          tabs
+            .querySelectorAll(".tab")
+            .forEach((t) => t.classList.toggle("active", t === tab));
+          tabs.parentElement
+            .querySelectorAll(".tabpanel")
+            .forEach((p) => (p.hidden = p.dataset.panel !== name));
+        });
+      });
     </script>
   </body>
 </html>
