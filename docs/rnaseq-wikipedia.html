@@ -1731,6 +1731,13 @@
           y1 = tsToDate(s.last).getUTCFullYear();
         return y0 === y1 ? `${y0}` : `${y0}–${y1}`;
       }
+      // Report-wide tooltip layout: if anyone has more than one affiliation,
+      // every tooltip lists affiliations as a labelled block below the name (so
+      // the placement is consistent for everyone). If no one does, a single
+      // affiliation rides inline as a badge next to the name.
+      const ANY_MULTI_AFFIL = HUMANS.some(
+        (c) => affiliationSegments(c).length > 1,
+      );
       // The bars to draw for a row. With time-bounded affiliations (and group
       // colouring), each contiguous affiliation period that passes the group
       // filter becomes its own bar, clipped to the months it actually has
@@ -2341,14 +2348,15 @@
           ? `<img src="${esc(c.avatar)}" alt="">`
           : `<span class="ph" style="background:hsl(${hashHue(c.name)},42%,55%)">${esc(initials(c.name))}</span>`;
         const segs = affiliationSegments(c);
-        // A single affiliation rides as a badge by the name; several are listed
-        // as a labelled block right under the head, each org in its colour.
+        // Inline badge only when the whole report is single-affiliation;
+        // otherwise every affiliation (even a lone one) is listed as a labelled
+        // block under the head, each org in its colour, for consistent layout.
         const badge =
-          c.group && segs.length <= 1
+          !ANY_MULTI_AFFIL && c.group
             ? `<span class="badge" style="background:${GROUP_COLOR[c.group] || OTHER_COLOR}22;color:${GROUP_COLOR[c.group] || OTHER_COLOR}">${esc(c.group)}</span>`
             : "";
         const affHtml =
-          segs.length > 1
+          ANY_MULTI_AFFIL && segs.length
             ? `<div class="tt-affil">${segs
                 .map(
                   (s) =>
