@@ -2287,9 +2287,11 @@
               `<line x1="${chartX}" y1="${yBot}" x2="${chartX + chartW}" y2="${yBot}" stroke="${th.gridMonth}"/>`,
             );
             const pts = [];
+            const xs = [];
             for (let mi = 0; mi < n; mi++) {
               const px = sx(monthStartTs(c.m0 + mi));
               const py = yBot - Math.min(1, months[mi] / gmax) * ph;
+              xs.push(px);
               pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
             }
             if (n >= 2) {
@@ -2301,19 +2303,24 @@
                 !filt ||
                 (c.month_groups[mi] && state.gsel.has(c.month_groups[mi]));
               r.push(`<g clip-path="url(#exp${i})">`);
-              if (!filt)
-                r.push(
-                  `<polyline points="${x0.toFixed(1)},${yBot} ${pts.join(" ")} ${x1.toFixed(1)},${yBot}" fill="${color}" fill-opacity="0.18" stroke="none"/>`,
-                );
               if (c.month_groups) {
-                // Colour each segment by the affiliation active that month, and
-                // break the line across non-selected periods when filtering.
+                // Colour each segment by the affiliation active that month — the
+                // area fill mirrors the line — and break across non-selected
+                // periods when filtering. Fills first, lines over them.
+                for (let mi = 1; mi < n; mi++)
+                  if (inSel(mi) && inSel(mi - 1))
+                    r.push(
+                      `<polygon points="${xs[mi - 1].toFixed(1)},${yBot} ${pts[mi - 1]} ${pts[mi]} ${xs[mi].toFixed(1)},${yBot}" fill="${monthColor(c, mi, color)}" fill-opacity="0.18" stroke="none"/>`,
+                    );
                 for (let mi = 1; mi < n; mi++)
                   if (inSel(mi) && inSel(mi - 1))
                     r.push(
                       `<polyline points="${pts[mi - 1]} ${pts[mi]}" fill="none" stroke="${monthColor(c, mi, color)}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`,
                     );
               } else {
+                r.push(
+                  `<polyline points="${x0.toFixed(1)},${yBot} ${pts.join(" ")} ${x1.toFixed(1)},${yBot}" fill="${color}" fill-opacity="0.18" stroke="none"/>`,
+                );
                 r.push(
                   `<polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>`,
                 );
@@ -2486,11 +2493,25 @@
         const n = c.months.length;
         if (n < 2) return "";
         const max = maxOf(c.months, 1);
+        const baseY = h - 2;
+        const xs = c.months.map((v, i) => (i / (n - 1)) * w);
         const pts = c.months.map(
           (v, i) =>
-            `${((i / (n - 1)) * w).toFixed(1)},${(h - 2 - (v / max) * (h - 6)).toFixed(1)}`,
+            `${xs[i].toFixed(1)},${(h - 2 - (v / max) * (h - 6)).toFixed(1)}`,
         );
-        return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="0,${h - 2} ${pts.join(" ")} ${w},${h - 2}" fill="${color}22" stroke="none"/><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+        let body;
+        if (c.month_groups) {
+          // Mirror the chart: colour the area fill and the line per affiliation
+          // segment. Fills first, lines over them.
+          body = "";
+          for (let i = 1; i < n; i++)
+            body += `<polygon points="${xs[i - 1].toFixed(1)},${baseY} ${pts[i - 1]} ${pts[i]} ${xs[i].toFixed(1)},${baseY}" fill="${monthColor(c, i, color)}" fill-opacity="0.16" stroke="none"/>`;
+          for (let i = 1; i < n; i++)
+            body += `<polyline points="${pts[i - 1]} ${pts[i]}" fill="none" stroke="${monthColor(c, i, color)}" stroke-width="1.4" stroke-linejoin="round"/>`;
+        } else {
+          body = `<polyline points="0,${baseY} ${pts.join(" ")} ${w},${baseY}" fill="${color}22" stroke="none"/><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/>`;
+        }
+        return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
       }
 
       /* ---------- context strip with brush ---------- */
