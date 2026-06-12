@@ -7,4 +7,23 @@
 
 # Group-name aliases: a canonical name and the variants that mean the same org.
 aliases:
-  Seqera: [Seqera Labs, seqeralabs]
+  Seqera: [Seqera Labs, seqeralabs, seqera.io, "seqeralabs &"]
+  SciLifeLab:
+    - ScilifelabDataCentre
+    - National Genomics Infrastructure
+    - National Genomics Infrastructure (NGI)
+    - NGI Uppsala
+    - Clinical Genomics
+    - Clinical Genomics Lund
+    - NBISweden
+    - NBIS
+    - National Bioinformatics Infrastructure Sweden (NBIS)
+  QBiC: [Quantitative Biology Center (QBiC), University of Tübingen - QBiC]
+  EMBL-EBI: [EMBL EBI (MGnify), EBI-Metagenomics]
+  Illumina: [Illumina Inc]
+  Inserm: [INSERM]
+  AstraZeneca: [AstraZeneca Computational Pathology]
+  Karolinska Institutet: [Karolinska Institutet Library]
+  Fulcrum Genomics: [fulcrumgenomics]
+  NeoGenomics: [NeoGenomics Labs]
+  Francis Crick Institute: [Francis Crick, FrancisCrickInstitute]
