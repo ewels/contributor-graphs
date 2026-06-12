@@ -1,4 +1,4 @@
-use crate::model::{format_month_year, month_start_ts, thousands, Contributor};
+use crate::model::{format_month_year, month_start_ts, thousands, Contributor, Release};
 use crate::theme::Theme;
 use chrono::{Datelike, TimeZone, Utc};
 use std::collections::HashMap;
@@ -15,6 +15,8 @@ pub struct SvgOptions {
     pub by_affiliation: bool,
     /// The theme to render in.
     pub theme: Theme,
+    /// Tagged releases to mark with vertical lines (Wikipedia skin only).
+    pub releases: Vec<Release>,
 }
 
 impl Default for SvgOptions {
@@ -28,6 +30,7 @@ impl Default for SvgOptions {
             accent: "#2f6feb".into(),
             by_affiliation: false,
             theme: crate::theme::builtins().swap_remove(0), // light
+            releases: Vec::new(),
         }
     }
 }
@@ -42,11 +45,13 @@ const ROW_H: f64 = 26.0;
 const BAR_H: f64 = 13.0;
 const AVATAR: f64 = 18.0;
 
-/// Flat, saturated, distinct per-row colours for the Wikipedia "band members"
-/// look.
+/// Bright, near-CSS-primary, distinct colours for the Wikipedia look — the
+/// saturated reds/greens/blues of the real Wikipedia EasyTimeline charts rather
+/// than a muted designer palette. In the flat skin this colours both the
+/// per-row "band member" bars and the affiliation groups.
 pub const BAND_PALETTE: &[&str] = &[
-    "#2a64c4", "#d23a2e", "#2f9e44", "#e8910c", "#8a39b0", "#0e9aa7", "#d23a8e", "#6aa70e",
-    "#3b4cc0", "#c0561e", "#1ba0c4", "#d6498b",
+    "#ff0000", "#0000ff", "#00a000", "#ff8c00", "#9400d3", "#009b9b", "#ff1493", "#76b900",
+    "#a0522d", "#1e90ff", "#e6a800", "#dc143c",
 ];
 
 fn esc(s: &str) -> String {
@@ -191,11 +196,14 @@ fn hash_hue(name: &str) -> u32 {
 
 pub const OTHER_GROUP_COLOR: &str = "#9aa3ad";
 
-/// Assign palette colours to groups, cycling the palette so every group gets a
-/// colour rather than letting the long tail collapse into grey. The legend
-/// lists at most one group per distinct palette colour (in rank order), since
-/// beyond that colours repeat. Returns (group → colour, legend entries).
-pub fn group_colors(rows: &[Contributor]) -> (HashMap<String, String>, Vec<(String, String)>) {
+/// Assign `palette` colours to groups, cycling it so every group gets a colour
+/// rather than letting the long tail collapse into grey. The legend lists at
+/// most one group per distinct palette colour (in rank order), since beyond
+/// that colours repeat. Returns (group → colour, legend entries).
+pub fn group_colors(
+    rows: &[Contributor],
+    palette: &[&str],
+) -> (HashMap<String, String>, Vec<(String, String)>) {
     let mut counts_map: HashMap<String, usize> = HashMap::new();
     for c in rows {
         if let Some(g) = &c.group {
@@ -218,8 +226,8 @@ pub fn group_colors(rows: &[Contributor]) -> (HashMap<String, String>, Vec<(Stri
     let mut map = HashMap::new();
     let mut legend = Vec::new();
     for (i, (g, _)) in counts.iter().enumerate() {
-        let color = GROUP_PALETTE[i % GROUP_PALETTE.len()].to_string();
-        if i < GROUP_PALETTE.len() {
+        let color = palette[i % palette.len()].to_string();
+        if i < palette.len() {
             legend.push((g.clone(), color.clone()));
         }
         map.insert(g.clone(), color);
@@ -279,6 +287,13 @@ fn affiliation_runs(c: &Contributor) -> Vec<(Option<String>, usize, usize)> {
 
 pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let th = &opts.theme;
+    // The Wikipedia skin uses thicker bars with a slim white gap (≈¼ the bar
+    // height): bar = 0.8·row, gap = 0.2·row. Other themes keep the slimmer bar.
+    let bar_h = if th.flat {
+        (ROW_H * 0.8).round()
+    } else {
+        BAR_H
+    };
     let width = opts.width.max(360.0);
     // Colours are interpolated raw into SVG attributes; keep the user-supplied
     // accent from breaking out of them.
@@ -289,7 +304,10 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let pad_t = (((t_last - t_first) as f64) * 0.012) as i64 + 86400;
     let (t0, t1) = (t_first - pad_t, t_last + pad_t);
 
-    let (gcolors, mut legend) = group_colors(rows);
+    // The flat (Wikipedia) skin colours groups from the bright primary palette;
+    // other themes use the muted multi-category palette.
+    let gpalette = if th.flat { BAND_PALETTE } else { GROUP_PALETTE };
+    let (gcolors, mut legend) = group_colors(rows, gpalette);
     let has_groups = !gcolors.is_empty();
     if has_groups
         && rows.iter().any(|c| c.group.is_none())
@@ -408,27 +426,33 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
     let ticks = time_ticks(t0, t1);
     let grid_top = chart_y - 6.0;
     let grid_bot = chart_y + chart_h + 6.0;
-    for ts in &ticks.minor {
-        let x = sx(*ts);
-        let _ = write!(
-            s,
-            r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
-            x = n(x),
-            y1 = n(grid_top),
-            y2 = n(grid_bot),
-            c = th.grid_month
-        );
+    // The Wikipedia skin drops the vertical background gridlines: release
+    // markers are the only verticals there.
+    if !th.flat {
+        for ts in &ticks.minor {
+            let x = sx(*ts);
+            let _ = write!(
+                s,
+                r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
+                x = n(x),
+                y1 = n(grid_top),
+                y2 = n(grid_bot),
+                c = th.grid_month
+            );
+        }
     }
     for (ts, label) in &ticks.major {
         let x = sx(*ts);
-        let _ = write!(
-            s,
-            r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
-            x = n(x),
-            y1 = n(grid_top),
-            y2 = n(grid_bot),
-            c = th.grid_year
-        );
+        if !th.flat {
+            let _ = write!(
+                s,
+                r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
+                x = n(x),
+                y1 = n(grid_top),
+                y2 = n(grid_bot),
+                c = th.grid_year
+            );
+        }
         let _ = write!(
             s,
             r#"<text x="{x}" y="{y}" font-size="11" font-weight="600" fill="{c}" text-anchor="middle">{label}</text>"#,
@@ -438,15 +462,50 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
             label = esc(label)
         );
     }
-    // Baseline under the chart.
+    // Baseline under the chart. The Wikipedia skin draws solid black x- and
+    // y-axes that meet at the bottom-left corner.
+    let axis_c = if th.flat {
+        "#000"
+    } else {
+        th.grid_year.as_str()
+    };
     let _ = write!(
         s,
         r#"<line x1="{x1}" y1="{y}" x2="{x2}" y2="{y}" stroke="{c}" stroke-width="1"/>"#,
-        x1 = n(chart_x - 4.0),
+        x1 = n(chart_x - if th.flat { 0.0 } else { 4.0 }),
         x2 = n(chart_x + chart_w + 4.0),
         y = n(grid_bot),
-        c = th.grid_year
+        c = axis_c
     );
+    if th.flat {
+        let _ = write!(
+            s,
+            r##"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="#000" stroke-width="1"/>"##,
+            x = n(chart_x),
+            y1 = n(grid_top),
+            y2 = n(grid_bot)
+        );
+    }
+    // Wikipedia skin: tick marks hanging below the axis baseline — longer at
+    // labelled (major) ticks, shorter at minor ones.
+    if th.flat {
+        for (ts, len) in ticks
+            .major
+            .iter()
+            .map(|(t, _)| (*t, 5.0))
+            .chain(ticks.minor.iter().map(|t| (*t, 3.0)))
+        {
+            let x = sx(ts);
+            let _ = write!(
+                s,
+                r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
+                x = n(x),
+                y1 = n(grid_bot),
+                y2 = n(grid_bot + len),
+                c = th.muted
+            );
+        }
+    }
 
     // ---- defs: avatar clips ----
     let _ = write!(s, "<defs>");
@@ -465,6 +524,41 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
         }
     }
     let _ = write!(s, "</defs>");
+
+    // ---- Wikipedia skin: grey row tracks + release markers ----
+    // Drawn before the rows so the release verticals sit over the grey tracks
+    // but behind the coloured bars the rows paint on top.
+    if th.flat {
+        for i in 0..rows.len() {
+            let by = chart_y + i as f64 * ROW_H + (ROW_H - bar_h) / 2.0;
+            let _ = write!(
+                s,
+                r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c}"/>"#,
+                x = n(chart_x),
+                y = n(by),
+                w = n(chart_w),
+                h = n(bar_h),
+                c = th.track,
+            );
+        }
+        // A thin vertical at each tagged release, like the studio-album lines
+        // on Wikipedia band timelines.
+        for rel in &opts.releases {
+            if rel.ts < t0 || rel.ts > t1 {
+                continue;
+            }
+            let x = sx(rel.ts);
+            let _ = write!(
+                s,
+                r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"><title>{t}</title></line>"#,
+                x = n(x),
+                y1 = n(grid_top),
+                y2 = n(grid_bot),
+                c = th.release,
+                t = esc(&rel.name)
+            );
+        }
+    }
 
     // ---- rows ----
     for (i, c) in rows.iter().enumerate() {
@@ -588,7 +682,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
         // Bar: a flat band per affiliation period (Wikipedia skin) or a faint
         // base span with monthly activity-heat segments (default skin). A change
         // of affiliation ends one bar and starts the next.
-        let by = y + (ROW_H - BAR_H) / 2.0;
+        let by = y + (ROW_H - bar_h) / 2.0;
         let runs = affiliation_runs(c);
         let split = c.month_groups.is_some();
         let smoothed = (!th.flat).then(|| smooth_months(&c.months));
@@ -614,24 +708,24 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                 };
                 let _ = write!(
                     s,
-                    r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="1.5" fill="{c}" opacity="0.92"/>"#,
+                    r#"<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c}"/>"#,
                     x = n(x),
                     y = n(by),
                     w = n(w),
-                    h = n(BAR_H),
+                    h = n(bar_h),
                     c = bar_color,
                 );
                 continue;
             }
             let w = (x1 - x0).max(3.0);
-            let rx = (BAR_H / 2.0).min(w / 2.0);
+            let rx = (bar_h / 2.0).min(w / 2.0);
             let _ = write!(
                 s,
                 r#"<rect class="bar-base" x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" fill="{c}" opacity="0.16"/>"#,
                 x = n(x0),
                 y = n(by),
                 w = n(w),
-                h = n(BAR_H),
+                h = n(bar_h),
                 r = n(rx),
                 c = bar_color,
             );
@@ -643,7 +737,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                     x = n(x0),
                     y = n(by),
                     w = n(w),
-                    h = n(BAR_H),
+                    h = n(bar_h),
                     r = n(rx),
                 );
                 for (k, &sval) in sm.iter().enumerate().take(end + 1).skip(*a) {
@@ -660,7 +754,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                         x = n(mx0),
                         y = n(by),
                         w = n((mx1 - mx0).max(1.2)),
-                        h = n(BAR_H),
+                        h = n(bar_h),
                         c = bar_color,
                     );
                 }
@@ -671,7 +765,7 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
                     r#"<circle cx="{cx}" cy="{cy}" r="{r}" fill="{c}" opacity="0.9"/>"#,
                     cx = n(x0 + w / 2.0),
                     cy = n(cy),
-                    r = n(BAR_H / 2.0 - 1.0),
+                    r = n(bar_h / 2.0 - 1.0),
                     c = bar_color,
                 );
             }
@@ -691,6 +785,28 @@ pub fn render_svg(rows: &[Contributor], opts: &SvgOptions) -> String {
 
     // ---- footer ----
     let fy = height - 9.0;
+    // Help text explaining the release verticals, centred over the footer.
+    if th.flat && !opts.releases.is_empty() {
+        let label = "Vertical lines mark releases";
+        let tw = text_w(label, 10.0);
+        let start = chart_x + (chart_w - (10.0 + tw)) / 2.0;
+        let _ = write!(
+            s,
+            r#"<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{c}" stroke-width="1"/>"#,
+            x = n(start),
+            y1 = n(fy - 7.0),
+            y2 = n(fy + 1.0),
+            c = th.release
+        );
+        let _ = write!(
+            s,
+            r#"<text x="{x}" y="{y}" font-size="10" fill="{c}">{t}</text>"#,
+            x = n(start + 10.0),
+            y = n(fy),
+            c = th.muted,
+            t = label
+        );
+    }
     let _ = write!(
         s,
         r#"<text x="28" y="{y}" font-size="10" fill="{c}">{t}</text>"#,

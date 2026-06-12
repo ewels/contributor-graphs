@@ -38,6 +38,8 @@ pub struct Theme {
     pub grid_year: String,
     pub grid_month: String,
     pub track: String,
+    /// Colour of the release marker verticals.
+    pub release: String,
     pub ctx_area: String,
     pub ctx_line: String,
 }
@@ -101,6 +103,7 @@ impl Theme {
             ("--grid-year".into(), self.grid_year.clone()),
             ("--grid-month".into(), self.grid_month.clone()),
             ("--track".into(), self.track.clone()),
+            ("--release".into(), self.release.clone()),
             ("--radius".into(), format!("{}px", self.radius)),
             ("--font-sans".into(), self.font_sans.clone()),
             ("--font-display".into(), self.font_display.clone()),
@@ -120,6 +123,8 @@ impl Theme {
             "faint": self.faint,
             "gridYear": self.grid_year,
             "gridMonth": self.grid_month,
+            "track": self.track,
+            "release": self.release,
             "card": self.card,
             "ctxArea": self.ctx_area,
             "ctxLine": self.ctx_line,
@@ -183,6 +188,7 @@ pub fn builtins() -> Vec<Theme> {
             grid_year: "#e2e6ec".into(),
             grid_month: "#eef1f5".into(),
             track: "#e8ebf0".into(),
+            release: "#6b7a99".into(),
             ctx_area: "#c9d7f5".into(),
             ctx_line: "#7d9ce8".into(),
         },
@@ -206,6 +212,7 @@ pub fn builtins() -> Vec<Theme> {
             grid_year: "#232b35".into(),
             grid_month: "#1a212a".into(),
             track: "#2a323d".into(),
+            release: "#8893ad".into(),
             ctx_area: "#23344f".into(),
             ctx_line: "#4a6da8".into(),
         },
@@ -228,7 +235,8 @@ pub fn builtins() -> Vec<Theme> {
             accent_soft: Some("rgba(51,102,204,.1)".into()),
             grid_year: "#c8ccd1".into(),
             grid_month: "#eaecf0".into(),
-            track: "#eaecf0".into(),
+            track: "#e8e8e8".into(),
+            release: "#000000".into(),
             ctx_area: "#cdd9f2".into(),
             ctx_line: "#5b81d4".into(),
         },
@@ -259,6 +267,7 @@ struct RawTheme {
     grid_year: Option<String>,
     grid_month: Option<String>,
     track: Option<String>,
+    release: Option<String>,
     ctx_area: Option<String>,
     ctx_line: Option<String>,
 }
@@ -353,6 +362,7 @@ fn resolve(id: &str, raw: &RawTheme, base: &Theme) -> Theme {
             .clone()
             .unwrap_or_else(|| base.grid_month.clone()),
         track: raw.track.clone().unwrap_or_else(|| base.track.clone()),
+        release: raw.release.clone().unwrap_or_else(|| base.release.clone()),
         ctx_area: raw
             .ctx_area
             .clone()

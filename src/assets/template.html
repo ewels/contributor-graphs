@@ -69,7 +69,7 @@
         --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.18);
         --grid-year: #c8ccd1;
         --grid-month: #eaecf0;
-        --track: #eaecf0;
+        --track: #e8e8e8;
         --radius: 2px;
         /* Wikipedia content sets the body font to the generic "sans-serif". */
         --font-sans: sans-serif;
@@ -1045,6 +1045,14 @@
               <span class="lbl">Co-authors</span>
             </label>
           </div>
+          <div class="ctl" id="ctl-releases" hidden>
+            <label>&nbsp;</label>
+            <label class="switch">
+              <input type="checkbox" id="releases" />
+              <span class="track"></span>
+              <span class="lbl">Releases</span>
+            </label>
+          </div>
           <div class="spacer"></div>
           <div class="showing" id="showing"></div>
           <button
@@ -1217,21 +1225,39 @@
       /* ---------- theme ---------- */
       const SANS =
         "-apple-system, 'Segoe UI', Inter, 'Helvetica Neue', Arial, sans-serif";
-      // Flat, saturated, distinct per-row colours for the "band members" look.
+      // Bright, near-CSS-primary, distinct colours for the Wikipedia look — the
+      // saturated reds/greens/blues of real Wikipedia timelines. In the flat
+      // skin this colours both the per-row band bars and the affiliation groups.
       const BAND_PALETTE = [
-        "#2a64c4",
-        "#d23a2e",
-        "#2f9e44",
-        "#e8910c",
-        "#8a39b0",
-        "#0e9aa7",
-        "#d23a8e",
-        "#6aa70e",
-        "#3b4cc0",
-        "#c0561e",
-        "#1ba0c4",
-        "#d6498b",
+        "#ff0000",
+        "#0000ff",
+        "#00a000",
+        "#ff8c00",
+        "#9400d3",
+        "#009b9b",
+        "#ff1493",
+        "#76b900",
+        "#a0522d",
+        "#1e90ff",
+        "#e6a800",
+        "#dc143c",
       ];
+      // The same groups, coloured from the bright palette, for the flat skin so
+      // affiliation bars match the band colours instead of the muted palette.
+      const GROUP_COLOR_FLAT = Object.fromEntries(
+        GROUP_COUNTS.map(([g], i) => [
+          g,
+          BAND_PALETTE[i % BAND_PALETTE.length],
+        ]),
+      );
+      // Group colour for the active theme: bright primaries under the flat skin,
+      // the muted multi-category palette otherwise. Falls back to grey.
+      function gcol(group) {
+        return (
+          (theme().flat ? GROUP_COLOR_FLAT[group] : GROUP_COLOR[group]) ||
+          OTHER_COLOR
+        );
+      }
       // Themes are a flat list: each is a complete look (its own light/dark
       // value set). `flat` switches the chart to solid band bars + a sans-serif
       // chart font. CSS variables for each theme live under [data-theme="…"].
@@ -1243,6 +1269,8 @@
           faint: "#98a3b1",
           gridYear: "#e2e6ec",
           gridMonth: "#eef1f5",
+          track: "#e8ebf0",
+          release: "#6b7a99",
           card: "#ffffff",
           ctxArea: "#c9d7f5",
           ctxLine: "#7d9ce8",
@@ -1257,6 +1285,8 @@
           faint: "#5f6c7b",
           gridYear: "#232b35",
           gridMonth: "#1a212a",
+          track: "#2a323d",
+          release: "#8893ad",
           card: "#151b23",
           ctxArea: "#23344f",
           ctxLine: "#4a6da8",
@@ -1271,6 +1301,8 @@
           faint: "#72777d",
           gridYear: "#c8ccd1",
           gridMonth: "#eaecf0",
+          track: "#e8e8e8",
+          release: "#000000",
           card: "#ffffff",
           ctxArea: "#cdd9f2",
           ctxLine: "#5b81d4",
@@ -1322,6 +1354,11 @@
         localStorage.setItem("cg-theme", name);
         const sel = $("#theme");
         if (sel) sel.value = name;
+        // Switching theme resets the release markers to their per-theme
+        // default: on for the Wikipedia skin (they replace its gridlines), off
+        // for light/dark. The user can still toggle them afterwards.
+        state.releases = THEMES[name].flat && HAS_RELEASES;
+        syncControls();
         renderAll();
       }
       function buildThemeMenu() {
@@ -1431,6 +1468,7 @@
         color: DEFAULT_COLOR,
         bots: false,
         coauthors: true, // count Co-authored-by trailers (full credit each)
+        releases: false, // draw release marker verticals (forced on for Wikipedia)
         align: false, // align the activity strip with the rows (default: full width)
         wide: false, // stretch the page to the full window width (default: 1200px)
         t0: null,
@@ -1439,8 +1477,10 @@
         expanded: new Set(), // row keys (see rowKey) drawn with an inline plot
         legendExpanded: false, // show every affiliation chip, not just the top
       };
+      const HAS_RELEASES = (DATA.repo.releases || []).length > 0;
       if (HAS_GROUPS) $("#ctl-rows").hidden = false;
       if (HAS_COAUTHORS) $("#ctl-coauthors").hidden = false;
+      if (HAS_RELEASES) $("#ctl-releases").hidden = false;
 
       /* Collapse contributors into one row per affiliation. People with
          time-bounded affiliations have their months split across the orgs that
@@ -1679,7 +1719,7 @@
       }
       function rowColor(c) {
         // Affiliation rows are always coloured by their group.
-        if (c.isGroup) return GROUP_COLOR[c.group] || OTHER_COLOR;
+        if (c.isGroup) return gcol(c.group);
         if (state.color === "year") {
           const y0 = tsToDate(REPO.first).getUTCFullYear();
           const y = tsToDate(c.first).getUTCFullYear();
@@ -1692,7 +1732,7 @@
         // feature of the "band members over time" look.
         if (theme().flat) return bandColor(c);
         if (state.color === "group")
-          return (c.group && GROUP_COLOR[c.group]) || OTHER_COLOR;
+          return c.group ? gcol(c.group) : OTHER_COLOR;
         return ACCENT; // activity heat (shaded on top) or solid
       }
       // The colour for one month bin: the affiliation active that month when the
@@ -1703,7 +1743,7 @@
         // A gap month (no affiliation active then) is unaffiliated — colour it
         // neutral grey, not the row's primary group, matching the bar segments.
         const g = c.month_groups[mi];
-        return g ? GROUP_COLOR[g] || OTHER_COLOR : OTHER_COLOR;
+        return g ? gcol(g) : OTHER_COLOR;
       }
       // A person's affiliations as chronological periods. For time-bounded
       // affiliations these come from month_groups (consecutive months sharing
@@ -1775,7 +1815,7 @@
               a,
               b,
               group: g,
-              color: split ? GROUP_COLOR[g] || OTHER_COLOR : rowColor(c),
+              color: split ? gcol(g) : rowColor(c),
             });
           i = j + 1;
         }
@@ -1910,6 +1950,13 @@
         currentRows = rows;
         const svg = $("#chart");
         const th = theme();
+        // The Wikipedia skin uses thicker bars with a slim white gap (≈¼ the bar
+        // height): bar = 0.8·row, gap = 0.2·row. Other themes keep the slim bar.
+        const barH = th.flat ? Math.round(ROW_H * 0.8) : BAR_H;
+        // Release verticals: shown when toggled on (always on for Wikipedia). To
+        // keep a single set of verticals, the year/month gridlines are dropped
+        // whenever releases are shown.
+        const showReleases = HAS_RELEASES && state.releases;
         $("#empty").style.display = rows.length ? "none" : "";
         if (!rows.length) {
           svg.innerHTML = "";
@@ -1927,7 +1974,8 @@
         const { width, labelW, chartX, chartW } = computeLayout();
         const marginR = MARGIN_R;
         const topPad = 26,
-          axisH = 30;
+          // Extra room below the axis for the "releases" caption when shown.
+          axisH = 30 + (showReleases ? 18 : 0);
         // Variable row heights: expanded rows are taller to fit an inline plot.
         rowLayout = [];
         let yacc = topPad;
@@ -1950,21 +1998,44 @@
           gridBot = bodyBot + 6;
 
         const ticks = timeTicks(t0, t1);
-        for (const ts of ticks.minor)
-          parts.push(
-            `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridMonth}"/>`,
-          );
+        // Background gridlines are dropped under the Wikipedia skin (release
+        // markers are the only verticals) and whenever releases are shown, so
+        // there's only ever one set of verticals. Tick marks still hang below
+        // the baseline in the flat skin.
+        const showGrid = !th.flat && !showReleases;
+        if (showGrid)
+          for (const ts of ticks.minor)
+            parts.push(
+              `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridMonth}"/>`,
+            );
         for (const [ts, lbl] of ticks.major) {
-          parts.push(
-            `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridYear}"/>`,
-          );
+          if (showGrid)
+            parts.push(
+              `<line x1="${sx(ts)}" y1="${gridTop}" x2="${sx(ts)}" y2="${gridBot}" stroke="${th.gridYear}"/>`,
+            );
           parts.push(
             `<text x="${sx(ts)}" y="${gridBot + 18}" font-size="11" font-weight="600" fill="${th.muted}" text-anchor="middle">${lbl}</text>`,
           );
         }
+        // Baseline. The Wikipedia skin draws solid black x- and y-axes that
+        // meet at the bottom-left corner, plus tick marks below the baseline.
+        const axisC = th.flat ? "#000" : th.gridYear;
         parts.push(
-          `<line x1="${chartX - 4}" y1="${gridBot}" x2="${chartX + chartW + 4}" y2="${gridBot}" stroke="${th.gridYear}"/>`,
+          `<line x1="${th.flat ? chartX : chartX - 4}" y1="${gridBot}" x2="${chartX + chartW + 4}" y2="${gridBot}" stroke="${axisC}"/>`,
         );
+        if (th.flat) {
+          parts.push(
+            `<line x1="${chartX}" y1="${gridTop}" x2="${chartX}" y2="${gridBot}" stroke="#000"/>`,
+          );
+          for (const [ts] of ticks.major)
+            parts.push(
+              `<line x1="${sx(ts)}" y1="${gridBot}" x2="${sx(ts)}" y2="${gridBot + 5}" stroke="${th.muted}"/>`,
+            );
+          for (const ts of ticks.minor)
+            parts.push(
+              `<line x1="${sx(ts)}" y1="${gridBot}" x2="${sx(ts)}" y2="${gridBot + 3}" stroke="${th.muted}"/>`,
+            );
+        }
 
         const defs = [];
         rows.forEach((c, i) => {
@@ -1981,6 +2052,28 @@
         });
         parts.push(`<defs>${defs.join("")}</defs>`);
 
+        // Wikipedia skin: grey row tracks behind every row.
+        if (th.flat)
+          rows.forEach((c, i) => {
+            if (isExpanded(c)) return;
+            const by = rowLayout[i].y + (ROW_H - barH) / 2;
+            parts.push(
+              `<rect x="${chartX}" y="${by}" width="${chartW}" height="${barH}" fill="${th.track}"/>`,
+            );
+          });
+        // Release verticals, over the grey track but behind the coloured bars
+        // the rows paint on top. Solid black in the flat skin; a softer, lower
+        // contrast themed tone in light/dark (where they stand in for the grid).
+        const relOpacity = th.flat ? 1 : 0.4;
+        if (showReleases)
+          for (const rel of DATA.repo.releases) {
+            if (rel.ts < t0 || rel.ts > t1) continue;
+            const x = sx(rel.ts).toFixed(1);
+            parts.push(
+              `<line x1="${x}" y1="${gridTop}" x2="${x}" y2="${gridBot}" stroke="${th.release}" opacity="${relOpacity}"><title>${esc(rel.name)}</title></line>`,
+            );
+          }
+
         rows.forEach((c, i) => {
           const y = rowLayout[i].y,
             rh = rowLayout[i].h,
@@ -1991,10 +2084,10 @@
             last = Math.min(c.last, t1);
           const bx = sx(first),
             bw = Math.max(sx(last) - bx, 3);
-          const by = y + (ROW_H - BAR_H) / 2;
+          const by = y + (ROW_H - barH) / 2;
           const r = [`<g class="crow${expanded ? " on" : ""}" data-i="${i}">`];
           r.push(
-            `<rect class="row-hit" x="0" y="${y}" width="${width}" height="${rh}" rx="6"/>`,
+            `<rect class="row-hit" x="0" y="${y}" width="${width}" height="${rh}" rx="${th.flat ? 0 : 6}"/>`,
           );
 
           // Expand/collapse chevron in the left gutter.
@@ -2047,14 +2140,15 @@
           if (!expanded) {
             if (th.flat) {
               // Wikipedia band: a solid block per affiliation period (or one
-              // band when there's a single affiliation).
+              // band when there's a single affiliation), painted over the grey
+              // track and release verticals laid down before the row loop.
               rowBars(c).forEach((bar) => {
                 const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
                 const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
                 const w = Math.max(x1 - x0, 6);
                 const x = x1 - x0 < 6 ? x0 + (x1 - x0) / 2 - 3 : x0;
                 r.push(
-                  `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="1.5" fill="${bar.color}" opacity="0.92"/>`,
+                  `<rect x="${x.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${barH}" fill="${bar.color}"/>`,
                 );
               });
             } else {
@@ -2067,18 +2161,18 @@
                 const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
                 const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
                 const w = Math.max(x1 - x0, 3);
-                const rx = Math.min(BAR_H / 2, w / 2);
+                const rx = Math.min(barH / 2, w / 2);
                 r.push(
-                  `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}" fill="${bar.color}" opacity="0.16"/>`,
+                  `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${barH}" rx="${rx}" fill="${bar.color}" opacity="0.16"/>`,
                 );
                 if (state.color === "solid") {
                   r.push(
-                    `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}" fill="${bar.color}" opacity="0.85"/>`,
+                    `<rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${barH}" rx="${rx}" fill="${bar.color}" opacity="0.85"/>`,
                   );
                 } else if (w > 6) {
                   const cid = `b${i}_${bi}`;
                   r.push(
-                    `<clipPath id="${cid}"><rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${BAR_H}" rx="${rx}"/></clipPath>`,
+                    `<clipPath id="${cid}"><rect x="${x0.toFixed(1)}" y="${by}" width="${w.toFixed(1)}" height="${barH}" rx="${rx}"/></clipPath>`,
                   );
                   const seg = [`<g clip-path="url(#${cid})">`];
                   for (let mi = bar.a; mi <= bar.b; mi++) {
@@ -2090,14 +2184,14 @@
                     if (mx1 < chartX || mx0 > chartX + chartW) continue;
                     const op = 0.28 + 0.72 * Math.sqrt(sval / smax);
                     seg.push(
-                      `<rect x="${mx0.toFixed(1)}" y="${by}" width="${Math.max(mx1 - mx0, 1.2).toFixed(1)}" height="${BAR_H}" fill="${bar.color}" opacity="${op.toFixed(2)}"/>`,
+                      `<rect x="${mx0.toFixed(1)}" y="${by}" width="${Math.max(mx1 - mx0, 1.2).toFixed(1)}" height="${barH}" fill="${bar.color}" opacity="${op.toFixed(2)}"/>`,
                     );
                   }
                   seg.push("</g>");
                   r.push(seg.join(""));
                 } else {
                   r.push(
-                    `<circle cx="${(x0 + w / 2).toFixed(1)}" cy="${cy}" r="${BAR_H / 2 - 1}" fill="${bar.color}" opacity="0.9"/>`,
+                    `<circle cx="${(x0 + w / 2).toFixed(1)}" cy="${cy}" r="${barH / 2 - 1}" fill="${bar.color}" opacity="0.9"/>`,
                   );
                 }
               });
@@ -2155,7 +2249,7 @@
                 // One line per affiliation period: org name in its colour, the
                 // years faint after it (fitting the name to leave room).
                 for (const s of segs) {
-                  const col = GROUP_COLOR[s.group] || OTHER_COLOR;
+                  const col = gcol(s.group);
                   const yr = segYears(s);
                   const yrW = textWidth(yr, 11, 400) + 8;
                   let g = s.group;
@@ -2167,13 +2261,9 @@
                   iy += 17;
                 }
               } else if (c.group) {
-                info(
-                  esc(fitLeft(c.group, 12.5)),
-                  GROUP_COLOR[c.group] || OTHER_COLOR,
-                  {
-                    weight: 600,
-                  },
-                );
+                info(esc(fitLeft(c.group, 12.5)), gcol(c.group), {
+                  weight: 600,
+                });
               }
             }
             info(`${fmtNum(c.commits)} commits`, th.text, { weight: 600 });
@@ -2238,6 +2328,21 @@
           r.push("</g>");
           parts.push(r.join(""));
         });
+
+        // Help text under the graph explaining the release verticals. Drawn
+        // inside the SVG so it travels into the PNG/SVG exports too.
+        if (showReleases) {
+          const label = "Vertical lines mark releases";
+          const tw = textWidth(label, 10.5, 400);
+          const start = chartX + (chartW - (10 + tw)) / 2;
+          const capY = height - 7;
+          parts.push(
+            `<line x1="${start}" y1="${capY - 7}" x2="${start}" y2="${capY + 1}" stroke="${th.release}" stroke-width="1" opacity="${relOpacity}"/>`,
+          );
+          parts.push(
+            `<text x="${start + 10}" y="${capY}" font-size="10.5" fill="${th.muted}">${label}</text>`,
+          );
+        }
 
         svg.innerHTML = parts.join("");
         updateShowing(rows, eligible, total);
@@ -2353,14 +2458,14 @@
         // block under the head, each org in its colour, for consistent layout.
         const badge =
           !ANY_MULTI_AFFIL && c.group
-            ? `<span class="badge" style="background:${GROUP_COLOR[c.group] || OTHER_COLOR}22;color:${GROUP_COLOR[c.group] || OTHER_COLOR}">${esc(c.group)}</span>`
+            ? `<span class="badge" style="background:${gcol(c.group)}22;color:${gcol(c.group)}">${esc(c.group)}</span>`
             : "";
         const affHtml =
           ANY_MULTI_AFFIL && segs.length
             ? `<div class="tt-affil">${segs
                 .map(
                   (s) =>
-                    `<span class="tt-affil-row"><span class="dot" style="background:${GROUP_COLOR[s.group] || OTHER_COLOR}"></span><span style="color:${GROUP_COLOR[s.group] || OTHER_COLOR};font-weight:600">${esc(s.group)}</span> <span style="opacity:.6">${segYears(s)}</span></span>`,
+                    `<span class="tt-affil-row"><span class="dot" style="background:${gcol(s.group)}"></span><span style="color:${gcol(s.group)};font-weight:600">${esc(s.group)}</span> <span style="opacity:.6">${segYears(s)}</span></span>`,
                 )
                 .join("")}</div>`
             : "";
@@ -2614,7 +2719,7 @@
           .map(
             ([g, n]) =>
               `<span class="chip${state.gsel.has(g) ? " on" : ""}" data-g="${esc(g)}" role="button" tabindex="0" title="Click to filter">` +
-              `<span class="dot" style="background:${GROUP_COLOR[g]}"></span>${esc(g)} <span class="n">${n}</span></span>`,
+              `<span class="dot" style="background:${gcol(g)}"></span>${esc(g)} <span class="n">${n}</span></span>`,
           )
           .join("");
         // The overflow chip is a real button: expand to all affiliations (so any
@@ -2764,6 +2869,7 @@
         $("#color").closest(".ctl").style.opacity = aff ? ".5" : "";
         $("#bots").checked = state.bots;
         $("#coauthors").checked = state.coauthors;
+        $("#releases").checked = state.releases;
         $("#align-ctx").setAttribute(
           "aria-pressed",
           state.align ? "true" : "false",
@@ -2875,6 +2981,10 @@
         renderAll();
         writeHash();
       });
+      $("#releases").addEventListener("change", (e) => {
+        state.releases = e.target.checked;
+        renderChart();
+      });
       $("#reset").addEventListener("click", () => {
         state.mode = DEFAULT_MODE;
         state.q = "";
@@ -2885,6 +2995,8 @@
         state.bots = false;
         state.coauthors = true;
         applyCoauthors();
+        // Releases default on for the Wikipedia skin, off elsewhere.
+        state.releases = !!theme().flat && HAS_RELEASES;
         state.align = false;
         state.wide = false;
         state.t0 = state.t1 = null;
@@ -2927,6 +3039,8 @@
       document.documentElement.dataset.theme = THEMES[initialTheme]
         ? initialTheme
         : "light";
+      // The Wikipedia skin always starts with release markers on.
+      if (theme().flat && HAS_RELEASES) state.releases = true;
       if (locked) {
         $("#theme").hidden = true;
       } else {

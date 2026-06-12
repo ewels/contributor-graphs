@@ -494,6 +494,7 @@ fn main() -> Result<()> {
             accent: args.accent.clone(),
             by_affiliation: args.by_affiliation,
             theme: svg_theme.clone(),
+            releases: meta.releases.clone(),
         };
         let svg_str = svg::render_svg(&rows, &opts);
         let path = args.output_dir.join(format!("{basename}.svg"));

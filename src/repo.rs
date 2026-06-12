@@ -1,4 +1,4 @@
-use crate::model::{Commit, CommitFilter};
+use crate::model::{Commit, CommitFilter, Release};
 use anyhow::{bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -153,9 +153,40 @@ pub fn fetch(repo: &PreparedRepo) -> bool {
             "--prune",
             "origin",
             "+refs/heads/*:refs/heads/*",
+            // Keep tags current too, so release markers reflect new releases.
+            "+refs/tags/*:refs/tags/*",
         ],
     )
     .is_ok()
+}
+
+/// Read every git tag with its date (tag date for annotated tags, commit date
+/// for lightweight ones), sorted oldest-first. Used to mark releases on the
+/// timeline. A local-only operation — no network — so it's cheap to call.
+pub fn read_tags(repo: &PreparedRepo) -> Vec<Release> {
+    let out = match git(
+        &repo.git_dir,
+        &[
+            "for-each-ref",
+            "--sort=creatordate",
+            "--format=%(refname:short)%09%(creatordate:unix)",
+            "refs/tags",
+        ],
+    ) {
+        Ok(s) => s,
+        Err(_) => return Vec::new(),
+    };
+    out.lines()
+        .filter_map(|line| {
+            let (name, ts) = line.split_once('\t')?;
+            let ts: i64 = ts.trim().parse().ok()?;
+            let name = name.trim();
+            (!name.is_empty() && ts > 0).then(|| Release {
+                name: name.to_string(),
+                ts,
+            })
+        })
+        .collect()
 }
 
 fn resolve_branch(dir: &Path, requested: Option<&str>) -> String {

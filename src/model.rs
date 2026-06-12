@@ -227,6 +227,15 @@ pub fn aggregate_by_group(contributors: &[Contributor], unaffiliated: &str) -> V
         .collect()
 }
 
+/// A tagged release: a git tag name and the unix timestamp of the tag (the tag
+/// date for annotated tags, the commit date for lightweight tags). Used to draw
+/// release markers on the timeline for single-repository runs.
+#[derive(Debug, Clone, Serialize)]
+pub struct Release {
+    pub name: String,
+    pub ts: i64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct RepoMeta {
     pub name: String,
@@ -244,6 +253,10 @@ pub struct RepoMeta {
     /// The GitHub repository description, when available.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Tagged releases for timeline release markers, pooled across every source
+    /// (multi-source tags are prefixed with the repo name). Empty when no tags.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub releases: Vec<Release>,
 }
 
 pub fn month_index(ts: i64) -> i32 {

@@ -447,6 +447,27 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         None => "combined".to_string(),
     };
 
+    // Tagged releases, for timeline release markers. Gathered from every
+    // source; with more than one, the repo name is prefixed onto each tag so a
+    // pooled / org timeline's markers stay attributable (and necessarily
+    // busier — the page can toggle them off).
+    let releases: Vec<model::Release> = if prepared.len() == 1 {
+        repo::read_tags(&prepared[0])
+    } else {
+        prepared
+            .iter()
+            .flat_map(|p| {
+                repo::read_tags(p).into_iter().map(|mut r| {
+                    r.name = format!("{} {}", p.display_name, r.name);
+                    r
+                })
+            })
+            .collect()
+    };
+    if !releases.is_empty() {
+        log!("→ {} releases", releases.len());
+    }
+
     let first = contributors.iter().map(|c| c.first).min().unwrap_or(0);
     let last = contributors.iter().map(|c| c.last).max().unwrap_or(0);
     let meta = RepoMeta {
@@ -461,6 +482,7 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         generated: chrono::Utc::now().format("%Y-%m-%d").to_string(),
         owner_avatar,
         description,
+        releases,
     };
 
     caches.save();
