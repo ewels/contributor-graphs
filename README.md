@@ -72,8 +72,7 @@ it, and put `contributor-graphs` on your `PATH`. No toolchain required.
 **Cargo** (needs [Rust](https://rustup.rs)):
 
 ```bash
-cargo install --git https://github.com/ewels/contributor-graphs  # latest
-cargo install contributor-graphs                                 # once on crates.io
+cargo install contributor-graphs
 ```
 
 **Docker:** published to the GitHub Container Registry:
