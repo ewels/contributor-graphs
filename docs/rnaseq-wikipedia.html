@@ -1700,8 +1700,10 @@
       // otherwise the row colour. Time colouring only makes sense by group.
       function monthColor(c, mi, fallback) {
         if (!c.month_groups) return fallback;
+        // A gap month (no affiliation active then) is unaffiliated — colour it
+        // neutral grey, not the row's primary group, matching the bar segments.
         const g = c.month_groups[mi];
-        return (g && GROUP_COLOR[g]) || fallback;
+        return g ? GROUP_COLOR[g] || OTHER_COLOR : OTHER_COLOR;
       }
       // A person's affiliations as chronological periods. For time-bounded
       // affiliations these come from month_groups (consecutive months sharing
