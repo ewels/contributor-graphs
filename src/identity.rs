@@ -338,6 +338,7 @@ pub fn build_contributors(
     clusters: &[Cluster],
     commits: &[Commit],
     groups: &[GroupRule],
+    forced_names: &[(String, String)],
     count_coauthors: bool,
 ) -> Vec<Contributor> {
     let mut out = Vec::with_capacity(clusters.len());
@@ -378,10 +379,13 @@ pub fn build_contributors(
                 *slot += 1;
             }
         }
-        let name = cl
-            .profile_name
-            .clone()
-            .filter(|n| !n.trim().is_empty())
+        // A name supplied in the curation TSV is authoritative; otherwise fall
+        // back to the GitHub profile name, then the commit-derived name.
+        let name = forced_names
+            .iter()
+            .find(|(matcher, _)| cluster_matches(cl, matcher))
+            .map(|(_, name)| name.clone())
+            .or_else(|| cl.profile_name.clone().filter(|n| !n.trim().is_empty()))
             .unwrap_or_else(|| display_name(cl, commits));
         // Manual group rules win over the auto-detected affiliation. With
         // dated rules, the person's months are coloured by the org active at

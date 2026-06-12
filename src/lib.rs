@@ -63,6 +63,11 @@ pub struct Config {
     pub group_aliases: Vec<(String, Vec<String>)>,
     /// Manual identity merges: each row is `[canonical, alias, …]`.
     pub identities: Vec<Vec<String>>,
+    /// Authoritative display names: `(matcher, name)`. When a matcher (name,
+    /// email, or login) hits a cluster, `name` overrides the GitHub profile
+    /// name and the commit-derived name. Comes from the TSV affiliations file's
+    /// `full name` column; empty there for most people.
+    pub forced_names: Vec<(String, String)>,
     /// Query the GitHub API for logins, avatars, and profiles.
     pub use_github: bool,
     /// Auto-detect affiliations from GitHub profile companies.
@@ -94,6 +99,7 @@ impl Default for Config {
             groups: Vec::new(),
             group_aliases: Vec::new(),
             identities: Vec::new(),
+            forced_names: Vec::new(),
             use_github: true,
             detect_affiliation: true,
             merge_names: true,
@@ -335,8 +341,13 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
         log!("→ applied {} identity overrides", cfg.identities.len());
     }
 
-    let mut contributors =
-        identity::build_contributors(&clusters, &commits, &cfg.groups, cfg.count_coauthors);
+    let mut contributors = identity::build_contributors(
+        &clusters,
+        &commits,
+        &cfg.groups,
+        &cfg.forced_names,
+        cfg.count_coauthors,
+    );
 
     // Apply manual group-name aliases: fold each variant into its canonical
     // name (case-insensitively), on both the primary group and the per-month

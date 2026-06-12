@@ -71,6 +71,16 @@ struct Args {
     #[arg(long)]
     config: Option<PathBuf>,
 
+    /// CSV or TSV affiliations file. Columns: `username`, `full name`,
+    /// `affiliation`, `start`, `end` — one row per affiliation period, repeating
+    /// the username for several periods. The delimiter (tab or comma) is
+    /// auto-detected. `start`/`end` are `YYYY` / `YYYY-MM` / `YYYY-MM-DD` and may
+    /// be blank for open-ended (`end` is exclusive). A header row and `#` comment
+    /// lines are ignored. Can be combined with --config (affiliations merge;
+    /// aliases come from the YAML).
+    #[arg(long)]
+    affiliations: Option<PathBuf>,
+
     /// Skip all GitHub API enrichment (usernames, avatars)
     #[arg(long)]
     no_github: bool,
@@ -226,10 +236,24 @@ fn date_value(v: &Option<serde_yaml::Value>) -> Result<Option<i64>> {
     parse_date(&s).map(Some)
 }
 
+#[derive(Default)]
 struct Curation {
     identities: Vec<Vec<String>>,
     groups: Vec<contributor_graphs::model::GroupRule>,
     group_aliases: Vec<(String, Vec<String>)>,
+    forced_names: Vec<(String, String)>,
+}
+
+impl Curation {
+    /// Fold another source (a second file) into this one. Identities,
+    /// affiliation rules, and forced names accumulate; aliases come from
+    /// whichever sources set them.
+    fn merge(&mut self, other: Curation) {
+        self.identities.extend(other.identities);
+        self.groups.extend(other.groups);
+        self.group_aliases.extend(other.group_aliases);
+        self.forced_names.extend(other.forced_names);
+    }
 }
 
 /// Load and validate the YAML curation file into the pieces `analyze_many` needs.
@@ -254,6 +278,85 @@ fn load_curation(path: &PathBuf) -> Result<Curation> {
         identities: cfg.identities,
         groups,
         group_aliases: cfg.aliases.into_iter().collect(),
+        forced_names: Vec::new(),
+    })
+}
+
+/// Load a CSV or TSV affiliations file. Columns: `username`, `full name`,
+/// `affiliation`, `start`, `end`. One row per affiliation period; repeat the
+/// username for several periods. The `full name` becomes the person's canonical
+/// display name (an identity merge keyed on the username), and each row becomes
+/// a time-bounded group rule. Blank `start`/`end` mean open-ended; `end` is
+/// exclusive. A header row and `#` comments are skipped. The delimiter (tab or
+/// comma) is auto-detected, so the same loader reads `.tsv` and `.csv`.
+fn load_affiliations_table(path: &PathBuf) -> Result<Curation> {
+    use contributor_graphs::model::GroupRule;
+    use std::collections::HashSet;
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))?;
+    // Detect the delimiter from the first real line: a tab if present, else a
+    // comma. (Values can't contain the delimiter; use TSV for names with commas.)
+    let delim = text
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty() && !l.starts_with('#'))
+        .map_or('\t', |l| if l.contains('\t') { '\t' } else { ',' });
+    let date = |s: &str, ln: usize| -> Result<Option<i64>> {
+        let s = s.trim();
+        if s.is_empty() {
+            return Ok(None);
+        }
+        parse_date(s)
+            .map(Some)
+            .with_context(|| format!("{}: line {ln}", path.display()))
+    };
+    let mut groups = Vec::new();
+    // One entry per username (first non-empty full name wins), kept in file
+    // order: an identity row (so the name merges and sorts first) and a forced
+    // display name (authoritative over GitHub / commit-derived names).
+    let mut named: HashSet<String> = HashSet::new();
+    let mut identities = Vec::new();
+    let mut forced_names = Vec::new();
+    for (i, raw) in text.lines().enumerate() {
+        let ln = i + 1;
+        let line = raw.trim_end_matches('\r');
+        if line.trim().is_empty() || line.trim_start().starts_with('#') {
+            continue;
+        }
+        let cols: Vec<&str> = line.split(delim).collect();
+        let col = |n: usize| cols.get(n).map(|s| s.trim()).unwrap_or("");
+        let username = col(0);
+        // Tolerate (and skip) a header row.
+        if username.eq_ignore_ascii_case("username") {
+            continue;
+        }
+        if username.is_empty() {
+            anyhow::bail!("{}: line {ln}: empty username", path.display());
+        }
+        let full_name = col(1);
+        let affiliation = col(2);
+        if affiliation.is_empty() {
+            anyhow::bail!(
+                "{}: line {ln}: missing affiliation for {username:?}",
+                path.display()
+            );
+        }
+        groups.push(GroupRule {
+            matcher: username.to_string(),
+            group: affiliation.to_string(),
+            since: date(col(3), ln)?,
+            until: date(col(4), ln)?,
+        });
+        if !full_name.is_empty() && named.insert(username.to_string()) {
+            identities.push(vec![full_name.to_string(), username.to_string()]);
+            forced_names.push((username.to_string(), full_name.to_string()));
+        }
+    }
+    Ok(Curation {
+        identities,
+        groups,
+        group_aliases: Vec::new(),
+        forced_names,
     })
 }
 
@@ -268,14 +371,15 @@ fn main() -> Result<()> {
         anyhow::bail!("invalid --accent colour: {:?}", args.accent);
     }
 
-    let curation = match &args.config {
-        Some(path) => load_curation(path)?,
-        None => Curation {
-            identities: Vec::new(),
-            groups: Vec::new(),
-            group_aliases: Vec::new(),
-        },
-    };
+    // Curation can come from a YAML file, a TSV affiliations file, or both
+    // (their identities and affiliation rules merge).
+    let mut curation = Curation::default();
+    if let Some(path) = &args.config {
+        curation.merge(load_curation(path)?);
+    }
+    if let Some(path) = &args.affiliations {
+        curation.merge(load_affiliations_table(path)?);
+    }
 
     let cfg = Config {
         branch: args.branch.clone(),
@@ -287,6 +391,7 @@ fn main() -> Result<()> {
         groups: curation.groups,
         group_aliases: curation.group_aliases,
         identities: curation.identities,
+        forced_names: curation.forced_names,
         use_github: !args.no_github,
         detect_affiliation: !args.no_affiliation,
         merge_names: !args.no_name_merge,

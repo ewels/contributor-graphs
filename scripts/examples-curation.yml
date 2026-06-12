@@ -1,0 +1,10 @@
+# Curation file for the contributor-graphs website examples (--config).
+#
+# Used by scripts/regen-examples.sh alongside examples-affiliations.tsv: the
+# affiliations and display names live in the table, and this file holds the
+# things it cannot express (group-name aliases). Either file is optional and
+# both can be extended.
+
+# Group-name aliases: a canonical name and the variants that mean the same org.
+aliases:
+  Seqera: [Seqera Labs, seqeralabs]

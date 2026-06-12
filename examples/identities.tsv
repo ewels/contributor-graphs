@@ -1,7 +1,0 @@
-# Manual identity merging for `--identities`.
-# Each row: Canonical Name<TAB>alias<TAB>alias...
-# Aliases may be names, emails, or GitHub logins. All matching commit
-# identities are merged and shown under the canonical (first) name.
-Alexander Peltzer	apeltzer	Alex Peltzer	a.peltzer@gmail.com
-Patrick Hüther	phue	patrick.huether@example.org
-Maxime U Garcia	MaxUlysse	maxime.garcia@scilifelab.se

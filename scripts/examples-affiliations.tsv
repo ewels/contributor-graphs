@@ -1,0 +1,9 @@
+# contributor-graphs affiliations file (--affiliations)
+# Tab-separated columns. Repeat a username for multiple affiliation periods.
+# start/end are YYYY / YYYY-MM / YYYY-MM-DD, may be blank (end is exclusive).
+username	full name	affiliation	start	end
+ewels	Phil Ewels	SciLifeLab	2014	2022-05
+ewels	Phil Ewels	Seqera	2022-05
+maxulysse	Maxime Garcia	BTB	2016-04	2022-11
+maxulysse	Maxime Garcia	Seqera	2022-11	2025-12
+maxulysse	Maxime Garcia	SciLifeLab	2025-12

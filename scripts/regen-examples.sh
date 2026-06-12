@@ -15,6 +15,11 @@ cd "$(dirname "$0")/.."
 
 REPO="${REPO:-nf-core/rnaseq}"
 WIDTH="${WIDTH:-1180}"
+# Curation: group-name aliases live in the YAML, affiliations + display names in
+# the TSV. Both are passed to every example so the demos show real affiliations.
+CONFIG="${CONFIG:-scripts/examples-curation.yml}"
+AFFILIATIONS="${AFFILIATIONS:-scripts/examples-affiliations.tsv}"
+CURATE=(--config "$CONFIG" --affiliations "$AFFILIATIONS")
 BIN="target/release/contributor-graphs"
 
 echo "==> building release binary"
@@ -22,7 +27,7 @@ cargo build --release --locked
 
 gen() {
   echo "==> contributor-graphs $REPO $*"
-  "$BIN" "$REPO" -o docs "$@"
+  "$BIN" "$REPO" "${CURATE[@]}" -o docs "$@"
 }
 
 # Default skin: the live interactive page and the static example SVG. They keep
@@ -40,10 +45,10 @@ gen --basename example-rnaseq-wikipedia --format svg --width "$WIDTH" --theme wi
 # Multi-source example: nf-core/sarek lost its pre-migration history in the move
 # from SciLifeLab, so combining the two repos recovers the full timeline.
 echo "==> contributor-graphs nf-core/sarek SciLifeLab/Sarek"
-"$BIN" nf-core/sarek SciLifeLab/Sarek --title "Sarek" --basename sarek \
-  --format both --width "$WIDTH" -o docs
-"$BIN" nf-core/sarek SciLifeLab/Sarek --title "Sarek" --basename sarek-dark \
-  --format svg --width "$WIDTH" --theme dark -o docs
+"$BIN" nf-core/sarek SciLifeLab/Sarek "${CURATE[@]}" --title "Sarek" \
+  --basename sarek --format both --width "$WIDTH" -o docs
+"$BIN" nf-core/sarek SciLifeLab/Sarek "${CURATE[@]}" --title "Sarek" \
+  --basename sarek-dark --format svg --width "$WIDTH" --theme dark -o docs
 
 echo "==> done; regenerated SVG + HTML in docs/"
 echo "    (the whole-org docs/nf-core.* example is heavy; regenerate it with"

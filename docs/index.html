@@ -1248,7 +1248,8 @@
               <h3>Interactive page</h3>
               <p>
                 Search, sort, set a commit threshold, brush-zoom a date range,
-                read details on hover, export a PNG.
+                read details on hover, export a PNG. On mobile the controls tuck
+                into a menu while the timeline stays pinned.
               </p>
             </div>
             <div class="feature">
@@ -1685,6 +1686,15 @@ docker run --rm -v "$PWD:/work" -e GITHUB_TOKEN \
                       </td>
                     </tr>
                     <tr>
+                      <td class="flag">--affiliations</td>
+                      <td>
+                        CSV/TSV affiliations: one row per period, columns
+                        <code>username</code>, <code>full&nbsp;name</code>,
+                        <code>affiliation</code>, <code>start</code>,
+                        <code>end</code>.
+                      </td>
+                    </tr>
+                    <tr>
                       <td class="flag">--since / --until</td>
                       <td>Restrict to a window of commit history.</td>
                     </tr>
@@ -1763,6 +1773,25 @@ affiliations:
             coloured by the organisation active at the time, and the
             by-affiliation view splits their commits across those orgs by date.
           </p>
+          <p>
+            Prefer a spreadsheet? Pass a CSV or TSV file with
+            <code>--affiliations</code> instead (the delimiter is
+            auto-detected), with columns <code>username</code>,
+            <code>full&nbsp;name</code>, <code>affiliation</code>,
+            <code>start</code>, <code>end</code>, and a row per period. The
+            <code>full&nbsp;name</code> is optional, but when set it wins over
+            the auto-detected name. Use it on its own or alongside
+            <code>--config</code> (aliases stay in the YAML).
+          </p>
+          <pre
+            class="code"
+          ><button class="copybtn" data-copy="contributor-graphs nf-core/rnaseq --affiliations affiliations.csv">Copy</button><span class="cm"># affiliations.csv</span>
+username,full name,affiliation,start,end
+ewels,Phil Ewels,SciLifeLab,2014,2022-05
+ewels,Phil Ewels,Seqera,2022-05
+maxulysse,,Seqera,2022-11,2025-12
+
+<span class="pr">$</span> contributor-graphs nf-core/rnaseq <span class="cm">--affiliations affiliations.csv</span></pre>
         </div>
       </section>
 

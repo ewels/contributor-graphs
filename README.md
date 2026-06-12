@@ -148,6 +148,7 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--unaffiliated-label <TEXT>`       | Bucket name for people with no affiliation (default: `Unaffiliated`) |
 | `--sort <KEY>`                      | `first` · `last` · `commits` · `duration` · `name`                   |
 | `--config <FILE.yml>`               | Curation file: identities, group aliases, affiliations (see below)   |
+| `--affiliations <FILE>`             | CSV/TSV affiliations: `username, full name, affiliation, start, end` |
 | `--no-affiliation`                  | Disable auto group detection from profiles                           |
 | `--no-name-merge`                   | Don't merge identities that share an author name                     |
 | `--no-co-authors`                   | Don't credit `Co-authored-by` trailers (author only)                 |
@@ -262,6 +263,32 @@ one person several affiliations over time. Dates are `YYYY`, `YYYY-MM`, or
 resolve to the later `since`. A contributor's row is then drawn as one bar per
 period, coloured by the organisation active at the time, and the
 **by-affiliation** view splits their commits across those orgs by date.
+
+### Affiliations table (`--affiliations`)
+
+If you'd rather keep affiliations in a spreadsheet-friendly table, pass a CSV or
+TSV file instead of (or alongside) `--config`. The delimiter (comma or tab) is
+auto-detected. Columns are `username`, `full name`, `affiliation`, `start`,
+`end`; repeat the username for several periods. `start` / `end` use the same
+date formats and may be blank for open-ended (`end` is exclusive). The
+`full name` is optional — blank for most people — but when set it is
+**authoritative**, overriding the GitHub profile and commit-derived names. A
+header row and `#` comment lines are ignored.
+
+```csv
+username,full name,affiliation,start,end
+ewels,Phil Ewels,SciLifeLab,2014,2022-05
+ewels,Phil Ewels,Seqera,2022-05
+apeltzer,,QBiC,,2020-01
+apeltzer,,Boehringer Ingelheim,2020-01
+```
+
+```bash
+contributor-graphs nf-core/rnaseq --affiliations affiliations.csv
+```
+
+Aliases can only be expressed in the YAML; combine the two files when you need
+both (`--config aliases.yml --affiliations affiliations.csv`).
 
 ## How it works
 
