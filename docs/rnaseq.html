@@ -971,7 +971,7 @@
             <label for="rows">Rows</label>
             <select id="rows">
               <option value="contributors">Contributors</option>
-              <option value="affiliations">Current affiliations</option>
+              <option value="affiliations">Affiliations</option>
             </select>
           </div>
           <div class="ctl">
@@ -1157,6 +1157,14 @@
         "#9498a0",
         "#2f7f8f",
         "#c65b8a",
+        "#d62728",
+        "#17becf",
+        "#7570b3",
+        "#66a61e",
+        "#e6ab02",
+        "#e7298a",
+        "#1f9e89",
+        "#b15928",
       ];
       const YEAR_PALETTE = [
         "#4269d0",
@@ -1169,7 +1177,8 @@
         "#6cc5b0",
       ];
 
-      /* Groups ranked by member count; top 10 get colours, the tail shares grey. */
+      /* Groups ranked by member count; the palette cycles so every group gets a
+         colour. OTHER_COLOR (grey) is only for genuinely unaffiliated rows. */
       const OTHER_COLOR = "#9aa3ad";
       const GROUP_COUNTS = (() => {
         const m = new Map();
@@ -1194,7 +1203,7 @@
       const GROUP_COLOR = Object.fromEntries(
         GROUP_COUNTS.map(([g], i) => [
           g,
-          i < 10 ? GROUP_PALETTE[i % GROUP_PALETTE.length] : OTHER_COLOR,
+          GROUP_PALETTE[i % GROUP_PALETTE.length],
         ]),
       );
       if (GROUPS.length) $("#opt-group").hidden = false;
@@ -2697,9 +2706,7 @@
         const aff = affMode();
         $("#rows").value = state.mode;
         $("#search").value = state.q;
-        $("#search").placeholder = aff
-          ? "Current affiliation…"
-          : "Name or username…";
+        $("#search").placeholder = aff ? "Affiliation…" : "Name or username…";
         minRange.value = minToSlider(state.min);
         $("#min-num").value = state.min;
         $("#min-num").max = MAX_COMMITS;
