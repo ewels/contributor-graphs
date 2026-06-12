@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.2.1] - 2026-06-12
+
+### Changed
+
+- Responsive interactive page: on narrow screens the filter controls and the
+  organisation legend collapse into a slide-down drawer behind a hamburger
+  button in a sticky navbar, instead of taking up most of the screen. The
+  activity timeline stays out of the drawer and pins below the navbar so it is
+  always visible while scrolling the chart. The desktop layout is unchanged.
+
 ## [1.2.0] - 2026-06-11
 
 ### Added
