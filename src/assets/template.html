@@ -1608,6 +1608,19 @@
       function hasCommits(c) {
         return c.commits > 0;
       }
+      // Search + min-commits + time-window test, shared by the plot and the
+      // affiliation legend so a search narrows the legend chips too.
+      function rowMatches(c, q, t0, t1) {
+        return (
+          c.commits >= state.min &&
+          c.last >= t0 &&
+          c.first <= t1 &&
+          (!q ||
+            c.name.toLowerCase().includes(q) ||
+            (c.login || "").toLowerCase().includes(q) ||
+            (c.group || "").toLowerCase().includes(q))
+        );
+      }
       function filtered() {
         const [t0, t1] = domain();
         const q = state.q.trim().toLowerCase();
@@ -1615,15 +1628,7 @@
         let base = ALL.filter((c) => state.bots || !c.bot);
         if (aff) base = aggregateByGroup(base);
         let rows = base.filter(
-          (c) =>
-            c.commits >= state.min &&
-            c.last >= t0 &&
-            c.first <= t1 &&
-            (aff || matchesGroupFilter(c)) &&
-            (!q ||
-              c.name.toLowerCase().includes(q) ||
-              (c.login || "").toLowerCase().includes(q) ||
-              (c.group || "").toLowerCase().includes(q)),
+          (c) => rowMatches(c, q, t0, t1) && (aff || matchesGroupFilter(c)),
         );
         const eligible = rows.length;
         // Count only rows with commits, so people who exist solely as
@@ -2543,10 +2548,36 @@
         requestAnimationFrame(() => {
           renderQueued = false;
           renderChart();
+          // Keep the affiliation legend in step with the active filters (search,
+          // min-commits, time window) — but not the top-N cap, which legendCounts
+          // ignores.
+          renderLegend();
         });
       }
 
       /* ---------- group legend ---------- */
+      // Affiliations present among the search / commits / time-filtered rows
+      // (ignoring the group selection and the top-N cap), most common first. With
+      // no filters active this is every affiliation, matching GROUP_COUNTS.
+      function legendCounts() {
+        const q = state.q.trim().toLowerCase();
+        const [t0, t1] = domain();
+        const m = new Map();
+        const bump = (g) => g && m.set(g, (m.get(g) || 0) + 1);
+        for (const c of HUMANS) {
+          if (!rowMatches(c, q, t0, t1)) continue;
+          bump(c.group);
+          if (c.month_groups) {
+            const seen = new Set();
+            for (const g of c.month_groups)
+              if (g && g !== c.group && !seen.has(g)) {
+                seen.add(g);
+                bump(g);
+              }
+          }
+        }
+        return [...m.entries()].sort((a, b) => b[1] - a[1]);
+      }
       function renderLegend() {
         const el = $("#legend");
         // In affiliation mode the y-axis already labels every group.
@@ -2559,11 +2590,16 @@
           el.hidden = true;
           return;
         }
+        const counts = legendCounts();
+        if (!counts.length) {
+          el.hidden = true;
+          return;
+        }
         el.hidden = false;
         el.classList.toggle("has-sel", state.gsel.size > 0);
         const TOPN = 18;
-        const collapsed = !state.legendExpanded && GROUP_COUNTS.length > TOPN;
-        const shown = collapsed ? GROUP_COUNTS.slice(0, TOPN) : GROUP_COUNTS;
+        const collapsed = !state.legendExpanded && counts.length > TOPN;
+        const shown = collapsed ? counts.slice(0, TOPN) : counts;
         let html = shown
           .map(
             ([g, n]) =>
@@ -2573,11 +2609,9 @@
           .join("");
         // The overflow chip is a real button: expand to all affiliations (so any
         // can be filtered), then collapse back.
-        if (GROUP_COUNTS.length > TOPN) {
+        if (counts.length > TOPN) {
           html += `<span class="chip more" id="legend-more" role="button" tabindex="0">${
-            collapsed
-              ? "+" + (GROUP_COUNTS.length - TOPN) + " more"
-              : "Show fewer"
+            collapsed ? "+" + (counts.length - TOPN) + " more" : "Show fewer"
           }</span>`;
         }
         el.innerHTML = html;

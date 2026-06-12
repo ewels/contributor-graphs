@@ -331,6 +331,12 @@ fn display_name(cl: &Cluster, commits: &[Commit]) -> String {
         })
 }
 
+/// A plausible GitHub username, so a name- or email-based matcher isn't turned
+/// into a bogus profile link: ASCII alphanumerics and hyphens, at most 39 chars.
+fn is_github_username(s: &str) -> bool {
+    !s.is_empty() && s.len() <= 39 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+}
+
 /// Build final contributors with stats and monthly activity bins. With
 /// `count_coauthors`, each `Co-authored-by` credit is counted alongside the
 /// authored commits (and tracked separately in `co_months` / `co_commits`).
@@ -410,18 +416,44 @@ pub fn build_contributors(
             let mg: Vec<Option<String>> = (0..len)
                 .map(|mi| active_at(month_start_ts(m0 + mi as i32)).map(str::to_string))
                 .collect();
-            let primary = matching
-                .iter()
-                .max_by_key(|r| r.since.unwrap_or(i64::MIN))
-                .map(|r| r.group.clone());
+            // Primary = the most recent affiliation the person was actually
+            // active under (their last coloured month), so an affiliation that
+            // starts after they stopped committing doesn't mislabel them. Fall
+            // back to the latest rule if no active month is covered at all.
+            let primary = mg.iter().rev().flatten().next().cloned().or_else(|| {
+                matching
+                    .iter()
+                    .max_by_key(|r| r.since.unwrap_or(i64::MIN))
+                    .map(|r| r.group.clone())
+            });
             let month_groups = mg.iter().any(|g| g.is_some()).then_some(mg);
             (primary, month_groups)
         };
-        let url = cl.login.as_ref().map(|l| format!("https://github.com/{l}"));
+        // If commit metadata never resolved a GitHub account but a manual
+        // affiliation row matched (on name/email), adopt that row's username as
+        // the login. GitHub serves the avatar and profile page by username, so
+        // an otherwise-accountless contributor gets their picture and link with
+        // no extra API call.
+        let backfill: Option<&str> = cl
+            .login
+            .is_none()
+            .then(|| {
+                matching
+                    .iter()
+                    .map(|r| r.matcher.as_str())
+                    .find(|&m| is_github_username(m))
+            })
+            .flatten();
+        let login = cl.login.clone().or_else(|| backfill.map(str::to_string));
+        let avatar = cl
+            .avatar_url
+            .clone()
+            .or_else(|| backfill.map(|u| format!("https://avatars.githubusercontent.com/{u}")));
+        let url = login.as_ref().map(|l| format!("https://github.com/{l}"));
         out.push(Contributor {
             name,
-            login: cl.login.clone(),
-            avatar: cl.avatar_url.clone(),
+            login,
+            avatar,
             url,
             first,
             last,

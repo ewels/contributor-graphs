@@ -354,12 +354,23 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     // affiliations.
     apply_group_aliases(&mut contributors, &cfg.group_aliases);
 
+    // Collapse a leading "The " (case-insensitively) so e.g. "The Francis Crick
+    // Institute" and "Francis Crick Institute" are treated as one affiliation.
+    strip_leading_the(&mut contributors);
+
     // Names the user supplied (manual affiliations and alias canonicals) are
     // authoritative; canonicalisation only folds auto-detected variants and
-    // leaves these exactly as written.
-    let mut manual_groups: std::collections::HashSet<String> =
-        cfg.groups.iter().map(|r| r.group.clone()).collect();
-    manual_groups.extend(cfg.group_aliases.iter().map(|(canon, _)| canon.clone()));
+    // leaves these exactly as written ("The"-stripped to match the rows).
+    let mut manual_groups: std::collections::HashSet<String> = cfg
+        .groups
+        .iter()
+        .map(|r| strip_the(&r.group).to_string())
+        .collect();
+    manual_groups.extend(
+        cfg.group_aliases
+            .iter()
+            .map(|(canon, _)| strip_the(canon).to_string()),
+    );
     let n_groups = canonicalize_groups(&mut contributors, &manual_groups);
     if n_groups > 0 {
         log!("→ {n_groups} distinct affiliations/groups");
@@ -591,6 +602,41 @@ fn apply_group_aliases(contributors: &mut [Contributor], aliases: &[(String, Vec
             for slot in mg.iter_mut().flatten() {
                 if let Some(cn) = canon(slot) {
                     *slot = cn;
+                }
+            }
+        }
+    }
+}
+
+/// A group name with a leading "The " (case-insensitive) removed, or the name
+/// unchanged if it has no such prefix or stripping would leave it empty.
+fn strip_the(g: &str) -> &str {
+    match g.get(..4) {
+        Some(head) if head.eq_ignore_ascii_case("the ") => {
+            let rest = g[4..].trim_start();
+            if rest.is_empty() {
+                g
+            } else {
+                rest
+            }
+        }
+        _ => g,
+    }
+}
+
+/// Drop a leading "The " from every group name (primary and per-month) so
+/// "The X" collapses into "X".
+fn strip_leading_the(contributors: &mut [Contributor]) {
+    for c in contributors.iter_mut() {
+        if let Some(g) = &mut c.group {
+            if strip_the(g).len() != g.len() {
+                *g = strip_the(g).to_string();
+            }
+        }
+        if let Some(mg) = &mut c.month_groups {
+            for slot in mg.iter_mut().flatten() {
+                if strip_the(slot).len() != slot.len() {
+                    *slot = strip_the(slot).to_string();
                 }
             }
         }
