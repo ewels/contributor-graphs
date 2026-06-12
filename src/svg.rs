@@ -34,7 +34,8 @@ impl Default for SvgOptions {
 
 pub const GROUP_PALETTE: &[&str] = &[
     "#4269d0", "#e7a13d", "#ff725c", "#6cc5b0", "#3ca951", "#ff8ab7", "#a463f2", "#97bbf5",
-    "#9c6b4e", "#9498a0", "#2f7f8f", "#c65b8a",
+    "#9c6b4e", "#9498a0", "#2f7f8f", "#c65b8a", "#d62728", "#17becf", "#7570b3", "#66a61e",
+    "#e6ab02", "#e7298a", "#1f9e89", "#b15928",
 ];
 
 const ROW_H: f64 = 26.0;
@@ -189,10 +190,11 @@ fn hash_hue(name: &str) -> u32 {
 }
 
 pub const OTHER_GROUP_COLOR: &str = "#9aa3ad";
-const MAX_GROUP_COLORS: usize = 10;
 
-/// Assign palette colours to the most common groups; the long tail shares a
-/// neutral grey. Returns (group → colour, legend entries in rank order).
+/// Assign palette colours to groups, cycling the palette so every group gets a
+/// colour rather than letting the long tail collapse into grey. The legend
+/// lists at most one group per distinct palette colour (in rank order), since
+/// beyond that colours repeat. Returns (group → colour, legend entries).
 pub fn group_colors(rows: &[Contributor]) -> (HashMap<String, String>, Vec<(String, String)>) {
     let mut counts_map: HashMap<String, usize> = HashMap::new();
     for c in rows {
@@ -216,16 +218,11 @@ pub fn group_colors(rows: &[Contributor]) -> (HashMap<String, String>, Vec<(Stri
     let mut map = HashMap::new();
     let mut legend = Vec::new();
     for (i, (g, _)) in counts.iter().enumerate() {
-        if i < MAX_GROUP_COLORS {
-            let color = GROUP_PALETTE[i % GROUP_PALETTE.len()].to_string();
+        let color = GROUP_PALETTE[i % GROUP_PALETTE.len()].to_string();
+        if i < GROUP_PALETTE.len() {
             legend.push((g.clone(), color.clone()));
-            map.insert(g.clone(), color);
-        } else {
-            map.insert(g.clone(), OTHER_GROUP_COLOR.to_string());
         }
-    }
-    if counts.len() > MAX_GROUP_COLORS {
-        legend.push(("Other".into(), OTHER_GROUP_COLOR.into()));
+        map.insert(g.clone(), color);
     }
     (map, legend)
 }
