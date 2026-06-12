@@ -26,11 +26,13 @@ pub mod github;
 pub mod html;
 pub mod identity;
 pub mod model;
+pub mod progress;
 pub mod repo;
 pub mod svg;
 pub mod theme;
 
 use anyhow::{bail, Result};
+use std::io::IsTerminal;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -55,6 +57,9 @@ pub struct Config {
     pub title: Option<String>,
     /// Exclude contributors whose name or login contains any of these strings.
     pub exclude: Vec<String>,
+    /// When expanding a bare owner into its repositories, drop any whose slug
+    /// (`owner/repo`) or bare repo name matches one of these (case-insensitive).
+    pub exclude_repos: Vec<String>,
     /// Manual `matcher → group` rules (matcher = name, email, or login),
     /// optionally date-bounded for affiliations that change over time.
     pub groups: Vec<model::GroupRule>,
@@ -96,6 +101,7 @@ impl Default for Config {
             no_merges: false,
             title: None,
             exclude: Vec::new(),
+            exclude_repos: Vec::new(),
             groups: Vec::new(),
             group_aliases: Vec::new(),
             identities: Vec::new(),
@@ -152,6 +158,22 @@ pub fn analyze(input: &str, cfg: &Config) -> Result<Analysis> {
     analyze_many(std::slice::from_ref(&input), cfg)
 }
 
+/// Whether an org-expanded slug (`owner/repo`) should be dropped given the
+/// user's exclude list. Matches the full slug or the bare repo name,
+/// case-insensitively, so both `nf-validation` and `nextflow-io/nf-validation`
+/// exclude the same repository.
+fn repo_excluded(slug: &str, excludes: &[String]) -> bool {
+    if excludes.is_empty() {
+        return false;
+    }
+    let slug_l = slug.to_lowercase();
+    let name_l = slug_l.rsplit('/').next().unwrap_or(slug_l.as_str());
+    excludes.iter().any(|e| {
+        let e = e.trim().to_lowercase();
+        !e.is_empty() && (e == slug_l || e == name_l)
+    })
+}
+
 /// Resolve one or more repositories into a single combined timeline. Commits
 /// from every source are pooled, author identities are clustered across the
 /// whole pool, and commits that appear in more than one source (overlapping
@@ -200,12 +222,23 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
                 }
                 log!("  warning: no repositories found for '{input}'");
             } else {
+                let before = slugs.len();
+                let kept: Vec<String> = slugs
+                    .into_iter()
+                    .filter(|s| !repo_excluded(s, &cfg.exclude_repos))
+                    .collect();
+                let excluded = before - kept.len();
                 log!(
-                    "  {} repositories{}",
-                    slugs.len(),
-                    if cached { " (cached)" } else { "" }
+                    "  {} repositories{}{}",
+                    kept.len(),
+                    if cached { " (cached)" } else { "" },
+                    if excluded > 0 {
+                        format!(", {excluded} excluded")
+                    } else {
+                        String::new()
+                    }
                 );
-                sources.extend(slugs);
+                sources.extend(kept);
             }
         } else {
             sources.push((*input).to_string());
@@ -218,20 +251,34 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     // Prepare each source. With several sources, a single repo that fails to
     // clone or has no commits shouldn't abort the whole pool: skip it with a
     // warning. A single-source run still surfaces the error.
+    // Show progress bars only when there are several items to count, the caller
+    // wants output, and stderr is a real terminal (so piped/CI logs stay plain).
+    let multi = sources.len() > 1;
+    let show_bars = cfg.verbose && multi && std::io::stderr().is_terminal();
     let mut prepared: Vec<repo::PreparedRepo> = Vec::new();
+    let clone_bar = progress::bar("cloning repositories", sources.len(), show_bars);
     for input in &sources {
-        match repo::prepare(input, cfg.branch.as_deref()) {
+        // With the bar active, `prepare` stays quiet so the bar owns the line.
+        match repo::prepare(input, cfg.branch.as_deref(), show_bars) {
             Ok(p) => prepared.push(p),
-            Err(e) if sources.len() > 1 => log!("  warning: skipping source '{input}' ({e})"),
+            Err(e) if multi => {
+                clone_bar.suspend(|| log!("  warning: skipping source '{input}' ({e})"))
+            }
             Err(e) => return Err(e),
         }
+        clone_bar.inc(1);
     }
+    clone_bar.finish_and_clear();
     if prepared.is_empty() {
         bail!("no usable repository sources");
     }
     let source_slugs: Vec<Option<String>> = prepared.iter().map(|p| p.slug.clone()).collect();
-    for p in &prepared {
-        log!("→ source: {} (branch {})", p.display_name, p.branch);
+    // A line per source is just noise once the bar is in play (the commit
+    // summary below covers the totals); keep it for a single source or plain logs.
+    if !show_bars {
+        for p in &prepared {
+            log!("→ source: {} (branch {})", p.display_name, p.branch);
+        }
     }
 
     let filter = model::CommitFilter {
@@ -248,6 +295,11 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
     let outcomes: Vec<Mutex<Option<Result<SourceRead>>>> =
         (0..prepared.len()).map(|_| Mutex::new(None)).collect();
     let cursor = AtomicUsize::new(0);
+    let read_bar = progress::bar(
+        "reading history",
+        prepared.len(),
+        show_bars && prepared.len() > 1,
+    );
     std::thread::scope(|s| {
         for _ in 0..READ_THREADS.min(prepared.len()) {
             s.spawn(|| loop {
@@ -255,9 +307,11 @@ pub fn analyze_many(inputs: &[&str], cfg: &Config) -> Result<Analysis> {
                 let Some(p) = prepared.get(i) else { break };
                 let r = read_source(p, &caches, &filter, branch);
                 *outcomes[i].lock().unwrap() = Some(r);
+                read_bar.inc(1);
             });
         }
     });
+    read_bar.finish_and_clear();
 
     let mut commits: Vec<model::Commit> = Vec::new();
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();

@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.3.1] - 2026-06-13
+
+### Added
+
+- Progress bars for the slow phases — cloning repositories, reading history, and
+  the GitHub enrichment passes (resolving identities, fetching profiles,
+  embedding avatars) — so an org-wide run shows how many items remain instead of
+  a line scrolling past per repo. Bars render only on a terminal; piped and CI
+  output stays plain.
+- `--exclude-repo`: when expanding a bare `owner` into all its repositories, skip
+  one by `owner/repo` slug or bare repo name (case-insensitive, repeatable).
+
 ## [1.3.0] - 2026-06-13
 
 ### Added

@@ -107,6 +107,9 @@ contributor-graphs https://github.com/MultiQC/MultiQC
 
 # Several sources pooled into one timeline (any mix of slugs, paths, URLs)
 contributor-graphs nf-core/rnaseq nf-core/sarek MultiQC/MultiQC --title "nf-core + MultiQC"
+
+# A whole org (bare owner expands to all its non-fork repos), skipping one
+contributor-graphs nextflow-io --exclude-repo nf-validation
 ```
 
 This writes `<repo>.svg` and `<repo>.html` into the output directory.
@@ -154,6 +157,7 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--max-contributors <N>`            | Cap SVG rows to the top `N` by commits (default: 40)                 |
 | `--include-bots`                    | Keep bot accounts (excluded by default)                              |
 | `--exclude <PATTERN>`               | Drop contributors matching a name/login (repeatable)                 |
+| `--exclude-repo <REPO>`             | Skip a repo when expanding an org (`owner/repo` or name, repeatable) |
 | `--by-affiliation`                  | Collapse each row to a whole affiliation, not one person             |
 | `--unaffiliated-label <TEXT>`       | Bucket name for people with no affiliation (default: `Unaffiliated`) |
 | `--sort <KEY>`                      | `first` · `last` · `commits` · `duration` · `name`                   |

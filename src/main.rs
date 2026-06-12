@@ -66,6 +66,11 @@ struct Args {
     #[arg(long)]
     exclude: Vec<String>,
 
+    /// When expanding a bare `owner` into all its repos, skip this one
+    /// (`owner/repo` slug or bare repo name; repeatable)
+    #[arg(long, value_name = "REPO")]
+    exclude_repo: Vec<String>,
+
     /// YAML curation file with manual `identities`, group-name `aliases`, and
     /// time-bounded `affiliations`. See the docs for the schema.
     #[arg(long)]
@@ -388,6 +393,7 @@ fn main() -> Result<()> {
         no_merges: args.no_merges,
         title: args.title.clone(),
         exclude: args.exclude.clone(),
+        exclude_repos: args.exclude_repo.clone(),
         groups: curation.groups,
         group_aliases: curation.group_aliases,
         identities: curation.identities,

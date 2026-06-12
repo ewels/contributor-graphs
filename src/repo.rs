@@ -18,8 +18,9 @@ pub struct PreparedRepo {
 
 /// Resolve user input (local path, `owner/repo` slug, or git URL) into a local
 /// git directory we can run `git log` against. Remote repos are cloned as
-/// bare, treeless partial clones into a cache directory.
-pub fn prepare(input: &str, branch: Option<&str>) -> Result<PreparedRepo> {
+/// bare, treeless partial clones into a cache directory. With `quiet`, the
+/// per-repo "cloning …" line is suppressed (the caller is showing a bar).
+pub fn prepare(input: &str, branch: Option<&str>, quiet: bool) -> Result<PreparedRepo> {
     let path = Path::new(input);
     if path.exists() {
         return prepare_local(path, branch);
@@ -27,14 +28,14 @@ pub fn prepare(input: &str, branch: Option<&str>) -> Result<PreparedRepo> {
 
     if let Some(slug) = parse_github_url(input) {
         let url = format!("https://github.com/{slug}");
-        return prepare_remote(&format!("{url}.git"), Some(slug), branch);
+        return prepare_remote(&format!("{url}.git"), Some(slug), branch, quiet);
     }
     if looks_like_slug(input) {
         let url = format!("https://github.com/{input}.git");
-        return prepare_remote(&url, Some(input.to_string()), branch);
+        return prepare_remote(&url, Some(input.to_string()), branch, quiet);
     }
     if input.contains("://") || input.starts_with("git@") {
-        return prepare_remote(input, None, branch);
+        return prepare_remote(input, None, branch, quiet);
     }
 
     bail!(
@@ -84,6 +85,7 @@ fn prepare_remote(
     clone_url: &str,
     slug: Option<String>,
     branch: Option<&str>,
+    quiet: bool,
 ) -> Result<PreparedRepo> {
     let cache_key = sanitize(slug.as_deref().unwrap_or(clone_url));
     let cache_dir = clones_dir().join(cache_key);
@@ -92,7 +94,9 @@ fn prepare_remote(
     // fetch(), which the caller calls just for repos whose history changed.
     if !cache_dir.join("HEAD").exists() {
         std::fs::create_dir_all(cache_dir.parent().unwrap()).ok();
-        eprintln!("  cloning {clone_url} (commit history only)");
+        if !quiet {
+            eprintln!("  cloning {clone_url} (commit history only)");
+        }
         let status = Command::new("git")
             .args(["clone", "--bare", "--filter=tree:0", "--quiet", clone_url])
             .arg(&cache_dir)

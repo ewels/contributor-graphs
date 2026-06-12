@@ -3,6 +3,7 @@ use crate::identity::Cluster;
 use crate::model::{Commit, Contributor};
 use base64::Engine;
 use std::collections::HashMap;
+use std::io::IsTerminal;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -236,6 +237,11 @@ pub fn enrich_clusters(
 
     let cursor = AtomicUsize::new(0);
     let results: Mutex<HashMap<usize, (String, String)>> = Mutex::new(HashMap::new());
+    let pb = crate::progress::bar(
+        "resolving identities",
+        need_api.len(),
+        verbose && std::io::stderr().is_terminal(),
+    );
     std::thread::scope(|s| {
         for _ in 0..THREADS.min(need_api.len()) {
             s.spawn(|| loop {
@@ -246,9 +252,11 @@ pub fn enrich_clusters(
                 if let Some(found) = client.commit_author(slug, sha) {
                     results.lock().unwrap().insert(*cluster_idx, found);
                 }
+                pb.inc(1);
             });
         }
     });
+    pb.finish_and_clear();
 
     let results = results.into_inner().unwrap();
     let resolved = results.len();
@@ -367,6 +375,11 @@ pub fn fetch_profiles(
     if !to_fetch.is_empty() && client.has_token() {
         let cursor = AtomicUsize::new(0);
         let results: Mutex<HashMap<String, Profile>> = Mutex::new(HashMap::new());
+        let pb = crate::progress::bar(
+            "fetching profiles",
+            to_fetch.len(),
+            verbose && std::io::stderr().is_terminal(),
+        );
         std::thread::scope(|s| {
             for _ in 0..THREADS.min(to_fetch.len()) {
                 s.spawn(|| loop {
@@ -374,9 +387,11 @@ pub fn fetch_profiles(
                     let Some(login) = to_fetch.get(i) else { break };
                     let profile = client.user_profile(login);
                     results.lock().unwrap().insert(login.clone(), profile);
+                    pb.inc(1);
                 });
             }
         });
+        pb.finish_and_clear();
         for (login, (name, company)) in results.into_inner().unwrap() {
             caches.put_profile(login.clone(), name.clone(), company.clone());
             profiles.insert(login, (name, company));
@@ -449,6 +464,11 @@ pub fn embed_avatars(
             .collect();
         let cursor = AtomicUsize::new(0);
         let results: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
+        let pb = crate::progress::bar(
+            "embedding avatars",
+            to_fetch.len(),
+            verbose && std::io::stderr().is_terminal(),
+        );
         std::thread::scope(|s| {
             for _ in 0..THREADS.min(to_fetch.len()) {
                 s.spawn(|| loop {
@@ -468,9 +488,11 @@ pub fn embed_avatars(
                             .unwrap()
                             .insert(orig.clone(), format!("data:{ct};base64,{b64}"));
                     }
+                    pb.inc(1);
                 });
             }
         });
+        pb.finish_and_clear();
         for (url, data) in results.into_inner().unwrap() {
             caches.put_avatar(key_of(&url), data.clone());
             embedded.insert(url, data);
