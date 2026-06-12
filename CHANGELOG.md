@@ -4,6 +4,47 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.3.0] - 2026-06-12
+
+### Added
+
+- Release markers: vertical lines on the timeline at every git tag, with a
+  "Releases" toggle in the filter controls. In light/dark themes they are off by
+  default and, when switched on, replace the year/month gridlines so there is
+  only ever one set of verticals; the Wikipedia theme always shows them (solid
+  black) and never draws background gridlines. Tags are pooled from every source
+  (multi-source tags are prefixed with the repo name), a short caption under the
+  chart explains the lines, and they are included in the SVG and PNG exports.
+- CSV/TSV affiliations file (`--affiliations`): columns `username`, `full name`,
+  `affiliation`, `start`, `end`, one row per affiliation period. The delimiter
+  is auto-detected and it combines with the `--config` YAML.
+
+### Changed
+
+- Refined Wikipedia theme: bright, near-CSS-primary colours for both the per-row
+  "band member" bars and the affiliation groups; thicker grey row tracks with
+  slim white gaps; solid black L-shaped x/y axes; x-axis tick marks; squared-off
+  row hover; and no background gridlines.
+- Smarter affiliation grouping: group-name variants ("Seqera Labs", "Seqera",
+  "seqeralabs") are merged into one canonical organisation and a leading "The"
+  is stripped, with identities backfilled across sources.
+- The affiliation palette now cycles so every organisation gets a colour instead
+  of the long tail collapsing into grey, the "Group" colour view is renamed
+  "Affiliations", and legend chips filter the chart.
+- Affiliation details are placed consistently across the tooltip and expanded
+  rows throughout the report.
+
+### Fixed
+
+- Multi-affiliation contributors: the expanded-row area plot and the tooltip
+  sparkline now colour the area fill per affiliation segment so it mirrors the
+  line, instead of using a single colour.
+- Gap months (no affiliation active that month) are coloured as unaffiliated
+  grey rather than the row's primary group.
+- The Wikipedia theme now shows the affiliation filter legend and colours rows
+  by affiliation to match it when colouring by affiliation; the legend chips
+  were previously hidden in that theme.
+
 ## [1.2.1] - 2026-06-12
 
 ### Changed
