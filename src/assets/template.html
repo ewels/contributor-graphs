@@ -112,9 +112,46 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 28px 24px 60px;
+        /* Flex column so the desktop visual order can be preserved with `order`
+           while the DOM groups the toolbar + legend together for the mobile
+           drawer (.menu uses display:contents on desktop, so its children
+           participate directly here). */
+        display: flex;
+        flex-direction: column;
       }
       .wrap.wide {
         max-width: none;
+      }
+      .mobile-nav {
+        order: 0;
+      }
+      header {
+        order: 1;
+      }
+      .toolbar {
+        order: 2;
+      }
+      .context-card {
+        order: 3;
+      }
+      .legend {
+        order: 4;
+      }
+      .chart-card {
+        order: 5;
+      }
+      footer {
+        order: 6;
+      }
+      /* On desktop the menu wrapper is transparent: its children (toolbar +
+         legend) lay out as direct flex items of .wrap and obey their `order`.
+         On mobile (media query below) it becomes the slide-down drawer. */
+      .menu {
+        display: contents;
+      }
+      .mobile-nav,
+      .menu-backdrop {
+        display: none;
       }
 
       /* ---------- header ---------- */
@@ -666,13 +703,154 @@
 
       @media (max-width: 760px) {
         .wrap {
-          padding: 16px 12px 40px;
+          /* The sticky nav owns the top edge; it adds its own gap below. */
+          padding: 0 12px 40px;
         }
         header {
           flex-direction: column;
+          padding-top: 14px;
         }
         input[type="search"] {
           width: 100%;
+        }
+        /* Full-width toggle is meaningless on a phone. */
+        #wide-toggle {
+          display: none;
+        }
+
+        /* ---------- sticky mobile navbar + burger ---------- */
+        .mobile-nav {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          position: sticky;
+          top: 0;
+          z-index: 40;
+          margin: 0 -12px;
+          padding: 8px 12px;
+          background: var(--card);
+          border-bottom: 1px solid var(--border);
+        }
+        .mobile-nav .mn-title {
+          flex: 1;
+          min-width: 0;
+          font-family: var(--font-display);
+          font-weight: 700;
+          font-size: 15px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .burger {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: none;
+          width: 40px;
+          height: 34px;
+          padding: 0;
+          background: var(--card);
+          color: var(--text);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .burger svg {
+          width: 18px;
+          height: 18px;
+        }
+        .burger .ic-close {
+          display: none;
+        }
+        body.menu-open .burger {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        body.menu-open .burger .ic-open {
+          display: none;
+        }
+        body.menu-open .burger .ic-close {
+          display: block;
+        }
+
+        /* ---------- the drawer (filters + org filters) ---------- */
+        .menu {
+          display: block;
+          position: fixed;
+          top: var(--nav-h, 52px);
+          left: 0;
+          right: 0;
+          z-index: 39;
+          max-height: calc(100dvh - var(--nav-h, 52px));
+          overflow-y: auto;
+          padding: 16px 14px 20px;
+          background: var(--card);
+          border-bottom: 1px solid var(--border);
+          box-shadow: var(--shadow-lg);
+          transform: translateY(-12px);
+          opacity: 0;
+          visibility: hidden;
+          transition:
+            transform 0.18s ease,
+            opacity 0.18s ease,
+            visibility 0.18s;
+        }
+        body.menu-open .menu {
+          transform: none;
+          opacity: 1;
+          visibility: visible;
+        }
+        .menu-backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: 38;
+          background: rgba(0, 0, 0, 0.45);
+          opacity: 0;
+          visibility: hidden;
+          transition:
+            opacity 0.18s,
+            visibility 0.18s;
+        }
+        body.menu-open .menu-backdrop {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        /* toolbar becomes a full-width vertical stack inside the drawer */
+        .toolbar {
+          position: static;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 16px;
+          margin: 0;
+          padding: 0;
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .toolbar .ctl,
+        .toolbar select,
+        .toolbar .ctl-row {
+          width: 100%;
+        }
+        .toolbar .showing {
+          white-space: normal;
+        }
+
+        /* org filters live in the drawer, beneath the controls */
+        .legend {
+          margin: 4px 0 0;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
+        }
+
+        /* the activity timeline stays out of the drawer and pins below the
+           navbar so it is always visible while scrolling the chart */
+        .context-card {
+          position: sticky;
+          top: var(--nav-h, 52px);
+          z-index: 20;
         }
       }
       @media print {
@@ -694,6 +872,38 @@
   </head>
   <body>
     <div class="wrap">
+      <div class="mobile-nav" id="mobile-nav">
+        <span class="mn-title" id="mn-title"></span>
+        <button
+          class="burger"
+          id="burger"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+          aria-label="Filters and options"
+        >
+          <svg
+            class="ic-open"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          >
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+          </svg>
+          <svg
+            class="ic-close"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          >
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
       <header>
         <div class="title-block">
           <h1 id="repo-title"></h1>
@@ -755,97 +965,100 @@
         </div>
       </header>
 
-      <div class="toolbar">
-        <div class="ctl" id="ctl-rows" hidden>
-          <label for="rows">Rows</label>
-          <select id="rows">
-            <option value="contributors">Contributors</option>
-            <option value="affiliations">Current affiliations</option>
-          </select>
-        </div>
-        <div class="ctl">
-          <label for="search">Search</label>
-          <input
-            type="search"
-            id="search"
-            placeholder="Name or username…"
-            autocomplete="off"
-          />
-        </div>
-        <div class="ctl">
-          <label for="min-range">Min commits</label>
-          <div class="ctl-row">
+      <div class="menu" id="menu">
+        <div class="toolbar">
+          <div class="ctl" id="ctl-rows" hidden>
+            <label for="rows">Rows</label>
+            <select id="rows">
+              <option value="contributors">Contributors</option>
+              <option value="affiliations">Current affiliations</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label for="search">Search</label>
             <input
-              type="range"
-              id="min-range"
-              min="0"
-              max="100"
-              value="0"
-              step="1"
-            />
-            <input
-              type="number"
-              id="min-num"
-              min="1"
-              value="1"
-              aria-label="Minimum commits"
+              type="search"
+              id="search"
+              placeholder="Name or username…"
+              autocomplete="off"
             />
           </div>
-        </div>
-        <div class="ctl">
-          <label for="topn">Show top</label>
-          <div class="ctl-row">
-            <input type="number" id="topn" min="1" step="5" />
-            <span class="val" id="topn-of"></span>
+          <div class="ctl">
+            <label for="min-range">Min commits</label>
+            <div class="ctl-row">
+              <input
+                type="range"
+                id="min-range"
+                min="0"
+                max="100"
+                value="0"
+                step="1"
+              />
+              <input
+                type="number"
+                id="min-num"
+                min="1"
+                value="1"
+                aria-label="Minimum commits"
+              />
+            </div>
           </div>
+          <div class="ctl">
+            <label for="topn">Show top</label>
+            <div class="ctl-row">
+              <input type="number" id="topn" min="1" step="5" />
+              <span class="val" id="topn-of"></span>
+            </div>
+          </div>
+          <div class="ctl">
+            <label for="sort">Order by</label>
+            <select id="sort">
+              <option value="first">First commit</option>
+              <option value="last">Latest commit</option>
+              <option value="commits">Most commits</option>
+              <option value="duration">Longest active</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label for="color">Colour</label>
+            <select id="color">
+              <option value="activity">Activity heat</option>
+              <option value="solid">Solid</option>
+              <option value="year">Year joined</option>
+              <option value="group" id="opt-group" hidden>Group</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>&nbsp;</label>
+            <label class="switch">
+              <input type="checkbox" id="bots" />
+              <span class="track"></span>
+              <span class="lbl">Bots</span>
+            </label>
+          </div>
+          <div class="ctl" id="ctl-coauthors" hidden>
+            <label>&nbsp;</label>
+            <label class="switch">
+              <input type="checkbox" id="coauthors" />
+              <span class="track"></span>
+              <span class="lbl">Co-authors</span>
+            </label>
+          </div>
+          <div class="spacer"></div>
+          <div class="showing" id="showing"></div>
+          <button
+            class="btn subtle"
+            id="expand-all"
+            title="Expand or collapse every visible row"
+          >
+            Expand all
+          </button>
+          <button class="btn subtle" id="reset" title="Reset all filters">
+            Reset
+          </button>
         </div>
-        <div class="ctl">
-          <label for="sort">Order by</label>
-          <select id="sort">
-            <option value="first">First commit</option>
-            <option value="last">Latest commit</option>
-            <option value="commits">Most commits</option>
-            <option value="duration">Longest active</option>
-            <option value="name">Name</option>
-          </select>
-        </div>
-        <div class="ctl">
-          <label for="color">Colour</label>
-          <select id="color">
-            <option value="activity">Activity heat</option>
-            <option value="solid">Solid</option>
-            <option value="year">Year joined</option>
-            <option value="group" id="opt-group" hidden>Group</option>
-          </select>
-        </div>
-        <div class="ctl">
-          <label>&nbsp;</label>
-          <label class="switch">
-            <input type="checkbox" id="bots" />
-            <span class="track"></span>
-            <span class="lbl">Bots</span>
-          </label>
-        </div>
-        <div class="ctl" id="ctl-coauthors" hidden>
-          <label>&nbsp;</label>
-          <label class="switch">
-            <input type="checkbox" id="coauthors" />
-            <span class="track"></span>
-            <span class="lbl">Co-authors</span>
-          </label>
-        </div>
-        <div class="spacer"></div>
-        <div class="showing" id="showing"></div>
-        <button
-          class="btn subtle"
-          id="expand-all"
-          title="Expand or collapse every visible row"
-        >
-          Expand all
-        </button>
-        <button class="btn subtle" id="reset" title="Reset all filters">
-          Reset
-        </button>
+        <div class="legend" id="legend" hidden></div>
       </div>
 
       <div class="context-card">
@@ -879,8 +1092,6 @@
         <svg id="context" height="64"></svg>
       </div>
 
-      <div class="legend" id="legend" hidden></div>
-
       <div class="chart-card">
         <svg id="chart"></svg>
         <div class="empty" id="empty" style="display: none">
@@ -894,6 +1105,7 @@
       <footer id="footer"></footer>
     </div>
 
+    <div class="menu-backdrop" id="menu-backdrop"></div>
     <div id="tooltip" role="tooltip"></div>
 
     <script id="data" type="application/json">
@@ -2390,6 +2602,7 @@
           (REPO.url
             ? `<a href="${esc(REPO.url)}" target="_blank" rel="noopener">${name}</a>`
             : name);
+        $("#mn-title").textContent = REPO.name;
         $("#stats").innerHTML =
           `<span><b>${fmtNum(REPO.total_contributors)}</b> contributors</span>` +
           `<span><b>${fmtNum(REPO.total_commits)}</b> commits</span>` +
@@ -2529,6 +2742,27 @@
         renderAll();
         writeHash();
       });
+      /* ---------- mobile filter drawer ---------- */
+      function setMenu(open) {
+        document.body.classList.toggle("menu-open", open);
+        $("#burger").setAttribute("aria-expanded", open ? "true" : "false");
+      }
+      // Keep the drawer and the sticky activity plot tucked exactly beneath the
+      // navbar regardless of its rendered height (title length, font, theme).
+      function syncNav() {
+        const h = $("#mobile-nav").offsetHeight || 0;
+        document.documentElement.style.setProperty("--nav-h", h + "px");
+        if (matchMedia("(min-width: 761px)").matches) setMenu(false);
+      }
+      $("#burger").addEventListener("click", () =>
+        setMenu(!document.body.classList.contains("menu-open")),
+      );
+      $("#menu-backdrop").addEventListener("click", () => setMenu(false));
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setMenu(false);
+      });
+      addEventListener("resize", syncNav);
+
       $("#rows").addEventListener("change", (e) => {
         state.mode = e.target.value;
         state.gsel.clear();
@@ -2650,6 +2884,7 @@
       renderHeader();
       syncControls();
       renderAll();
+      syncNav();
     </script>
   </body>
 </html>
