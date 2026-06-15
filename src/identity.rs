@@ -279,6 +279,23 @@ const BOT_NAMES: &[&str] = &[
     "copilot",
 ];
 
+/// Fixed author/co-author addresses used by automated agents: CI/release bots
+/// and LLM coding agents. Matched exactly (case-insensitively) so real people
+/// at the same domain — name@anthropic.com, name@cursor.com, a Seqera engineer
+/// who tags "+ Codex" onto their own name@seqera.io commits — stay human.
+const BOT_EMAILS: &[&str] = &[
+    "noreply@anthropic.com",  // Claude / Claude Code
+    "cursoragent@cursor.com", // Cursor Agent
+    "codex@openai.com",       // OpenAI Codex
+    "noreply@opencode.ai",    // OpenCode
+    "seqera-ai@seqera.io",    // Seqera AI
+];
+
+/// Substrings that mark an automated address whatever digits GitHub prepends to
+/// the local part: any GitHub App (`…[bot]@…`) plus CI/release bots whose
+/// addresses vary. Unlike `BOT_EMAILS` these match anywhere in the address.
+const BOT_EMAIL_PATTERNS: &[&str] = &["[bot]@", "actions@github.com", "dependabot"];
+
 pub fn is_bot(cl: &Cluster) -> bool {
     let hit = |s: &str| {
         let l = s.to_lowercase();
@@ -287,7 +304,8 @@ pub fn is_bot(cl: &Cluster) -> bool {
     cl.names.iter().any(|n| hit(n))
         || cl.login.as_deref().is_some_and(hit)
         || cl.emails.iter().any(|e| {
-            e.contains("[bot]@") || e.starts_with("actions@github.com") || e.contains("dependabot")
+            let e = e.to_lowercase();
+            BOT_EMAILS.contains(&e.as_str()) || BOT_EMAIL_PATTERNS.iter().any(|p| e.contains(p))
         })
 }
 
