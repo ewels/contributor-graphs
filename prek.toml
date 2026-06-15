@@ -48,3 +48,11 @@ language = "node"
 additional_dependencies = ["prettier@3.6.2"]
 entry = "prettier --write"
 files = '\.(css|html|js|json|md|ya?ml)$'
+
+[[repos.hooks]]
+id = "docs-version"
+name = "docs install version matches Cargo.toml"
+language = "system"
+entry = "scripts/check-docs-version.sh"
+always_run = true
+pass_filenames = false
