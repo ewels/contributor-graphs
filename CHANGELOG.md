@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.4.0] - 2026-06-23
+
+### Added
+
+- LLM coding agents are now detected as bots. `is_bot` previously matched only
+  `[bot]` markers and a hardcoded name list, so Claude, Cursor, OpenAI Codex,
+  OpenCode and Seqera AI showed up as regular contributors (Claude alone had
+  500–900+ commits on some repos). Agents are matched by their fixed
+  author/co-author email address — the safe signal — so real people at the same
+  domain (`name@anthropic.com`, or an engineer who tags "+ Codex" onto their own
+  `name@seqera.io` commits) stay human. The email checks are split into two
+  declarative arrays: `BOT_EMAILS` for exact full-address matches and
+  `BOT_EMAIL_PATTERNS` for substring/prefix patterns (GitHub App `[bot]@`
+  addresses, CI bots with varying digits).
+
+### Fixed
+
+- Brush-zooming into a smaller time window no longer leaves stray affiliation
+  "bubbles" pinned to the chart edge for periods that fall entirely outside the
+  visible range. Both the flat (Wikipedia band) and shaded bar renderers now
+  skip any period whose month span doesn't overlap the visible window before
+  computing its geometry.
+- The contributor tooltip now scopes its activity summary (latest commit, active
+  span, active months, sparkline) to the active brush selection instead of the
+  person's entire history, so the card matches the zoomed rows below it. A
+  "Selected range · …" caption is shown while a window is active.
+
 ## [1.3.1] - 2026-06-13
 
 ### Added
