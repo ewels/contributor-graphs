@@ -2155,8 +2155,13 @@
               // band when there's a single affiliation), painted over the grey
               // track and release verticals laid down before the row loop.
               rowBars(c).forEach((bar) => {
-                const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
-                const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
+                const bs = monthStartTs(c.m0 + bar.a);
+                const be = monthStartTs(c.m0 + bar.b + 1);
+                // Skip periods that fall entirely outside the visible window,
+                // so a zoomed-in view doesn't pin stray bars to the edge.
+                if (be <= t0 || bs >= t1) return;
+                const x0 = sx(Math.max(bs, t0));
+                const x1 = sx(Math.min(be, t1));
                 const w = Math.max(x1 - x0, 6);
                 const x = x1 - x0 < 6 ? x0 + (x1 - x0) / 2 - 3 : x0;
                 r.push(
@@ -2170,8 +2175,13 @@
                 state.color === "solid" ? null : smoothMonths(c.months);
               const smax = sm ? maxOf(sm, 1e-9) : 1;
               rowBars(c).forEach((bar, bi) => {
-                const x0 = sx(Math.max(monthStartTs(c.m0 + bar.a), t0));
-                const x1 = sx(Math.min(monthStartTs(c.m0 + bar.b + 1), t1));
+                const bs = monthStartTs(c.m0 + bar.a);
+                const be = monthStartTs(c.m0 + bar.b + 1);
+                // Skip periods that fall entirely outside the visible window,
+                // so a zoomed-in view doesn't pin stray bubbles to the edge.
+                if (be <= t0 || bs >= t1) return;
+                const x0 = sx(Math.max(bs, t0));
+                const x1 = sx(Math.min(be, t1));
                 const w = Math.max(x1 - x0, 3);
                 const rx = Math.min(barH / 2, w / 2);
                 r.push(
