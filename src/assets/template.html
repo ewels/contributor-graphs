@@ -685,6 +685,12 @@
       #tooltip .tt-spark {
         margin-top: 8px;
       }
+      #tooltip .tt-scope {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
       #tooltip .badge {
         display: inline-block;
         font-size: 11px;
@@ -2432,7 +2438,64 @@
         renderChart();
       });
 
+      // A view of a contributor restricted to the active time window (the brush
+      // selection), so the tooltip describes the person *within the selected
+      // scope* — matching the zoomed rows below. With no brush it returns the
+      // contributor unchanged (full-history view). Identity fields are kept;
+      // the month bins, commit count and span are recomputed for the window.
+      function scopeToWindow(c) {
+        if (state.t0 == null) return c;
+        const [d0, d1] = domain();
+        const lo = Math.max(0, monthIndex(d0) - c.m0);
+        const hi = Math.min(c.months.length - 1, monthIndex(d1) - c.m0);
+        if (hi < lo)
+          return {
+            ...c,
+            months: [],
+            month_groups: c.month_groups ? [] : c.month_groups,
+            commits: 0,
+            first: Math.max(c.first, d0),
+            last: Math.min(c.last, d1),
+          };
+        const months = c.months.slice(lo, hi + 1);
+        const m0 = c.m0 + lo;
+        let commits = 0,
+          firstIdx = -1,
+          lastIdx = -1;
+        months.forEach((v, i) => {
+          if (v > 0) {
+            commits += v;
+            if (firstIdx < 0) firstIdx = i;
+            lastIdx = i;
+          }
+        });
+        // Keep the true first/last commit dates when they fall inside the
+        // window; otherwise fall back to the first/last active month in range.
+        let first, last;
+        if (firstIdx >= 0) {
+          first = c.first >= d0 ? c.first : monthStartTs(m0 + firstIdx);
+          last = c.last <= d1 ? c.last : monthStartTs(m0 + lastIdx);
+        } else {
+          first = Math.max(c.first, d0);
+          last = Math.min(c.last, d1);
+        }
+        return {
+          ...c,
+          months,
+          month_groups: c.month_groups
+            ? c.month_groups.slice(lo, hi + 1)
+            : c.month_groups,
+          m0,
+          commits,
+          first,
+          last,
+        };
+      }
       function tooltipHtml(c) {
+        // Row colour is decided from the full-history record (so it matches the
+        // band below), then everything else is scoped to the brush selection.
+        const color = rowColor(c);
+        c = scopeToWindow(c);
         const months = Math.max(
           1,
           Math.round((c.last - c.first) / 2629800) + 1,
@@ -2442,8 +2505,11 @@
           months >= 24
             ? (months / 12).toFixed(1) + " years"
             : months + " months";
-        const color = rowColor(c);
         const spark = sparkline(c, color);
+        const scopeNote =
+          state.t0 != null
+            ? `<div class="tt-scope">Selected range · ${fmtMonthYear(state.t0)} – ${fmtMonthYear(state.t1)}</div>`
+            : "";
 
         if (c.isGroup) {
           const names = c.member_names || [];
@@ -2459,7 +2525,7 @@
       <dt>Active span</dt><dd>${span}</dd>
     </dl>
     ${people ? `<div class="tt-members">${people}</div>` : ""}
-    <div class="tt-spark">${spark}</div>`;
+    <div class="tt-spark">${spark}</div>${scopeNote}`;
         }
 
         const av = c.avatar
@@ -2491,7 +2557,7 @@
     <dt>Active span</dt><dd>${span}</dd>
     <dt>Active months</dt><dd>${active}</dd>
   </dl>
-  <div class="tt-spark">${spark}</div>`;
+  <div class="tt-spark">${spark}</div>${scopeNote}`;
       }
       function sparkline(c, color) {
         const w = 250,
