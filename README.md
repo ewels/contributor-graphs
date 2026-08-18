@@ -175,10 +175,6 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--format <svg\|html\|both>`        | Which outputs to write (default: both)                               |
 | `--open`                            | Open the HTML in your browser when done                              |
 
-`--min-commits`, `--max-contributors`, `--sort` and `--include-bots` also set
-the interactive page's initial state. Every one stays adjustable in the page,
-and the URL records any change you make there, so a filtered view is shareable.
-
 Run `contributor-graphs --help` for the full list.
 
 ### Themes
