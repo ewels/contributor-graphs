@@ -152,9 +152,9 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--title <TITLE>`                   | Override the chart title                                             |
 | `-b, --branch <REF>`                | Which branch/ref to read (default: `HEAD`)                           |
 | `--since <DATE>` / `--until <DATE>` | Restrict the commit window                                           |
-| `--min-commits <N>`                 | Hide contributors below `N` commits in the SVG (default: 1)          |
-| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first-to-last span) from SVG  |
-| `--max-contributors <N>`            | Cap SVG rows to the top `N` by commits (default: 40)                 |
+| `--min-commits <N>`                 | Hide contributors below `N` commits (default: 1)                     |
+| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first-to-last span); SVG only |
+| `--max-contributors <N>`            | Cap rows to the top `N` by commits (default: 40)                     |
 | `--include-bots`                    | Keep bot accounts (excluded by default)                              |
 | `--exclude <PATTERN>`               | Drop contributors matching a name/login (repeatable)                 |
 | `--exclude-repo <REPO>`             | Skip a repo when expanding an org (`owner/repo` or name, repeatable) |
@@ -174,6 +174,10 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--width <PX>`                      | Static SVG width (default: 1100)                                     |
 | `--format <svg\|html\|both>`        | Which outputs to write (default: both)                               |
 | `--open`                            | Open the HTML in your browser when done                              |
+
+`--min-commits`, `--max-contributors`, `--sort` and `--include-bots` also set
+the interactive page's initial state. Every one stays adjustable in the page,
+and the URL records any change you make there, so a filtered view is shareable.
 
 Run `contributor-graphs --help` for the full list.
 

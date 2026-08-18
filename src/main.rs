@@ -45,16 +45,17 @@ struct Args {
     #[arg(long)]
     no_merges: bool,
 
-    /// Minimum commits for a contributor to appear in the static SVG
+    /// Minimum commits for a contributor to appear, and the page's initial
+    /// "Min commits" filter
     #[arg(long, default_value_t = 1)]
     min_commits: u32,
 
     /// Minimum span in days from a contributor's first to last commit, for the
-    /// static SVG (drops one-off and short-burst contributors)
+    /// static SVG only (drops one-off and short-burst contributors)
     #[arg(long, default_value_t = 0)]
     min_span_days: i64,
 
-    /// Maximum rows in the static SVG (top contributors by commits)
+    /// Maximum rows in the SVG, and the page's initial "Show top" value
     #[arg(long, default_value_t = 40)]
     max_contributors: usize,
 
@@ -123,7 +124,7 @@ struct Args {
     #[arg(long, default_value = "Unaffiliated")]
     unaffiliated_label: String,
 
-    /// Row order in the static SVG
+    /// Row order in the SVG and the page's initial sort
     #[arg(long, value_enum, default_value = "first")]
     sort: SortKey,
 
@@ -376,6 +377,11 @@ fn main() -> Result<()> {
         anyhow::bail!("invalid --accent colour: {:?}", args.accent);
     }
 
+    // A zero cap empties both outputs.
+    if args.max_contributors == 0 {
+        anyhow::bail!("--max-contributors must be at least 1");
+    }
+
     // Curation can come from a YAML file, a TSV affiliations file, or both
     // (their identities and affiliation rules merge).
     let mut curation = Curation::default();
@@ -521,6 +527,15 @@ fn main() -> Result<()> {
             accent: args.accent.clone(),
             by_affiliation: args.by_affiliation,
             unaffiliated_label: args.unaffiliated_label.clone(),
+            min_commits: args.min_commits,
+            max_contributors: args.max_contributors,
+            sort: args
+                .sort
+                .to_possible_value()
+                .expect("SortKey has no skipped variants")
+                .get_name()
+                .to_string(),
+            include_bots: args.include_bots,
             custom_themes: theme_set.custom.clone(),
             theme_order: theme_set.order.clone(),
             default_theme: html_default_theme.clone(),
