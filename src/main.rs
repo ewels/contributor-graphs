@@ -378,7 +378,7 @@ fn main() -> Result<()> {
     }
 
     // A zero cap empties both outputs.
-    if args.max_contributors == 0 {
+    if args.max_contributors < 1 {
         anyhow::bail!("--max-contributors must be at least 1");
     }
 
