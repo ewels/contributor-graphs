@@ -7,6 +7,14 @@ pub struct HtmlOptions {
     pub accent: String,
     pub by_affiliation: bool,
     pub unaffiliated_label: String,
+    /// Initial "Min commits" filter value in the page.
+    pub min_commits: u32,
+    /// Initial "Show top" row cap.
+    pub max_contributors: usize,
+    /// Initial row order: `first` / `last` / `commits` / `duration` / `name`.
+    pub sort: String,
+    /// Show bot accounts on load.
+    pub include_bots: bool,
     /// Custom themes to register in the page (built-ins live in the template).
     pub custom_themes: Vec<Theme>,
     /// Theme ids to offer in the menu, in order.
@@ -24,6 +32,10 @@ impl Default for HtmlOptions {
             accent: "#2f6feb".into(),
             by_affiliation: false,
             unaffiliated_label: "Unaffiliated".into(),
+            min_commits: 1,
+            max_contributors: 40,
+            sort: "first".into(),
+            include_bots: false,
             custom_themes: Vec::new(),
             theme_order: vec!["light".into(), "dark".into(), "wikipedia".into()],
             default_theme: None,
@@ -40,6 +52,10 @@ pub fn render_html(meta: &RepoMeta, contributors: &[Contributor], opts: &HtmlOpt
         "accent": opts.accent,
         "byAffiliation": opts.by_affiliation,
         "unaffiliated": opts.unaffiliated_label,
+        "minCommits": opts.min_commits,
+        "maxContributors": opts.max_contributors,
+        "defaultSort": opts.sort,
+        "includeBots": opts.include_bots,
         "themes": custom,
         "themeOrder": opts.theme_order,
         "defaultTheme": opts.default_theme,

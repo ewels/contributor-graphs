@@ -1467,16 +1467,29 @@
       const HAS_GROUPS = GROUPS.length > 0;
       const DEFAULT_MODE =
         DATA.byAffiliation && HAS_GROUPS ? "affiliations" : "contributors";
-      const DEFAULT_TOP = Math.min(50, HUMANS.length);
+      const DEFAULT_MIN = DATA.minCommits || 1;
+      const DEFAULT_BOTS = !!DATA.includeBots;
+      const DEFAULT_TOP = Math.max(
+        1,
+        Math.min(
+          DATA.maxContributors || 40,
+          (DEFAULT_BOTS ? ALL : HUMANS).length,
+        ),
+      );
+      // Must match the #sort <select> options and the CLI's SortKey.
+      const SORT_KEYS = ["first", "last", "commits", "duration", "name"];
+      const DEFAULT_SORT = SORT_KEYS.includes(DATA.defaultSort)
+        ? DATA.defaultSort
+        : "first";
       const DEFAULT_COLOR = HAS_GROUPS ? "group" : "activity";
       const state = {
         mode: DEFAULT_MODE,
         q: "",
-        min: 1,
+        min: DEFAULT_MIN,
         top: DEFAULT_TOP,
-        sort: "first",
+        sort: DEFAULT_SORT,
         color: DEFAULT_COLOR,
-        bots: false,
+        bots: DEFAULT_BOTS,
         coauthors: true, // count Co-authored-by trailers (full credit each)
         releases: false, // draw release marker verticals (forced on for Wikipedia)
         align: false, // align the activity strip with the rows (default: full width)
@@ -1582,7 +1595,7 @@
         try {
           const p = new URLSearchParams(location.hash.slice(1));
           if (p.has("q")) state.q = p.get("q");
-          if (p.has("min")) state.min = +p.get("min") || 1;
+          if (p.has("min")) state.min = +p.get("min") || DEFAULT_MIN;
           if (p.has("top")) state.top = +p.get("top") || DEFAULT_TOP;
           if (p.has("sort")) state.sort = p.get("sort");
           if (p.has("color")) state.color = p.get("color");
@@ -1612,11 +1625,12 @@
         hashTimer = setTimeout(() => {
           const p = new URLSearchParams();
           if (state.q) p.set("q", state.q);
-          if (state.min > 1) p.set("min", state.min);
+          if (state.min !== DEFAULT_MIN) p.set("min", state.min);
           if (state.top !== DEFAULT_TOP) p.set("top", state.top);
-          if (state.sort !== "first") p.set("sort", state.sort);
+          if (state.sort !== DEFAULT_SORT) p.set("sort", state.sort);
           if (state.color !== DEFAULT_COLOR) p.set("color", state.color);
-          if (state.bots) p.set("bots", "1");
+          if (state.bots !== DEFAULT_BOTS)
+            p.set("bots", state.bots ? "1" : "0");
           if (HAS_COAUTHORS && !state.coauthors) p.set("co", "0");
           if (state.align) p.set("align", "1");
           if (state.wide) p.set("wide", "1");
@@ -3086,11 +3100,11 @@
       $("#reset").addEventListener("click", () => {
         state.mode = DEFAULT_MODE;
         state.q = "";
-        state.min = 1;
+        state.min = DEFAULT_MIN;
         state.top = DEFAULT_TOP;
-        state.sort = "first";
+        state.sort = DEFAULT_SORT;
         state.color = DEFAULT_COLOR;
-        state.bots = false;
+        state.bots = DEFAULT_BOTS;
         state.coauthors = true;
         applyCoauthors();
         // Releases default on for the Wikipedia skin, off elsewhere.

@@ -152,9 +152,9 @@ Pass `--no-github` to skip all network calls and render from git data alone.
 | `--title <TITLE>`                   | Override the chart title                                             |
 | `-b, --branch <REF>`                | Which branch/ref to read (default: `HEAD`)                           |
 | `--since <DATE>` / `--until <DATE>` | Restrict the commit window                                           |
-| `--min-commits <N>`                 | Hide contributors below `N` commits in the SVG (default: 1)          |
-| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first-to-last span) from SVG  |
-| `--max-contributors <N>`            | Cap SVG rows to the top `N` by commits (default: 40)                 |
+| `--min-commits <N>`                 | Hide contributors below `N` commits (default: 1)                     |
+| `--min-span-days <N>`               | Drop one-off/short-burst contributors (first-to-last span); SVG only |
+| `--max-contributors <N>`            | Cap rows to the top `N` by commits (default: 40)                     |
 | `--include-bots`                    | Keep bot accounts (excluded by default)                              |
 | `--exclude <PATTERN>`               | Drop contributors matching a name/login (repeatable)                 |
 | `--exclude-repo <REPO>`             | Skip a repo when expanding an org (`owner/repo` or name, repeatable) |
