@@ -464,7 +464,7 @@ fn main() -> Result<()> {
         }
         let eligible = rows.len();
         if rows.len() > args.max_contributors {
-            rows.sort_by_key(|c| std::cmp::Reverse(c.commits));
+            contributor_graphs::sort(&mut rows, Sort::Commits);
             rows.truncate(args.max_contributors);
         }
         contributor_graphs::sort(&mut rows, args.sort.into());

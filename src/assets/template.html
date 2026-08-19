@@ -1699,10 +1699,7 @@
         // co-authors drop out of the total when co-authors are toggled off.
         const total = base.filter(hasCommits).length;
         if (rows.length > state.top) {
-          rows = rows
-            .slice()
-            .sort((a, b) => b.commits - a.commits)
-            .slice(0, state.top);
+          rows = rows.slice().sort(comparator("commits")).slice(0, state.top);
         }
         rows = rows.slice().sort(comparator(state.sort));
         return { rows, eligible, total };
@@ -1727,18 +1724,27 @@
         _monthlyMax[key] = m;
         return m;
       }
+      // Tie-breaks mirror lib.rs::sort, so the SVG and the page pick and order
+      // the same rows.
+      const byName = (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
       function comparator(key) {
         switch (key) {
           case "last":
-            return (a, b) => b.last - a.last || b.commits - a.commits;
+            return (a, b) =>
+              b.last - a.last || b.commits - a.commits || byName(a, b);
           case "commits":
-            return (a, b) => b.commits - a.commits;
+            return (a, b) =>
+              b.commits - a.commits || a.first - b.first || byName(a, b);
           case "duration":
-            return (a, b) => b.last - b.first - (a.last - a.first);
+            return (a, b) =>
+              b.last - b.first - (a.last - a.first) ||
+              a.first - b.first ||
+              byName(a, b);
           case "name":
             return (a, b) => a.name.localeCompare(b.name);
           default:
-            return (a, b) => a.first - b.first || b.commits - a.commits;
+            return (a, b) =>
+              a.first - b.first || b.commits - a.commits || byName(a, b);
         }
       }
       function rowColor(c) {

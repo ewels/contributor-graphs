@@ -140,13 +140,34 @@ pub enum Sort {
     Name,
 }
 
-/// Sort contributor rows in place.
+/// Sort contributor rows in place. Every order is total, so the interactive
+/// page can reproduce it exactly.
 pub fn sort(rows: &mut [Contributor], key: Sort) {
     match key {
-        Sort::First => rows.sort_by(|a, b| a.first.cmp(&b.first).then(b.commits.cmp(&a.commits))),
-        Sort::Last => rows.sort_by(|a, b| b.last.cmp(&a.last).then(b.commits.cmp(&a.commits))),
-        Sort::Commits => rows.sort_by_key(|c| std::cmp::Reverse(c.commits)),
-        Sort::Duration => rows.sort_by_key(|c| std::cmp::Reverse(c.last - c.first)),
+        Sort::First => rows.sort_by(|a, b| {
+            a.first
+                .cmp(&b.first)
+                .then(b.commits.cmp(&a.commits))
+                .then(a.name.cmp(&b.name))
+        }),
+        Sort::Last => rows.sort_by(|a, b| {
+            b.last
+                .cmp(&a.last)
+                .then(b.commits.cmp(&a.commits))
+                .then(a.name.cmp(&b.name))
+        }),
+        Sort::Commits => rows.sort_by(|a, b| {
+            b.commits
+                .cmp(&a.commits)
+                .then(a.first.cmp(&b.first))
+                .then(a.name.cmp(&b.name))
+        }),
+        Sort::Duration => rows.sort_by(|a, b| {
+            (b.last - b.first)
+                .cmp(&(a.last - a.first))
+                .then(a.first.cmp(&b.first))
+                .then(a.name.cmp(&b.name))
+        }),
         Sort::Name => rows.sort_by_key(|a| a.name.to_lowercase()),
     }
 }
